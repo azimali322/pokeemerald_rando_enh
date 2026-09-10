@@ -537,6 +537,89 @@ difficulty balance. Flag it if you want it; it's a small follow-up.
 
 ---
 
+## Phase 3b — BST similarity mode (New Req 14)
+
+Pairs with Phase 3. Phase 3 controls **how evolved** a wild mon is; this controls **how strong** it is.
+Background and worked examples in [Appendix G](#appendix-g--tertus-dynamic-species-tables-explained).
+
+### The problem
+
+`tx_Random_Similar` ("Similar Evolution Level") matches by evolution stage, and stage is a poor proxy for
+power. The `EVO_TYPE_0` bucket holds 179 species from **Sunkern (BST 180)** to **Lapras (BST 535)** — so the
+balance option itself puts a 3× power gap in one swap pool.
+
+### The design
+
+A third setting on the existing similarity axis, rather than a separate toggle — the three are mutually
+exclusive ways of answering "what should this species become?":
+
+| `tx_Random_SimilarMode` | Behaviour |
+|---|---|
+| 0 — Off | Any species → any species (today's default) |
+| 1 — Evolution stage | Today's `tx_Random_Similar` |
+| 2 — **Base stats** | **New** — swap within ±10.24% BST |
+
+**Migration note:** `tx_Random_Similar` is an existing 1-bit save field. Widen it to 2 bits and keep 0/1
+meaning what they mean today, so old values still read correctly. There are 548 spare bytes in `SaveBlock1`
+(measured in Phase 1), so this is free.
+
+### Implementation
+
+**1. Generated sorted table** — `src/data/pokemon/species_by_bst.h`, species ids ascending by base stat total:
+
+```c
+static const u16 sSpeciesByBST[] = { /* generated at build time */ };
+```
+
+**924 bytes of ROM, zero EWRAM.** This is the key departure from Tertu: he builds it in RAM at boot because
+pokeemerald-expansion has an open-ended species list that would make a static table go stale. Your list is
+fixed at 462, so sorting once at build time is strictly better here.
+
+Generate it with a script committed alongside (`tools/gen_bst_table.py`), parsing
+`src/data/pokemon/species_info.h`. **Regenerate if you ever change base stats** — `tx_Mode_New_Stats` already
+alters some, so decide whether the table should reflect the modified stats (it should; the modified values are
+what the game actually uses).
+
+**2. Band lookup** in `src/pokemon.c`:
+
+```c
+static u16 GetSpeciesBST(u16 species);                    // sums the 6 base stats
+static u16 GetRandomSpeciesByBST(u16 species, u16 seed);  // two binary searches + seeded pick
+```
+
+Binary search `sSpeciesByBST` for the first entry ≥ `bst * 0.8976` and the first > `bst * 1.1024`, then pick a
+seeded index between them. ~9 comparisons per bound versus a 462-entry scan — the whole reason a sorted table
+exists.
+
+Use integer maths, not floats: `lo = bst - (bst * 1024 / 10000)`. The GBA has no FPU and this is on the
+encounter path.
+
+**3. Hook** — in `GetRandomSpecies()` (`src/pokemon.c:12240`), add the mode-2 branch alongside the existing
+`tx_Random_Similar` branch. Everything downstream is unchanged.
+
+### Interaction with Phase 3
+They compose cleanly and are worth running together: BST picks a species of appropriate power, then
+`ClampSpeciesToLevel` walks it down to an appropriate evolution stage. A Lv4 Route 102 encounter would pick
+something Poochyena-tier by BST, and clamping would rarely need to fire at all.
+
+### Edge cases
+- **Narrow bands at the extremes.** Sunkern (BST 180) has only **6** candidates in band; Magikarp (200) has
+  22; Tauros (510) has 147. At the very bottom the pool is small enough that repeats will be common. Consider
+  widening the band when fewer than ~8 candidates are found, or accept the repetition.
+- **Legendaries.** A ±10.24% band around Mewtwo (680) is almost entirely other legendaries, which is a sane
+  outcome — but confirm it respects `tx_Random_IncludeLegendaries` rather than sneaking them in.
+- **Species missing base stats.** The generator parsed 436 of ~462; the rest are forms or placeholders. Ensure
+  the table only contains species that are valid randomizer targets, and that a species absent from the table
+  falls back to the flat random path rather than reading past the end.
+
+### Risks
+- Getting the band arithmetic wrong in integer maths gives a silently too-wide or too-narrow pool. Unit-test
+  the bounds against a few known BSTs before wiring it in.
+- The table must stay sorted. If someone edits it by hand and breaks the ordering, binary search returns
+  garbage rather than failing loudly — worth a debug-only `STATIC_ASSERT`-style ordering check at boot.
+
+---
+
 ## Phase 4 — Random legendary encounters (Req 2)
 
 **Simplified per your feedback: every legendary encounter in the game yields a random legendary.**
@@ -1230,6 +1313,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | 2 | Cheap Ultra Balls | S | Low | `item.c`, `shop.c` |
 | 2b | Evo stones + trade-evo items ₽1 | S | Low | `item.c`, 2 map scripts |
 | 3 | Level-aware wild randomization | M | Med | `pokemon.c`, `wild_encounter.c` |
+| 3b | BST similarity mode | M | Low | `pokemon.c`, generated BST table |
 | 4 | Random legendaries (everywhere) | S | **Med** (plot) | `pokemon.c`, `roamer.c` |
 | 5 | VGC moves | M | Low | `pokemon.c` (data-heavy) |
 | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
@@ -1721,12 +1805,16 @@ Tertu's `MON_RANDOM_BST` mode matches species by **base stat total** rather than
 ±10.24% band around the original's BST (`GetGroupRange`, with a binary search over a BST-sorted table).
 
 Modern Emerald only has evolution-stage matching (`tx_Random_Similar`, via `sRandomSpeciesEvo0/1/2`). Stage is
-a crude proxy for power: a stage-0 Magikarp and a stage-0 Dratini are wildly different, and plenty of
-single-stage mons are `EVO_TYPE_SELF` and never get randomized at all. BST matching is more even, and it
-composes cleanly with the Phase 3 level clamp (BST picks *how strong*, the clamp picks *how evolved*).
+a crude proxy for power — the `EVO_TYPE_0` bucket spans **BST 180 (Sunkern) to 535 (Lapras)**, a 3× spread
+inside the option that exists to keep things fair. BST matching is far more even, and it composes cleanly
+with the Phase 3 level clamp (BST picks *how strong*, the clamp picks *how evolved*).
 
-Cost: a BST-sorted species table plus a binary search. Moderate — a new species-selection mode alongside the
-existing ones, not a rewrite.
+Worked through with real numbers in [Appendix G](#appendix-g--tertus-dynamic-species-tables-explained);
+implementation in [Phase 3b](#phase-3b--bst-similarity-mode-new-req-14).
+
+*(Correction: an earlier revision claimed single-stage mons are `EVO_TYPE_SELF` and never randomize. That was
+wrong — Tauros, Lapras and Skarmory are all `EVO_TYPE_0` and do randomize. Only 27 species are
+`EVO_TYPE_SELF`. The spread problem above is the real and only argument for BST mode.)*
 
 **2. Per-reason independent random streams.**
 Tertu seeds each randomization category separately via `enum RandomizerReason` (`RANDOMIZER_REASON_WILD_ENCOUNTER`,
@@ -1818,39 +1906,80 @@ behaviours:
 Three of the four modes already have hardcoded `const` equivalents in this ROM, and hardcoded is *better*
 here — it costs ROM (10 MB spare) instead of EWRAM (988 bytes spare), and needs no build step at boot.
 
-`MON_RANDOM_BST` is the exception. It groups species by base stat total and swaps within a **±10.24% band**
-(`GetGroupRange`, `:366`). Modern Emerald cannot express this, because a range query over a continuous value
-is precisely what a sorted index is for and a flat `const` list isn't.
+`MON_RANDOM_BST` is the exception. Modern Emerald cannot express it, and here is exactly why that matters.
 
-**Why BST mode is worth wanting.** Modern Emerald's only "balance" option is `tx_Random_Similar`, which
-matches by *evolution stage*. Stage is a crude proxy for power:
+### Why Tertu built this — a worked example
 
-- A stage-0 Magikarp (BST 200) and a stage-0 Dratini (BST 300) are treated as interchangeable.
-- Fully-evolved Beautifly (BST 395) and Salamence (BST 600) are both "stage 2".
-- Single-stage mons are `EVO_TYPE_SELF` and **never get randomized at all** — Tauros, Lapras, Skarmory and
-  friends are simply excluded from the shuffle.
+Modern Emerald's only "balance" option is `tx_Random_Similar`, which matches by **evolution stage**. It sorts
+every species into one of five buckets (`gSpeciesMapping[]`) and swaps within the bucket:
 
-BST matching fixes all three: it swaps by actual power, and it has something meaningful to say about
-single-stage species.
+| Bucket | Species | BST range | Spread |
+|---|---:|---|---:|
+| `EVO_TYPE_0` | 179 | Sunkern **180** → Lapras **535** | **355** |
+| `EVO_TYPE_1` | 156 | — | — |
+| `EVO_TYPE_2` | 60 | Butterfree **395** → Slaking **670** | **275** |
+| `EVO_TYPE_LEGENDARY` | 28 | — | — |
+| `EVO_TYPE_SELF` | 27 | never randomized | — |
 
-### The important correction: you can have BST mode without the EWRAM cost
+**A bucket labelled "balanced" spans a 3× power difference.** Turn on *Similar Evolution Level* — the option
+whose entire purpose is fairness — and Sunkern is in the same swap pool as Lapras:
 
-My earlier "skip it" advice conflated the *feature* with Tertu's *implementation*. They're separable.
+```
+SUNKERN  (BST 180, EVO_TYPE_0)
+  Similar pool : 179 species — strongest are Lapras(535), Aerodactyl(515), Tauros(510), Shuckle(505)
+  BST pool     :   6 species — strongest are Ralts(198), Caterpie(195), Weedle(195), Azurill(190)
 
-BST is a **static property** — it never changes at runtime. So the sorted index doesn't need to be built in
-RAM at all; it can be a `const` array generated at build time and binary-searched directly out of ROM:
-
-```c
-// sorted by base stat total, ascending
-static const u16 sSpeciesByBST[NUM_SPECIES] = { /* generated */ };
+MAGIKARP (BST 200, EVO_TYPE_0)
+  Similar pool : 179 species — same Lapras/Aerodactyl/Tauros at the top
+  BST pool     :  22 species — strongest are Poochyena(220), Lotad(220), Seedot(220), Happiny(220)
 ```
 
-That is **924 bytes of ROM and zero EWRAM** — versus 2.7 KB of EWRAM you don't have. You lose only the
-ability to switch modes without recompiling, which doesn't matter when the mode is a save flag anyway.
+Stage-0 means "hasn't evolved yet", which says nothing about power. Lapras and Aerodactyl never evolve, so
+they're stage 0 — sitting in the same pool as Caterpie. On Route 101 you either get a Sunkern or a Lapras,
+and *Similar Evolution Level* is what put them both on the table.
 
-**Verdict: skip the dynamic tables, take BST mode.** Worth adding as its own small phase if you want it —
-one generated table, one `GetRandomSpeciesByBST()` helper, one menu option alongside *Similar Evolution
-Level*. Say the word.
+**BST matching is the fix.** Group by base stat total, swap within ±10.24%, and Sunkern's 6 candidates are
+all genuinely Sunkern-tier. That's the whole feature.
+
+### Why it needs a sorted table
+
+This is the part that explains the machinery, and it comes down to one distinction:
+
+- **Evolution stage is an exact-match query.** "Give me a stage-0 species." You can precompute one flat list
+  per bucket and index it — which is precisely what `sRandomSpeciesEvo0/1/2[]` are.
+- **BST is a *range* query.** "Give me a species with BST between 269 and 331." There is no fixed bucket to
+  precompute, because every species has a different band.
+
+Answering a range query naively means scanning all 462 species, collecting matches into a buffer, and picking
+one — every single call. The randomizer is called constantly: every wild encounter, every trainer party slot,
+every ability lookup. That cost is not acceptable per-call on a 16 MHz CPU.
+
+Sort the species by BST once, and the same query becomes **two binary searches** (~9 comparisons each) for the
+band's start and end, then a random index between them. No scan, no buffer. That is all
+`GetIndicesFromGroupRange` (`src/randomizer.c:384`) does, and it is the entire reason the table exists.
+
+So: **Tertu built the table because BST mode needs a sorted index, and the other three modes are along for the
+ride** — once you have the machinery, expressing "same evolution stage" as a degenerate range where min == max
+is free.
+
+### Why he built it in RAM, and why you shouldn't
+
+This is a difference in constraints, not a difference in judgement.
+
+Tertu's branch targets **pokeemerald-expansion**, where the species list is open-ended — people add Pokémon
+routinely, and the project supports 1000+. A hardcoded sorted table would silently go stale the moment
+someone inserted a species. Building it at boot means it is always correct, for any fork, with no build step.
+That is the right call *for a widely-forked base*.
+
+**Your species list is fixed at 462 and you are not adding Pokémon.** So you can sort once at build time and
+ship the result in ROM:
+
+```c
+static const u16 sSpeciesByBST[NUM_SPECIES] = { /* generated, ascending by BST */ };
+```
+
+**924 bytes of ROM, zero EWRAM** — versus 2.7 KB of EWRAM you do not have. Same binary search, same feature,
+none of the cost. See [Phase 3b](#phase-3b--bst-similarity-mode-new-req-14).
 
 ### The other thing they enable, which you do not need
 

@@ -276,6 +276,38 @@ making the clamp directly visible.
 
 ---
 
+## Phase 3b — BST similarity mode
+
+**Status:** Not implemented
+
+- [ ] **T3b.1 — Control.** *Similar* = Evolution stage: Sunkern can still swap into Lapras-tier species
+      (the 180→535 spread). Confirm the problem reproduces before testing the fix.
+- [ ] **T3b.2 — BST mode on.** *Similar* = Base stats: sample 20 wild encounters on an early route. Every
+      result is within roughly ±10% BST of what the slot originally held.
+- [ ] **T3b.3 — Sunkern band.** A BST-180 species yields only very weak species (Azurill/Caterpie/Weedle/Ralts
+      tier) — 6 candidates in band. Expect visible repetition; confirm it's tolerable or widen the band.
+- [ ] **T3b.4 — Mid band.** A BST-300 species (Dratini, Bagon, Larvitar) draws from ~84 candidates — good variety.
+- [ ] **T3b.5 — High band.** A BST-510 species (Tauros) draws from ~147 candidates.
+- [ ] **T3b.6 — Legendaries.** With *Include Legendaries* **off**, a high-BST band must not sneak legendaries in.
+      With it on, they may appear. **Most likely place for a leak** — the band around Mewtwo (680) is nearly
+      all legendary.
+- [ ] **T3b.7 — Old saves.** `tx_Random_Similar` widened from 1 bit to 2. A save made before the change must
+      still read Off/Evolution correctly, not garbage. (Phase 1 already forces a fresh save, but verify the
+      value mapping is 0=Off, 1=Evolution, 2=BST.)
+- [ ] **T3b.8 — Table ordering.** Add a debug check that `sSpeciesByBST` is sorted ascending. A mis-sorted
+      table makes binary search return wrong results **silently** rather than crashing.
+- [ ] **T3b.9 — Integer band maths.** Verify the computed bounds for a few known BSTs (180, 300, 510) match
+      the ±10.24% intent. Off-by-one in integer maths gives a silently wrong pool.
+- [ ] **T3b.10 — Missing species.** A species absent from the generated table (forms, placeholders) falls back
+      to the flat random path — no read past the end of the array.
+- [ ] **T3b.11 — Stacks with Phase 3.** BST mode + *Level-Scaled Wilds* together: BST picks power, the clamp
+      picks stage. On Route 102 the clamp should rarely need to fire, because BST already picked a weak mon.
+- [ ] **T3b.12 — Determinism.** Same route, same species across save/reload.
+- [ ] **T3b.13 — Performance.** Encounter latency unchanged vs Phase 3 alone — binary search should be
+      unmeasurable next to the existing `GetPreEvolution` scans.
+
+---
+
 ## Phase 4 — Random legendary encounters
 
 **Status:** Not implemented
