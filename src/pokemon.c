@@ -6166,27 +6166,25 @@ void GiveBoxMonInitialMoveset(struct BoxPokemon *boxMon)
 
             if (gSaveBlock1Ptr->tx_Random_Moves) //tx_randomizer_and_challenges
             {
-                move = GetRandomMove(move, species);
-                if (!FlagGet(FLAG_SYS_POKEMON_GET) && !firstMoveGiven)
-                {
-                    u8 j;
-
-                    #ifndef NDEBUG
-                    MgbaPrintf(MGBA_LOG_DEBUG, "Generate 1 damaging move");
-                    #endif
-
-                    for (j=0; j<100; j++)
-                    {
-                        if (gBattleMoves[move].power <= 1)
-                            move = GetRandomMove(move, species);
-                        else
-                            break;
-                    }
-                }
+                // The first move is guaranteed to be a same-type attack, so no Pokemon starts
+                // out with nothing but status moves. This used to apply to the starter only.
+                move = GetRandomLearnsetMove(move, species, moveLevel >> 9, !firstMoveGiven);
             }
 
-            if (GiveMoveToBoxMon(boxMon, move) == MON_HAS_MAX_MOVES)
-                DeleteFirstMoveAndGiveMoveToBoxMon(boxMon, move);
+            {
+                u16 given = GiveMoveToBoxMon(boxMon, move);
+                u8 retry;
+
+                // A duplicate roll would silently waste the slot, so try again for a new move.
+                for (retry = 0; retry < 8 && given == MON_ALREADY_KNOWS_MOVE; retry++)
+                {
+                    move = GetRandomLearnsetMove(move + retry + 1, species, moveLevel >> 9, FALSE);
+                    given = GiveMoveToBoxMon(boxMon, move);
+                }
+
+                if (given == MON_HAS_MAX_MOVES)
+                    DeleteFirstMoveAndGiveMoveToBoxMon(boxMon, move);
+            }
             if (!firstMoveGiven)
                 firstMoveGiven = TRUE;
         }
@@ -6207,27 +6205,25 @@ void GiveBoxMonInitialMoveset(struct BoxPokemon *boxMon)
 
             if (gSaveBlock1Ptr->tx_Random_Moves) //tx_randomizer_and_challenges
             {
-                move = GetRandomMove(move, species);
-                if (!FlagGet(FLAG_SYS_POKEMON_GET) && !firstMoveGiven)
-                {
-                    u8 j;
-
-                    #ifndef NDEBUG
-                    MgbaPrintf(MGBA_LOG_DEBUG, "Generate 1 damaging move");
-                    #endif
-
-                    for (j=0; j<100; j++)
-                    {
-                        if (gBattleMoves[move].power <= 1)
-                            move = GetRandomMove(move, species);
-                        else
-                            break;
-                    }
-                }
+                // The first move is guaranteed to be a same-type attack, so no Pokemon starts
+                // out with nothing but status moves. This used to apply to the starter only.
+                move = GetRandomLearnsetMove(move, species, moveLevel >> 9, !firstMoveGiven);
             }
 
-            if (GiveMoveToBoxMon(boxMon, move) == MON_HAS_MAX_MOVES)
-                DeleteFirstMoveAndGiveMoveToBoxMon(boxMon, move);
+            {
+                u16 given = GiveMoveToBoxMon(boxMon, move);
+                u8 retry;
+
+                // A duplicate roll would silently waste the slot, so try again for a new move.
+                for (retry = 0; retry < 8 && given == MON_ALREADY_KNOWS_MOVE; retry++)
+                {
+                    move = GetRandomLearnsetMove(move + retry + 1, species, moveLevel >> 9, FALSE);
+                    given = GiveMoveToBoxMon(boxMon, move);
+                }
+
+                if (given == MON_HAS_MAX_MOVES)
+                    DeleteFirstMoveAndGiveMoveToBoxMon(boxMon, move);
+            }
             if (!firstMoveGiven)
                 firstMoveGiven = TRUE;
         }
@@ -6262,7 +6258,7 @@ u16 MonTryLearningNewMove(struct Pokemon *mon, bool8 firstMove)
         {
             gMoveToLearn = (gLevelUpLearnsets_Original[species][sLearningMoveTableID] & LEVEL_UP_MOVE_ID);
             if (gSaveBlock1Ptr->tx_Random_Moves) //tx_randomizer_and_challenges
-                gMoveToLearn = GetRandomMove(gMoveToLearn, species);
+                gMoveToLearn = GetRandomLearnsetMove(gMoveToLearn, species, level, FALSE);
             sLearningMoveTableID++;
             retVal = GiveMoveToMon(mon, gMoveToLearn);
         }
@@ -6285,7 +6281,7 @@ u16 MonTryLearningNewMove(struct Pokemon *mon, bool8 firstMove)
         {
             gMoveToLearn = (gLevelUpLearnsets[species][sLearningMoveTableID] & LEVEL_UP_MOVE_ID);
             if (gSaveBlock1Ptr->tx_Random_Moves) //tx_randomizer_and_challenges
-                gMoveToLearn = GetRandomMove(gMoveToLearn, species);
+                gMoveToLearn = GetRandomLearnsetMove(gMoveToLearn, species, level, FALSE);
             sLearningMoveTableID++;
             retVal = GiveMoveToMon(mon, gMoveToLearn);
         }
@@ -10381,7 +10377,8 @@ u8 GetMoveRelearnerMoves(struct Pokemon *mon, u16 *moves)
                         //tx_randomizer_and_challenges
                         move = gLevelUpLearnsets_Original[species][i] & LEVEL_UP_MOVE_ID;
                         if (gSaveBlock1Ptr->tx_Random_Moves) //tx_randomizer_and_challenges
-                            move = GetRandomMove(move, species);
+                            move = GetRandomLearnsetMove(move, species,
+                                       (gLevelUpLearnsets_Original[species][i] & LEVEL_UP_MOVE_LV) >> 9, FALSE);
                         moves[numMoves++] = move;
                     }
                 }
@@ -10421,7 +10418,8 @@ u8 GetMoveRelearnerMoves(struct Pokemon *mon, u16 *moves)
                         //tx_randomizer_and_challenges
                         move = gLevelUpLearnsets[species][i] & LEVEL_UP_MOVE_ID;
                         if (gSaveBlock1Ptr->tx_Random_Moves) //tx_randomizer_and_challenges
-                            move = GetRandomMove(move, species);
+                            move = GetRandomLearnsetMove(move, species,
+                                       (gLevelUpLearnsets[species][i] & LEVEL_UP_MOVE_LV) >> 9, FALSE);
                         moves[numMoves++] = move;
                     }
                 }
@@ -10445,7 +10443,8 @@ u8 GetLevelUpMovesBySpecies(u16 species, u16 *moves)
             //tx_randomizer_and_challenges
             move = gLevelUpLearnsets_Original[species][i] & LEVEL_UP_MOVE_ID;
             if (gSaveBlock1Ptr->tx_Random_Moves) //tx_randomizer_and_challenges
-                move = GetRandomMove(move, species);
+                move = GetRandomLearnsetMove(move, species,
+                           (gLevelUpLearnsets_Original[species][i] & LEVEL_UP_MOVE_LV) >> 9, FALSE);
             moves[numMoves++] = move;
         }
     }
@@ -10456,7 +10455,8 @@ u8 GetLevelUpMovesBySpecies(u16 species, u16 *moves)
             //tx_randomizer_and_challenges
             move = gLevelUpLearnsets[species][i] & LEVEL_UP_MOVE_ID;
             if (gSaveBlock1Ptr->tx_Random_Moves) //tx_randomizer_and_challenges
-                move = GetRandomMove(move, species);
+                move = GetRandomLearnsetMove(move, species,
+                           (gLevelUpLearnsets[species][i] & LEVEL_UP_MOVE_LV) >> 9, FALSE);
             moves[numMoves++] = move;
         }
     }
@@ -12814,6 +12814,90 @@ u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
     }
 
     return speciesResult;
+}
+
+//tx_randomizer_and_challenges
+// Smarter learnset randomization.
+//
+// The stock behaviour maps every learnset entry through GetRandomMove independently, which gives
+// Hyper Beam at level 5, turns damaging slots into status moves, and can roll the same move twice
+// (GiveMoveToBoxMon then silently drops it, wasting the slot).
+//
+// This re-rolls until the replacement fits the slot it is filling. Deterministic: the whole
+// re-roll chain is a pure function of the original move, the species and the learn level, so every
+// caller that maps the same entry lands on the same move -- which matters, because the move
+// relearner and the level-up-moves list must agree with what the Pokemon actually learns.
+#define LEARNSET_EARLY_LEVEL    15
+#define LEARNSET_MID_LEVEL      35
+#define LEARNSET_EARLY_MAX_POW  60
+#define LEARNSET_MID_MAX_POW   100
+#define LEARNSET_MAX_REROLLS    24
+
+static bool8 IsLearnsetMoveAllowed(u16 move, u16 species, u8 learnLevel, bool8 wantDamaging, bool8 wantStab)
+{
+    u16 power;
+
+    if (move == MOVE_NONE || move >= MOVES_COUNT)
+        return FALSE;
+
+    power = gBattleMoves[move].power;
+
+    // Keep the power in step with when the move is learned.
+    if (learnLevel <= LEARNSET_EARLY_LEVEL && power > LEARNSET_EARLY_MAX_POW)
+        return FALSE;
+    if (learnLevel <= LEARNSET_MID_LEVEL && power > LEARNSET_MID_MAX_POW)
+        return FALSE;
+
+    // Preserve the shape of the original learnset: a damaging slot stays damaging, a status
+    // slot stays status. Without this a randomized mon can end up with four status moves.
+    if (wantDamaging && power <= 1)
+        return FALSE;
+    if (!wantDamaging && power > 1)
+        return FALSE;
+
+    if (wantStab && gBattleMoves[move].type != GetTypeBySpecies(species, 1)
+                 && gBattleMoves[move].type != GetTypeBySpecies(species, 2))
+        return FALSE;
+
+    return TRUE;
+}
+
+u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wantStab)
+{
+    u16 result = GetRandomMove(originalMove, species);
+    bool8 wantDamaging;
+    u8 i;
+
+    if (!gSaveBlock1Ptr->tx_Random_Learnsets)
+        return result;
+
+    if (originalMove == MOVE_NONE || originalMove >= MOVES_COUNT)
+        return result;
+
+    wantDamaging = (gBattleMoves[originalMove].power > 1);
+    if (wantStab)
+        wantDamaging = TRUE;    // the guaranteed first move is always an attack
+
+    for (i = 0; i < LEARNSET_MAX_REROLLS; i++)
+    {
+        if (IsLearnsetMoveAllowed(result, species, learnLevel, wantDamaging, wantStab))
+            return result;
+        result = GetRandomMove(result + i + 1, species);
+    }
+
+    // Same-type may be impossible for a narrow type at a low level -- relax the type
+    // requirement before giving up, so the mon still gets an attack rather than junk.
+    if (wantStab)
+    {
+        for (i = 0; i < LEARNSET_MAX_REROLLS; i++)
+        {
+            if (IsLearnsetMoveAllowed(result, species, learnLevel, TRUE, FALSE))
+                return result;
+            result = GetRandomMove(result + i + 1, species);
+        }
+    }
+
+    return result;  // constraints unsatisfiable; the unfiltered roll is still a valid move
 }
 
 u16 GetRandomMove(u16 move, u16 species)
