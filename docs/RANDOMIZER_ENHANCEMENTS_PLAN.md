@@ -797,7 +797,7 @@ level-up would mean overriding player move choices, which is worse. Flag it if y
 
 ---
 
-## Phase 7 — VGC-weighted abilities (Req 7)
+## Phase 7 — VGC-weighted abilities (Req 7) — ✅ **IMPLEMENTED**
 
 ### Why this is the hard one
 `GetAbilityBySpecies()` (`src/pokemon.c:8258`) randomizes by *substituting a species* and borrowing its
@@ -1312,7 +1312,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 7 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
+**Progress: 8 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
@@ -1325,7 +1325,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | ✅ | 4 | Random legendaries (everywhere) | S | **Med** (plot) | `pokemon.c`, `roamer.c` |
 | ☐ | 5 | VGC moves | M | Low | `pokemon.c` — **blocked on move tiers** |
 | ✅ | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
-| ☐ | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c` — tiers ready (Appendix A) |
+| ✅ | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c`, `ability_tiers.h` |
 | ☐ | 8 | VGC hold items | M | Med | `item.c` — **blocked on item tiers** |
 | ☐ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
 | ☐ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c` — **blocked on TM tiers** |

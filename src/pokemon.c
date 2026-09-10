@@ -2933,6 +2933,7 @@ static const u8 gSpeciesMapping[NUM_SPECIES+1] =
     //[SPECIES_DEOXYS_SPEED]      = EVO_TYPE_LEGENDARY,
 };
 #include "data/pokemon/species_by_bst.h"
+#include "data/pokemon/ability_tiers.h"
 
 #define RANDOM_SPECIES_COUNT ARRAY_COUNT(sRandomSpecies)
 static const u16 sRandomSpecies[] =
@@ -8257,8 +8258,89 @@ u8 GetMonsStateToDoubles_2(void)
     return (aliveCount > 1) ? PLAYER_HAS_TWO_USABLE_MONS : PLAYER_HAS_ONE_USABLE_MON;
 }
 
+//tx_randomizer_and_challenges
+// VGC-weighted abilities.
+//
+// The stock randomizer picks a random *species* and borrows its ability slot, so there is no
+// ability pool to weight. This is a separate path that draws from tiered tables instead.
+// Tiers come from the community tier list; see Appendix A of the plan.
+//
+// Weights are 40/30/22/6/2 across S+A / B / C / D / F. Those are not the 45/35/20 used for the
+// other VGC pools: they are divided by tier size so the per-ability odds fall monotonically.
+// Naive 20/8 for C/D would have made a D ability *more* likely than a C one, because C holds 26
+// entries and D only 9.
+#define ABILITY_W_SA  40
+#define ABILITY_W_B   30
+#define ABILITY_W_C   22
+#define ABILITY_W_D    6
+// F takes the remaining 2
+
+static u16 GetVGCAbility(u16 species, u8 abilityNum)
+{
+    const u16 *table;
+    u16 count, roll;
+
+    // Strict mode draws from S+A only. That is 16 abilities, so a full party will repeat.
+    if (gSaveBlock1Ptr->tx_Random_AbilitiesVGC == TX_VGC_STRICT)
+    {
+        table = sAbilitiesTierSA;
+        count = ARRAY_COUNT(sAbilitiesTierSA);
+    }
+    else
+    {
+        // Separate seed offset from the within-tier pick below, or the two correlate.
+        roll = RandomSeededModulo(species + abilityNum + 0x71C3, 100);
+
+        if (roll < ABILITY_W_SA)
+        {
+            table = sAbilitiesTierSA;
+            count = ARRAY_COUNT(sAbilitiesTierSA);
+        }
+        else if (roll < ABILITY_W_SA + ABILITY_W_B)
+        {
+            table = sAbilitiesTierB;
+            count = ARRAY_COUNT(sAbilitiesTierB);
+        }
+        else if (roll < ABILITY_W_SA + ABILITY_W_B + ABILITY_W_C)
+        {
+            table = sAbilitiesTierC;
+            count = ARRAY_COUNT(sAbilitiesTierC);
+        }
+        else if (roll < ABILITY_W_SA + ABILITY_W_B + ABILITY_W_C + ABILITY_W_D)
+        {
+            table = sAbilitiesTierD;
+            count = ARRAY_COUNT(sAbilitiesTierD);
+        }
+        else
+        {
+            table = sAbilitiesTierF;
+            count = ARRAY_COUNT(sAbilitiesTierF);
+        }
+    }
+
+    // Seeded on species + abilityNum only -- never Random(). This function is called constantly,
+    // including per-frame in battle, so a non-deterministic result would make the ability flicker.
+    return table[RandomSeededModulo(species + abilityNum, count)];
+}
+
 u8 GetAbilityBySpecies(u16 species, u8 abilityNum)
 {
+    //tx_randomizer_and_challenges
+    // Returns early so the legendary / Modern-Types special cases below only run on the
+    // species-substitution path they were written for.
+    if (gSaveBlock1Ptr->tx_Random_AbilitiesVGC != TX_VGC_OFF)
+    {
+        gLastUsedAbility = GetVGCAbility(species, abilityNum);
+
+        #ifndef NDEBUG
+            MgbaPrintf(MGBA_LOG_DEBUG, "TX VGC ABILITY     : %d=%S num=%d -> %d=%S",
+                       species, gSpeciesNames[species], abilityNum,
+                       gLastUsedAbility, gAbilityNames[gLastUsedAbility]);
+        #endif
+
+        return gLastUsedAbility;
+    }
+
     if (gSaveBlock1Ptr->tx_Random_Abilities) //tx_randomizer_and_challenges
     {
         species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_ABILITY, 0);

@@ -504,7 +504,32 @@ preserved where possible, and the function refuses outright rather than overwrit
 
 ## Phase 7 — VGC-weighted abilities
 
-**Status:** Not implemented
+**Status:** ✅ Implemented — **needs in-game verification**
+
+`GetVGCAbility()` in `src/pokemon.c`, returning **early** from `GetAbilityBySpecies` so the legendary and
+Modern-Types special cases below it only run on the species-substitution path they were written for.
+Tiers generated into `src/data/pokemon/ability_tiers.h` from Appendix A: **16 / 22 / 26 / 9 / 6 = 79**,
+with Wonder Guard and Cacophony in no table.
+
+**Verified offline** by reproducing the RNG maths over 878 (species, abilityNum) pairs:
+
+| Tier | Target | Actual | n | Per-ability | × uniform |
+|---|---:|---:|---:|---:|---:|
+| S+A | 40% | 40.1% | 16 | 2.506% | 1.98× |
+| B | 30% | 30.1% | 22 | 1.367% | 1.08× |
+| C | 22% | 21.9% | 26 | 0.841% | 0.66× |
+| D | 6% | 6.2% | 9 | 0.683% | 0.54× |
+| F | 2% | 1.8% | 6 | 0.304% | 0.24× |
+
+| Check | Result |
+|---|---|
+| Per-ability odds strictly decreasing S+A > B > C > D > F | ✅ **the inversion is fixed** |
+| Wonder Guard or Cacophony ever produced | **never** ✅ |
+| Deterministic for the same (species, abilityNum) | ✅ |
+| Distinct abilities seen | 78 of 79 |
+
+**T7.6, T7.13, T7.14 and T7.15 are covered by this.** T7.4 (no flicker in battle) still needs the emulator —
+the seed is species-only by construction, but only play confirms nothing else re-rolls it.
 
 - [ ] **T7.1 — Off (control).** *Random Abilities* On, *VGC* Off: today's species-substitution behaviour.
 - [ ] **T7.2 — Weighted.** Sample ~30 mons. More Intimidate / Levitate / Speed Boost / Thick Fat than chance
