@@ -12529,6 +12529,127 @@ u16 GetRandomLegendary(u16 species)
     return shuffled[index];
 }
 
+
+//tx_randomizer_and_challenges
+// Guarantee every randomized Pokemon has at least one damaging move matching its own type.
+//
+// Runs as a post-pass after the moveset is assigned rather than inside GetRandomMove, so it
+// applies identically to wild, static, gift and trainer Pokemon and composes with the VGC pools.
+// Species is read back off the mon rather than passed in: at the trainer call sites the local
+// `species` is only assigned when Random Trainer is on, so reading the mon is the only way to
+// be sure we are matching against the Pokemon that actually got created.
+
+static bool8 IsHMMove(u16 move)
+{
+    return move == MOVE_CUT || move == MOVE_FLY || move == MOVE_SURF || move == MOVE_STRENGTH
+        || move == MOVE_FLASH || move == MOVE_ROCK_SMASH || move == MOVE_WATERFALL || move == MOVE_DIVE;
+}
+
+static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
+{
+    if (move == MOVE_NONE || move >= MOVES_COUNT)
+        return FALSE;
+    if (gBattleMoves[move].power <= 1)      // status moves cannot provide STAB
+        return FALSE;
+    if (IsHMMove(move))                     // never hand out HMs; they gate progression
+        return FALSE;
+
+    return (gBattleMoves[move].type == type1 || gBattleMoves[move].type == type2);
+}
+
+void EnsureStabMove(struct Pokemon *mon)
+{
+    u16 species, move, chosen = MOVE_NONE;
+    u16 candidateCount = 0, pick, seen = 0;
+    u8 type1, type2, i, slot;
+    u8 emptySlot = MAX_MON_MOVES, weakestSlot = MAX_MON_MOVES;
+    u16 weakestPower = 0xFFFF;
+
+    if (mon == NULL)
+        return;
+
+    species = GetMonData(mon, MON_DATA_SPECIES, NULL);
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return;
+    if (GetMonData(mon, MON_DATA_SANITY_IS_EGG, NULL))
+        return;
+
+    // GetTypeBySpecies, not gSpeciesInfo[].types -- it already accounts for the Modern/Fairy
+    // type modes and the type randomizer.
+    type1 = GetTypeBySpecies(species, 1);
+    type2 = GetTypeBySpecies(species, 2);
+
+    for (i = 0; i < MAX_MON_MOVES; i++)
+    {
+        move = GetMonData(mon, MON_DATA_MOVE1 + i, NULL);
+
+        if (move != MOVE_NONE && move < MOVES_COUNT && gBattleMoves[move].power > 1
+            && (gBattleMoves[move].type == type1 || gBattleMoves[move].type == type2))
+            return;     // already covered, leave the moveset alone
+
+        // Track where the new move could go: an empty slot is free, otherwise the weakest
+        // damaging move. Status moves and HMs are left alone -- overwriting an HM can
+        // soft-lock progression, and status moves are usually the mon's utility.
+        if (move == MOVE_NONE)
+        {
+            if (emptySlot == MAX_MON_MOVES)
+                emptySlot = i;
+        }
+        else if (move < MOVES_COUNT && !IsHMMove(move) && gBattleMoves[move].power > 1
+                 && gBattleMoves[move].power < weakestPower)
+        {
+            weakestPower = gBattleMoves[move].power;
+            weakestSlot = i;
+        }
+    }
+
+    // Scan for same-type damaging moves. Counted first, then re-scanned to pick, so no
+    // 367-entry buffer ends up on the stack.
+    for (move = 1; move < MOVES_COUNT; move++)
+    {
+        if (IsStabCandidate(move, type1, type2))
+            candidateCount++;
+    }
+
+    if (candidateCount == 0)
+        return;     // nothing of this type exists; better to leave the moveset than write junk
+
+    pick = RandomSeededModulo(species + 0x5AB3, candidateCount);
+    for (move = 1; move < MOVES_COUNT; move++)
+    {
+        if (IsStabCandidate(move, type1, type2))
+        {
+            if (seen == pick)
+            {
+                chosen = move;
+                break;
+            }
+            seen++;
+        }
+    }
+
+    if (chosen == MOVE_NONE)
+        return;
+
+    if (emptySlot != MAX_MON_MOVES)
+        slot = emptySlot;
+    else if (weakestSlot != MAX_MON_MOVES)
+        slot = weakestSlot;
+    else
+        slot = MAX_MON_MOVES - 1;   // all status moves and/or HMs
+
+    if (IsHMMove(GetMonData(mon, MON_DATA_MOVE1 + slot, NULL)))
+        return;     // refuse rather than break an HM
+
+    SetMonData(mon, MON_DATA_MOVE1 + slot, &chosen);
+    SetMonData(mon, MON_DATA_PP1 + slot, &gBattleMoves[chosen].pp);
+
+    #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX STAB GUARANTEE  : %d=%S slot=%d -> %d=%S (%d candidates)",
+                   species, gSpeciesNames[species], slot, chosen, gMoveNames[chosen], candidateCount);
+    #endif
+}
+
 u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
 {
     u8 slot, slotNew;

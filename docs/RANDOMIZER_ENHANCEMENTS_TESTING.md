@@ -426,7 +426,35 @@ summary screens by hand.
 
 ## Phase 6 — Guaranteed same-type move
 
-**Status:** Not implemented
+**Status:** ✅ Implemented — **needs in-game verification**
+
+`EnsureStabMove()` in `src/pokemon.c`, called from **six** sites: wild (both the Cute Charm and normal
+paths), static/gift (`ScriptGiveMon`), scripted wild (`CreateScriptedWildMon`), and both trainer party
+builders. Gated on *Guarantee STAB* **and** *Random Moves*.
+
+**The trainer-species trap was avoided by design.** The plan warned that `src/battle_main.c` seeds moves on
+`partyData[i].species` (pre-randomization). It's worse than that — the local `species` is only assigned
+*inside* the Random-Trainer branch, so it's stale otherwise. `EnsureStabMove` therefore reads the species
+back off the created mon with `GetMonData`, which is correct in every branch.
+
+**Verified offline** against the real move and species data:
+
+| Check | Result |
+|---|---|
+| Types with zero damaging non-HM moves | **none** ✅ |
+| Species where *both* types have no candidates | **0** ✅ |
+| HM moves excluded from the candidate pool | ✅ by construction |
+
+Candidates per type (power > 1, non-HM): Normal 52, Fighting 18, Fire/Grass 12, Water 11, Flying/Psychic/
+Ground 10, Ice/Electric/Poison/Bug/Dark 8, Rock 7, Ghost/Steel 6, Dragon 5, **Fairy 2**.
+
+⚠️ **Fairy has only 2 candidates** (and Dragon 5, Ghost/Steel 6). Fairy-types will nearly always receive the
+same move. Expected given the movepool, not a bug — but worth seeing before you judge it.
+
+**T6.12 (no candidates) is covered by this** — the guard exists but cannot fire with current data.
+
+Slot choice: first empty slot → else the weakest damaging non-HM move → else slot 3. Status moves are
+preserved where possible, and the function refuses outright rather than overwrite an HM.
 
 - [ ] **T6.1 — Off (control).** Option Off: randomized mons frequently have zero same-type damaging moves.
 - [ ] **T6.2 — On, wild mons.** Sample 20 wild encounters. **Every one** has ≥1 damaging move matching one of
@@ -435,14 +463,13 @@ summary screens by hand.
 - [ ] **T6.4 — Dual types.** A dual-type mon needs only **one** of its two types matched, not both.
 - [ ] **T6.5 — Trainers.** *Random Trainer* + *Random Moves* + *Guarantee STAB* On: every opponent mon has a
       matching-type move.
-- [ ] **T6.6 — Trainers use the randomized species (critical).** Verify the STAB move matches the **randomized**
-      mon's type, not the original party entry's. The existing `GetRandomMove` call at `src/battle_main.c:2348`
-      passes `partyData[i].species` (pre-randomization) — if the STAB pass copied that pattern, the type will
-      be wrong. **This looks exactly like "the feature doesn't work"** and is the most likely bug in the phase.
+- [ ] **T6.6 — Trainers use the randomized species.** Handled by reading species off the created mon rather
+      than from `partyData`. Verify in-game that an opponent's STAB matches the mon you actually see, in both
+      *Random Trainer* on and off configurations.
 - [ ] **T6.7 — Static / gift mons.** Also get a STAB move.
 - [ ] **T6.8 — PP set.** The injected move has correct PP, not 0/0. Classic omission.
-- [ ] **T6.9 — Doesn't delete the best move.** The injected move replaces a weak slot, not the mon's strongest
-      attack. Subjective — check a handful.
+- [ ] **T6.9 — Doesn't delete the best move.** Injection prefers an empty slot, then the *weakest* damaging
+      move. Confirm a mon's strongest attack survives. Also confirm status moves are usually preserved.
 - [ ] **T6.10 — HM moves preserved.** The STAB pass never overwrites an HM move. **Can soft-lock progression**
       the same way Phase 5 can.
 - [ ] **T6.11 — Already-has-STAB case.** A mon that already rolled a matching move is left completely alone —

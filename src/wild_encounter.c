@@ -495,10 +495,15 @@ static void CreateWildMon(u16 species, u8 level)
             gender = MON_FEMALE;
 
         CreateMonWithGenderNatureLetter(&gEnemyParty[0], species, level, USE_RANDOM_IVS, gender, PickWildMonNature(), 0);
+        if (gSaveBlock1Ptr->tx_Random_GuaranteeStab && gSaveBlock1Ptr->tx_Random_Moves)
+            EnsureStabMove(&gEnemyParty[0]);
         return;
     }
 
     CreateMonWithNature(&gEnemyParty[0], species, level, USE_RANDOM_IVS, PickWildMonNature());
+
+    if (gSaveBlock1Ptr->tx_Random_GuaranteeStab && gSaveBlock1Ptr->tx_Random_Moves)
+        EnsureStabMove(&gEnemyParty[0]);
 }
 #ifdef BUGFIX
 #define TRY_GET_ABILITY_INFLUENCED_WILD_MON_INDEX(wildPokemon, type, ability, ptr, count) TryGetAbilityInfluencedWildMonIndex(wildPokemon, type, ability, ptr, count)

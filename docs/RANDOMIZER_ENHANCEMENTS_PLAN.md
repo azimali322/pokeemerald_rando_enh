@@ -735,7 +735,7 @@ trainer half is correctly conditional on `tx_Random_Trainer` because `battle_mai
 
 ---
 
-## Phase 6 — Guaranteed same-type move (New Req 9)
+## Phase 6 — Guaranteed same-type move (New Req 9) — ✅ **IMPLEMENTED**
 
 *"All Pokémon have at least 1 move that matches their type when captured or in the wild. Same for trainers
 with randomized Pokémon."*
@@ -775,10 +775,10 @@ sync when moves change. It runs once per mon creation, not per frame.
 | Static / gift mons | `src/script_pokemon_util.c` — `ScriptGiveMon` (`:106`), `CreateScriptedWildMon` (`:191`) |
 | Trainer parties | `src/battle_main.c` — after the move loop at `:2348` and `:2563` |
 
-**Critical detail for the trainer sites:** pass the **randomized** `species` local, not `partyData[i].species`.
-The existing `GetRandomMove` call uses the original species (see §1 Findings); the STAB pass must not copy
-that pattern or it will guarantee STAB for the *wrong* type — a bug that looks like the feature simply not
-working.
+**Resolved differently than planned.** The trainer sites' local `species` is only assigned inside the
+Random-Trainer branch, so passing it would be stale when that option is off. `EnsureStabMove` takes only the
+mon and reads the species back with `GetMonData` — correct in every branch, and impossible to get wrong at a
+call site.
 
 ### Scope decision
 This applies at **creation time** only, which matches your wording ("when captured or in the wild"). A mon
@@ -1312,24 +1312,34 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-| Phase | Requirement | Size | Risk | Key files |
-|---|---|---|---|---|
-| 0 | Build env | S | Low | — |
-| 1 | Save + menu plumbing | M | **Med** (save layout) | ✅ `global.h`, `tx_rac_menu.c`, `tx_rac_viewer.c` |
-| 2 | Cheap Ultra Balls | S | Low | ✅ `item.c` |
-| 2b | Evo stones + trade-evo items ₽1 | S | Low | ✅ `item.c`, 2 map scripts |
-| 3 | Level-aware wild randomization | M | Med | ✅ `pokemon.c`, `wild_encounter.c` |
-| 3b | BST similarity ("Improved") | M | Low | ✅ `pokemon.c`, `species_by_bst.h` |
-| 4 | Random legendaries (everywhere) | S | **Med** (plot) | ✅ `pokemon.c`, `roamer.c` |
-| 5 | VGC moves | M | Low | `pokemon.c` (data-heavy) |
-| 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
-| 7 | VGC abilities | **L** | **Med-High** | `pokemon.c` (new path + data) |
-| 8 | VGC hold items | M | Med | `item.c`, `script_pokemon_util.c` |
-| 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
-| 8c | TM weighting (a) + TM move remap (b) | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c` |
-| 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
-| 10 | Level Cap Candy *(optional)* | **L** | **High** | `items.h`, `party_menu.c`, `pokemon_storage_system.c` |
-| 11 | Reroll cheat *(optional)* | M | Med | `ui_stat_editor.c` |
+**Progress: 6 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
+
+| ✔ | Phase | Requirement | Size | Risk | Key files |
+|:-:|---|---|---|---|---|
+| ✅ | 0 | Build env | S | Low | — |
+| ✅ | 1 | Save + menu plumbing | M | **Med** (save layout) | `global.h`, `tx_rac_menu.c`, `tx_rac_viewer.c` |
+| ✅ | 2 | Cheap Ultra Balls | S | Low | `item.c` |
+| ✅ | 2b | Evo stones + trade-evo items ₽1 | S | Low | `item.c`, 2 map scripts |
+| ✅ | 3 | Level-aware wild randomization | M | Med | `pokemon.c`, `wild_encounter.c` |
+| ✅ | 3b | BST similarity ("Improved") | M | Low | `pokemon.c`, `species_by_bst.h` |
+| ✅ | 4 | Random legendaries (everywhere) | S | **Med** (plot) | `pokemon.c`, `roamer.c` |
+| ☐ | 5 | VGC moves | M | Low | `pokemon.c` — **blocked on move tiers** |
+| ✅ | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
+| ☐ | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c` — tiers ready (Appendix A) |
+| ☐ | 8 | VGC hold items | M | Med | `item.c` — **blocked on item tiers** |
+| ☐ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
+| ☐ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c` — **blocked on TM tiers** |
+| ☐ | 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
+| ☐ | 10 | Level Cap Candy *(optional)* | **L** | **High** | `items.h`, `party_menu.c`, `pokemon_storage_system.c` |
+| ☐ | 11 | Reroll cheat *(optional)* | M | Med | `ui_stat_editor.c` |
+
+**Blocked on your input:** Phases 5, 8 and 8c need tiers filled in
+([`tiering/MOVES.md`](tiering/MOVES.md), [`tiering/ITEMS.md`](tiering/ITEMS.md),
+[`tiering/TM_MOVES.md`](tiering/TM_MOVES.md)). Phase 7's tiers are already done in Appendix A, so it can
+proceed any time.
+
+**Everything implemented so far is verified only by offline simulation and a clean build.** None of it has
+been run in an emulator — see the test plan for what still needs a human at the controls.
 
 ## Decisions — resolved
 

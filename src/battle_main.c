@@ -2357,6 +2357,10 @@ static u8 CreateNPCTrainerParty(struct Pokemon *party, u16 trainerNum, bool8 fir
                         SetMonData(&party[i], MON_DATA_PP1 + j, &gBattleMoves[partyData[i].moves[j]].pp);
                     }
                 }
+
+                //tx_randomizer_and_challenges
+                if (gSaveBlock1Ptr->tx_Random_GuaranteeStab && gSaveBlock1Ptr->tx_Random_Moves)
+                    EnsureStabMove(&party[i]);
                 break;
             }
             case F_TRAINER_PARTY_HELD_ITEM:
@@ -2572,6 +2576,10 @@ static u8 CreateNPCTrainerParty(struct Pokemon *party, u16 trainerNum, bool8 fir
                         SetMonData(&party[i], MON_DATA_PP1 + j, &gBattleMoves[partyData[i].moves[j]].pp);
                     }
                 }
+
+                //tx_randomizer_and_challenges
+                if (gSaveBlock1Ptr->tx_Random_GuaranteeStab && gSaveBlock1Ptr->tx_Random_Moves)
+                    EnsureStabMove(&party[i]);
                 break;
             }
             }
