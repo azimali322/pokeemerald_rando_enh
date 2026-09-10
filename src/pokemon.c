@@ -12629,10 +12629,10 @@ static bool8 IsHMMove(u16 move)
 
 // Some types have almost no damaging moves in this ROM -- Fairy has 2, Dragon 5, Ghost/Steel 6.
 // A dual-type mon draws from the union of both its types, so it is only mono-types of a narrow
-// type that end up with near-zero variety. For those, Normal moves are mixed in: the mon still
-// usually gets true STAB, but not the same one move every single time.
+// type that end up with near-zero variety. For those, Normal moves are mixed in as a minority
+// share: the mon usually still gets true STAB, just not the same one move every single time.
 #define STAB_NARROW_POOL     5   // own-type pools smaller than this get Normal mixed in
-#define STAB_NARROW_OWN_PCT 33   // ...and this is the chance of still rolling own-type
+#define STAB_NARROW_OWN_PCT 67   // ...and this is the chance of still rolling own-type
 
 static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
 {
@@ -12704,8 +12704,8 @@ void EnsureStabMove(struct Pokemon *mon)
         return;     // nothing of this type exists; better to leave the moveset than write junk
 
     // Narrow pool (a mono-Fairy, say): roll whether to use own-type or fall back to Normal.
-    // Own-type still wins STAB_NARROW_OWN_PCT of the time, far above the share it would get
-    // from simply pooling the two lists together.
+    // Own-type wins STAB_NARROW_OWN_PCT of the time, so real STAB stays the common case and
+    // Normal only supplies variety.
     searchType1 = type1;
     searchType2 = type2;
     if (candidateCount < STAB_NARROW_POOL

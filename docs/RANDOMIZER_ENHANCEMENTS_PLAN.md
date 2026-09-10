@@ -26,6 +26,7 @@ ROM source so nothing is invented:
 |---|---|
 | [`tiering/ABILITIES.md`](tiering/ABILITIES.md) | All 81 abilities, **already tiered** from the community list |
 | [`tiering/MOVES.md`](tiering/MOVES.md) | All 367 randomizable moves + power/acc/type/category/PP, TM & HM flagged — *awaiting tiers* |
+| [`tiering/STAB_MOVES_BY_TYPE.md`](tiering/STAB_MOVES_BY_TYPE.md) | The 202 STAB-eligible moves grouped by type; 8 types worth tiering, 11 left uniform — *awaiting tiers* |
 | [`tiering/TM_MOVES.md`](tiering/TM_MOVES.md) | **359 candidate moves** for TM assignment, + the 50 vanilla TM slots for reference, + 8 HMs (never randomize) — *awaiting tiers* |
 | [`tiering/ITEMS.md`](tiering/ITEMS.md) | All 188 randomizable items, **grouped by function** (hold items, hold berries, balls, healing, vitamins, stones, flavour berries, mail, misc, dead) with hold effects and prices — *awaiting tiers* |
 

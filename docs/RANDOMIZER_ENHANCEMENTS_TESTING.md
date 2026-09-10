@@ -474,7 +474,7 @@ preserved where possible, and the function refuses outright rather than overwrit
       **union** of both types' moves. Check a Fairy/Flying mon (Togetic): its STAB should sometimes be Fairy
       and sometimes Flying, from the combined 12-move pool.
 - [ ] **T6.4b — Narrow mono-type blend.** Sample ~15 pure-Fairy encounters (Clefairy, Togepi, Snubbull,
-      Sylveon). Roughly **1 in 3** should get a Fairy move; the rest a Normal move. Both outcomes are correct.
+      Sylveon). Roughly **2 in 3** should get a Fairy move; the rest a Normal move. Both outcomes are correct.
 - [ ] **T6.4c — Blend does NOT fire elsewhere.** A pure-Dragon, pure-Ghost or pure-Steel mon should still get
       its own type every time — those pools are above the threshold.
 - [ ] **T6.5 — Trainers.** *Random Trainer* + *Random Moves* + *Guarantee STAB* On: every opponent mon has a
