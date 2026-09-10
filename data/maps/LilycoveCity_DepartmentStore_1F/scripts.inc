@@ -147,7 +147,7 @@ LilycoveCity_DepartmentStore_1F_TraderWoman::
 LilycoveCity_DepartmentStore_1F_Machine::
 	playse SE_PC_ON
 	delay 40
-	checkmoney 10000, 0
+	checkmoney 1, 0
 	compare VAR_RESULT, TRUE
 	goto_if_eq SCRIPT_SelfTrade_V1
 	compare VAR_RESULT, FALSE
@@ -173,7 +173,7 @@ SCRIPT_SelfTrade_V1::
 	special CreateInGameTradePokemon
 	special DoInGameTradeScene
 	waitstate
-	removemoney 10000, 0
+	removemoney 1, 0
 	msgbox SCRIPT_SelfTrade_Text_ComeBack, MSGBOX_DEFAULT
 	release
 	end

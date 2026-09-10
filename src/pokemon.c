@@ -2932,6 +2932,9 @@ static const u8 gSpeciesMapping[NUM_SPECIES+1] =
     //[SPECIES_DEOXYS_DEFENSE]    = EVO_TYPE_LEGENDARY,
     //[SPECIES_DEOXYS_SPEED]      = EVO_TYPE_LEGENDARY,
 };
+#include "data/pokemon/species_by_bst.h"
+#include "data/pokemon/ability_tiers.h"
+
 #define RANDOM_SPECIES_COUNT ARRAY_COUNT(sRandomSpecies)
 static const u16 sRandomSpecies[] =
 {
@@ -8255,8 +8258,89 @@ u8 GetMonsStateToDoubles_2(void)
     return (aliveCount > 1) ? PLAYER_HAS_TWO_USABLE_MONS : PLAYER_HAS_ONE_USABLE_MON;
 }
 
+//tx_randomizer_and_challenges
+// VGC-weighted abilities.
+//
+// The stock randomizer picks a random *species* and borrows its ability slot, so there is no
+// ability pool to weight. This is a separate path that draws from tiered tables instead.
+// Tiers come from the community tier list; see Appendix A of the plan.
+//
+// Weights are 40/30/22/6/2 across S+A / B / C / D / F. Those are not the 45/35/20 used for the
+// other VGC pools: they are divided by tier size so the per-ability odds fall monotonically.
+// Naive 20/8 for C/D would have made a D ability *more* likely than a C one, because C holds 26
+// entries and D only 9.
+#define ABILITY_W_SA  40
+#define ABILITY_W_B   30
+#define ABILITY_W_C   22
+#define ABILITY_W_D    6
+// F takes the remaining 2
+
+static u16 GetVGCAbility(u16 species, u8 abilityNum)
+{
+    const u16 *table;
+    u16 count, roll;
+
+    // Strict mode draws from S+A only. That is 16 abilities, so a full party will repeat.
+    if (gSaveBlock1Ptr->tx_Random_AbilitiesVGC == TX_VGC_STRICT)
+    {
+        table = sAbilitiesTierSA;
+        count = ARRAY_COUNT(sAbilitiesTierSA);
+    }
+    else
+    {
+        // Separate seed offset from the within-tier pick below, or the two correlate.
+        roll = RandomSeededModulo(species + abilityNum + 0x71C3, 100);
+
+        if (roll < ABILITY_W_SA)
+        {
+            table = sAbilitiesTierSA;
+            count = ARRAY_COUNT(sAbilitiesTierSA);
+        }
+        else if (roll < ABILITY_W_SA + ABILITY_W_B)
+        {
+            table = sAbilitiesTierB;
+            count = ARRAY_COUNT(sAbilitiesTierB);
+        }
+        else if (roll < ABILITY_W_SA + ABILITY_W_B + ABILITY_W_C)
+        {
+            table = sAbilitiesTierC;
+            count = ARRAY_COUNT(sAbilitiesTierC);
+        }
+        else if (roll < ABILITY_W_SA + ABILITY_W_B + ABILITY_W_C + ABILITY_W_D)
+        {
+            table = sAbilitiesTierD;
+            count = ARRAY_COUNT(sAbilitiesTierD);
+        }
+        else
+        {
+            table = sAbilitiesTierF;
+            count = ARRAY_COUNT(sAbilitiesTierF);
+        }
+    }
+
+    // Seeded on species + abilityNum only -- never Random(). This function is called constantly,
+    // including per-frame in battle, so a non-deterministic result would make the ability flicker.
+    return table[RandomSeededModulo(species + abilityNum, count)];
+}
+
 u8 GetAbilityBySpecies(u16 species, u8 abilityNum)
 {
+    //tx_randomizer_and_challenges
+    // Returns early so the legendary / Modern-Types special cases below only run on the
+    // species-substitution path they were written for.
+    if (gSaveBlock1Ptr->tx_Random_AbilitiesVGC != TX_VGC_OFF)
+    {
+        gLastUsedAbility = GetVGCAbility(species, abilityNum);
+
+        #ifndef NDEBUG
+            MgbaPrintf(MGBA_LOG_DEBUG, "TX VGC ABILITY     : %d=%S num=%d -> %d=%S",
+                       species, gSpeciesNames[species], abilityNum,
+                       gLastUsedAbility, gAbilityNames[gLastUsedAbility]);
+        #endif
+
+        return gLastUsedAbility;
+    }
+
     if (gSaveBlock1Ptr->tx_Random_Abilities) //tx_randomizer_and_challenges
     {
         species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_ABILITY, 0);
@@ -12228,6 +12312,90 @@ u8 GetTypeBySpecies(u16 species, u8 typeNum)
     return type;
 }
 
+
+//tx_randomizer_and_challenges
+// "Improved" balancing: swap a species for one of similar base stat total.
+//
+// Evolution-stage balancing ("Balanced") is a poor proxy for power -- the stage-0 bucket runs from
+// Sunkern (BST 180) to Lapras (BST 535). Matching on BST instead keeps swaps genuinely comparable.
+//
+// BST is static, so the sorted index lives in ROM (src/data/pokemon/species_by_bst.h) rather than
+// being rebuilt in EWRAM at boot. Finding the band is two binary searches instead of a 400-entry scan.
+
+#define BST_BAND_NUMERATOR   1024   // +/-10.24%, matching the reference implementation
+#define BST_BAND_DENOMINATOR 10000
+#define BST_MIN_CANDIDATES   8      // widen the band rather than repeat the same few species
+
+static u16 GetSpeciesBST(u16 species)
+{
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return 0;
+
+    return gSpeciesInfo[species].baseHP
+         + gSpeciesInfo[species].baseAttack
+         + gSpeciesInfo[species].baseDefense
+         + gSpeciesInfo[species].baseSpeed
+         + gSpeciesInfo[species].baseSpAttack
+         + gSpeciesInfo[species].baseSpDefense;
+}
+
+// First index whose BST is >= target. Returns count if there is none.
+static u16 LowerBoundByBST(const u16 *table, u16 count, u16 target)
+{
+    u16 lo = 0, hi = count;
+
+    while (lo < hi)
+    {
+        u16 mid = lo + (hi - lo) / 2;
+        if (GetSpeciesBST(table[mid]) < target)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+    return lo;
+}
+
+static u16 GetRandomSpeciesByBST(u16 species, u16 seed)
+{
+    const u16 *table;
+    u16 count, bst, delta, lo, hi, span;
+    u8 widen;
+
+    if (gSaveBlock1Ptr->tx_Random_IncludeLegendaries)
+    {
+        table = sSpeciesByBSTLegendary;
+        count = ARRAY_COUNT(sSpeciesByBSTLegendary);
+    }
+    else
+    {
+        table = sSpeciesByBST;
+        count = ARRAY_COUNT(sSpeciesByBST);
+    }
+
+    bst = GetSpeciesBST(species);
+    if (bst == 0)   // not a real species; leave it to the caller's fallback
+        return species;
+
+    // Integer maths only -- this runs on the encounter path and the GBA has no FPU.
+    // Widen the band if the first pass finds too few candidates, which happens at the
+    // extremes (Sunkern's band holds only 6 species).
+    for (widen = 1; widen <= 4; widen++)
+    {
+        delta = (bst * BST_BAND_NUMERATOR * widen) / BST_BAND_DENOMINATOR;
+        lo = LowerBoundByBST(table, count, (bst > delta) ? bst - delta : 0);
+        hi = LowerBoundByBST(table, count, bst + delta + 1);
+
+        if (hi > lo && (hi - lo) >= BST_MIN_CANDIDATES)
+            break;
+    }
+
+    span = hi - lo;
+    if (span == 0)  // nothing in band even widened; fall back rather than read out of range
+        return species;
+
+    return table[lo + RandomSeededModulo(species + seed, span)];
+}
+
 static u16 GetRandomSpecies(u16 species, u8 mapBased, u8 type, u16 additionalOffset) //INTERNAL use only!
 {
     u8 slot, slotNew;
@@ -12235,6 +12403,19 @@ static u16 GetRandomSpecies(u16 species, u8 mapBased, u8 type, u16 additionalOff
     if (mapBased)
         mapOffset = NuzlockeGetCurrentRegionMapSectionId();
 
+
+    if (gSaveBlock1Ptr->tx_Random_Similar == TX_SIMILAR_IMPROVED)
+    {
+        u16 speciesResult = GetRandomSpeciesByBST(species, mapOffset + additionalOffset);
+
+        #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "%S: BST %d=%S(%d) -->> %d=%S(%d)", gRandomizationTypes[type],
+                   species, gSpeciesNames[species], GetSpeciesBST(species),
+                   speciesResult, gSpeciesNames[speciesResult], GetSpeciesBST(speciesResult));
+        #endif
+
+        return speciesResult;
+    }
 
     if (gSaveBlock1Ptr->tx_Random_Similar)
     {
@@ -12270,6 +12451,318 @@ static u16 GetRandomSpecies(u16 species, u8 mapBased, u8 type, u16 additionalOff
 
     return sRandomSpecies[RandomSeededModulo(species + mapOffset + additionalOffset, RANDOM_SPECIES_COUNT)];
 }
+
+//tx_randomizer_and_challenges
+// Level-appropriate wild randomization.
+//
+// The randomizer is seeded and map-based, so the species a route gives you must stay stable.
+// Rather than folding the encounter level into the seed (which would break that), we randomize
+// exactly as before and then walk the result back down its own evolution chain until it is
+// plausible at the level it appeared at. Deterministic, and it leaves map-based consistency intact.
+
+// Estimated level for evolution methods that aren't level-based. These only need to be
+// roughly right: they decide whether a stage is plausible at an encounter level, nothing more.
+#define EVO_EST_ITEM        28  // evolution stones
+#define EVO_EST_TRADE       32  // trade / trade-with-item
+#define EVO_EST_FRIENDSHIP  22  // friendship, day/night variants
+#define EVO_EST_BEAUTY      30  // Feebas -> Milotic
+#define EVO_EST_OTHER       25  // move / held-item / anything unrecognised
+
+static u8 GetEvoMethodLevelEstimate(u16 method, u16 param)
+{
+    switch (method)
+    {
+    case EVO_LEVEL:
+    case EVO_LEVEL_ATK_GT_DEF:
+    case EVO_LEVEL_ATK_EQ_DEF:
+    case EVO_LEVEL_ATK_LT_DEF:
+    case EVO_LEVEL_SILCOON:
+    case EVO_LEVEL_CASCOON:
+    case EVO_LEVEL_NINJASK:
+    case EVO_LEVEL_SHEDINJA:
+    case EVO_LEVEL_FEMALE:
+    case EVO_LEVEL_MALE:
+    case EVO_LEVEL_NIGHT:
+    case EVO_LEVEL_DAY:
+    case EVO_LEVEL_FEMALE_MORNING:
+    case EVO_LEVEL_MALE_MORNING:
+        return (param > MAX_LEVEL) ? MAX_LEVEL : (u8)param;
+    case EVO_ITEM:
+        return EVO_EST_ITEM;
+    case EVO_TRADE:
+    case EVO_TRADE_ITEM:
+        return EVO_EST_TRADE;
+    case EVO_FRIENDSHIP:
+    case EVO_FRIENDSHIP_DAY:
+    case EVO_FRIENDSHIP_NIGHT:
+        return EVO_EST_FRIENDSHIP;
+    case EVO_BEAUTY:
+        return EVO_EST_BEAUTY;
+    default:
+        return EVO_EST_OTHER;
+    }
+}
+
+// Lowest level at which `species` could plausibly exist, walking back down its evolution chain.
+// No chain is longer than 3 links, so the loop is bounded there as cheap insurance against
+// a malformed table.
+static u8 GetSpeciesMinLevel(u16 species)
+{
+    u8 minLevel = 1;
+    u8 depth;
+
+    for (depth = 0; depth < 3; depth++)
+    {
+        u16 prevo = GetPreEvolution(species);
+        u8 i, stepLevel = 1;
+
+        if (prevo == SPECIES_NONE)
+            break;
+
+        // Find the entry on the pre-evolution that leads to this species.
+        for (i = 0; i < EVOS_PER_MON; i++)
+        {
+            if (gEvolutionTable[prevo][i].targetSpecies == species)
+            {
+                stepLevel = GetEvoMethodLevelEstimate(gEvolutionTable[prevo][i].method,
+                                                      gEvolutionTable[prevo][i].param);
+                break;
+            }
+        }
+
+        if (stepLevel > minLevel)
+            minLevel = stepLevel;
+
+        species = prevo;
+    }
+
+    return minLevel;
+}
+
+// Walk `species` down its evolution chain until it fits `level`.
+u16 ClampSpeciesToLevel(u16 species, u8 level)
+{
+    u8 depth;
+
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return species;
+
+    for (depth = 0; depth < 3; depth++)
+    {
+        u16 prevo;
+
+        if (GetSpeciesMinLevel(species) <= level)
+            break;
+
+        prevo = GetPreEvolution(species);
+        if (prevo == SPECIES_NONE)  // legendaries and single-stage mons stop here
+            break;
+
+        species = prevo;
+    }
+
+    #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX CLAMP TO LEVEL  : level=%d; result=%d=%S", level, species, gSpeciesNames[species]);
+    #endif
+
+    return species;
+}
+
+
+//tx_randomizer_and_challenges
+// Legendary encounters swap for another legendary rather than an ordinary species.
+//
+// The mapping is a bijection: the pool is shuffled once with a save-derived seed and each legendary
+// takes the entry at its own index, so every legendary maps to a distinct one. Deterministic --
+// ShuffleListU16 is seeded from the trainer ID, so the same save always produces the same mapping.
+u16 GetRandomLegendary(u16 species)
+{
+    u16 shuffled[ARRAY_COUNT(sRandomSpeciesEvoLegendary)];
+    u16 i, index = 0xFFFF;
+
+    for (i = 0; i < ARRAY_COUNT(sRandomSpeciesEvoLegendary); i++)
+    {
+        if (sRandomSpeciesEvoLegendary[i] == species)
+            index = i;
+        shuffled[i] = sRandomSpeciesEvoLegendary[i];
+    }
+
+    if (index == 0xFFFF)    // legendary that isn't in the pool; leave it be
+        return species;
+
+    // Fisher-Yates with a per-iteration seed. ShuffleListU16 would work, but it feeds the same
+    // seed to every iteration, so a single 16-bit value decides the whole permutation -- which
+    // leaves ~1% of trainer IDs mapping 8+ legendaries onto themselves. Varying the seed by
+    // iteration fixes that and is still a pure function of the trainer ID, so it stays
+    // deterministic per save.
+    for (i = ARRAY_COUNT(sRandomSpeciesEvoLegendary) - 1; i > 0; i--)
+    {
+        u16 j = RandomSeededModulo(12289 + i * 31, i + 1);
+        u16 tmp = shuffled[j];
+        shuffled[j] = shuffled[i];
+        shuffled[i] = tmp;
+    }
+
+    #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX RANDOM LEGENDARY: %d=%S -->> %d=%S",
+                   species, gSpeciesNames[species], shuffled[index], gSpeciesNames[shuffled[index]]);
+    #endif
+
+    return shuffled[index];
+}
+
+
+//tx_randomizer_and_challenges
+// Guarantee every randomized Pokemon has at least one damaging move matching its own type.
+//
+// Runs as a post-pass after the moveset is assigned rather than inside GetRandomMove, so it
+// applies identically to wild, static, gift and trainer Pokemon and composes with the VGC pools.
+// Species is read back off the mon rather than passed in: at the trainer call sites the local
+// `species` is only assigned when Random Trainer is on, so reading the mon is the only way to
+// be sure we are matching against the Pokemon that actually got created.
+
+static bool8 IsHMMove(u16 move)
+{
+    return move == MOVE_CUT || move == MOVE_FLY || move == MOVE_SURF || move == MOVE_STRENGTH
+        || move == MOVE_FLASH || move == MOVE_ROCK_SMASH || move == MOVE_WATERFALL || move == MOVE_DIVE;
+}
+
+// Some types have almost no damaging moves in this ROM -- Fairy has 2, Dragon 5, Ghost/Steel 6.
+// A dual-type mon draws from the union of both its types, so it is only mono-types of a narrow
+// type that end up with near-zero variety. For those, Normal moves are mixed in as a minority
+// share: the mon usually still gets true STAB, just not the same one move every single time.
+#define STAB_NARROW_POOL     5   // own-type pools smaller than this get Normal mixed in
+#define STAB_NARROW_OWN_PCT 67   // ...and this is the chance of still rolling own-type
+
+static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
+{
+    if (move == MOVE_NONE || move >= MOVES_COUNT)
+        return FALSE;
+    if (gBattleMoves[move].power <= 1)      // status moves cannot provide STAB
+        return FALSE;
+    if (IsHMMove(move))                     // never hand out HMs; they gate progression
+        return FALSE;
+
+    return (gBattleMoves[move].type == type1 || gBattleMoves[move].type == type2);
+}
+
+void EnsureStabMove(struct Pokemon *mon)
+{
+    u16 species, move, chosen = MOVE_NONE;
+    u16 candidateCount = 0, pick, seen = 0;
+    u8 type1, type2, searchType1, searchType2, i, slot;
+    u8 emptySlot = MAX_MON_MOVES, weakestSlot = MAX_MON_MOVES;
+    u16 weakestPower = 0xFFFF;
+
+    if (mon == NULL)
+        return;
+
+    species = GetMonData(mon, MON_DATA_SPECIES, NULL);
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return;
+    if (GetMonData(mon, MON_DATA_SANITY_IS_EGG, NULL))
+        return;
+
+    // GetTypeBySpecies, not gSpeciesInfo[].types -- it already accounts for the Modern/Fairy
+    // type modes and the type randomizer.
+    type1 = GetTypeBySpecies(species, 1);
+    type2 = GetTypeBySpecies(species, 2);
+
+    for (i = 0; i < MAX_MON_MOVES; i++)
+    {
+        move = GetMonData(mon, MON_DATA_MOVE1 + i, NULL);
+
+        if (move != MOVE_NONE && move < MOVES_COUNT && gBattleMoves[move].power > 1
+            && (gBattleMoves[move].type == type1 || gBattleMoves[move].type == type2))
+            return;     // already covered, leave the moveset alone
+
+        // Track where the new move could go: an empty slot is free, otherwise the weakest
+        // damaging move. Status moves and HMs are left alone -- overwriting an HM can
+        // soft-lock progression, and status moves are usually the mon's utility.
+        if (move == MOVE_NONE)
+        {
+            if (emptySlot == MAX_MON_MOVES)
+                emptySlot = i;
+        }
+        else if (move < MOVES_COUNT && !IsHMMove(move) && gBattleMoves[move].power > 1
+                 && gBattleMoves[move].power < weakestPower)
+        {
+            weakestPower = gBattleMoves[move].power;
+            weakestSlot = i;
+        }
+    }
+
+    // Scan for same-type damaging moves. Counted first, then re-scanned to pick, so no
+    // 367-entry buffer ends up on the stack.
+    for (move = 1; move < MOVES_COUNT; move++)
+    {
+        if (IsStabCandidate(move, type1, type2))
+            candidateCount++;
+    }
+
+    if (candidateCount == 0)
+        return;     // nothing of this type exists; better to leave the moveset than write junk
+
+    // Narrow pool (a mono-Fairy, say): roll whether to use own-type or fall back to Normal.
+    // Own-type wins STAB_NARROW_OWN_PCT of the time, so real STAB stays the common case and
+    // Normal only supplies variety.
+    searchType1 = type1;
+    searchType2 = type2;
+    if (candidateCount < STAB_NARROW_POOL
+        && RandomSeededModulo(species + 0x2C7D, 100) >= STAB_NARROW_OWN_PCT)
+    {
+        u16 normalCount = 0;
+
+        for (move = 1; move < MOVES_COUNT; move++)
+        {
+            if (IsStabCandidate(move, TYPE_NORMAL, TYPE_NORMAL))
+                normalCount++;
+        }
+
+        if (normalCount > 0)    // keep own-type if Normal somehow has nothing
+        {
+            searchType1 = TYPE_NORMAL;
+            searchType2 = TYPE_NORMAL;
+            candidateCount = normalCount;
+        }
+    }
+
+    pick = RandomSeededModulo(species + 0x5AB3, candidateCount);
+    for (move = 1; move < MOVES_COUNT; move++)
+    {
+        if (IsStabCandidate(move, searchType1, searchType2))
+        {
+            if (seen == pick)
+            {
+                chosen = move;
+                break;
+            }
+            seen++;
+        }
+    }
+
+    if (chosen == MOVE_NONE)
+        return;
+
+    if (emptySlot != MAX_MON_MOVES)
+        slot = emptySlot;
+    else if (weakestSlot != MAX_MON_MOVES)
+        slot = weakestSlot;
+    else
+        slot = MAX_MON_MOVES - 1;   // all status moves and/or HMs
+
+    if (IsHMMove(GetMonData(mon, MON_DATA_MOVE1 + slot, NULL)))
+        return;     // refuse rather than break an HM
+
+    SetMonData(mon, MON_DATA_MOVE1 + slot, &chosen);
+    SetMonData(mon, MON_DATA_PP1 + slot, &gBattleMoves[chosen].pp);
+
+    #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX STAB GUARANTEE  : %d=%S slot=%d -> %d=%S (%d candidates, type %d)",
+                   species, gSpeciesNames[species], slot, chosen, gMoveNames[chosen], candidateCount, searchType1);
+    #endif
+}
+
 u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
 {
     u8 slot, slotNew;
@@ -12280,8 +12773,14 @@ u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
     if (gSaveBlock1Ptr->tx_Random_Chaos)
         return sRandomSpeciesLegendary[RandomSeededModulo(species, RANDOM_SPECIES_COUNT_LEGENDARY)];
 
-    //if EVO_TYPE is SELF or LEGENDARY and !tx_Random_IncludeLegendaries
     slot = gSpeciesMapping[species];
+
+    // Legendary -> random legendary. Deliberately ahead of the early-out below, which would
+    // otherwise pass legendaries through untouched whenever Include Legendaries is off.
+    if (gSaveBlock1Ptr->tx_Random_Legendaries && slot == EVO_TYPE_LEGENDARY)
+        return GetRandomLegendary(species);
+
+    //if EVO_TYPE is SELF or LEGENDARY and !tx_Random_IncludeLegendaries
     if (slot == EVO_TYPE_SELF || (slot == EVO_TYPE_LEGENDARY && !gSaveBlock1Ptr->tx_Random_IncludeLegendaries))
         return species;
 

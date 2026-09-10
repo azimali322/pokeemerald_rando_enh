@@ -943,8 +943,39 @@ u16 ItemId_GetId(u16 itemId)
     return gItems[SanitizeItemId(itemId)].itemId;
 }
 
+// Items the "cheap shop" option sells for $1: catching, and everything needed to evolve.
+// The trade-evolution held items pair with the Self-trader on Lilycove Dept. Store 1F.
+static bool8 IsCheapCheatItem(u16 itemId)
+{
+    switch (itemId)
+    {
+    case ITEM_ULTRA_BALL:
+    case ITEM_SUN_STONE:
+    case ITEM_MOON_STONE:
+    case ITEM_FIRE_STONE:
+    case ITEM_THUNDER_STONE:
+    case ITEM_WATER_STONE:
+    case ITEM_LEAF_STONE:
+    case ITEM_KINGS_ROCK:
+    case ITEM_METAL_COAT:
+    case ITEM_HARD_STONE:
+    case ITEM_DRAGON_SCALE:
+    case ITEM_UP_GRADE:
+    case ITEM_SPELL_TAG:
+    case ITEM_DEEP_SEA_TOOTH:
+    case ITEM_DEEP_SEA_SCALE:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
 u16 ItemId_GetPrice(u16 itemId)
 {
+    //tx_randomizer_and_challenges
+    if (gSaveBlock1Ptr->tx_Features_CheapBalls && IsCheapCheatItem(itemId))
+        return 1;
+
     if (gSaveBlock1Ptr->tx_Challenges_Expensive == 0)
         return gItems[SanitizeItemId(itemId)].price;
     else if (gSaveBlock1Ptr->tx_Challenges_Expensive == 1)

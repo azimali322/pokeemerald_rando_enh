@@ -2,12 +2,17 @@
 #define GUARD_DIFFICULTY_H
 //tx_randomizer_and_challenges
 
+// Balancing modes for tx_Random_Similar
+#define TX_SIMILAR_OFF        0
+#define TX_SIMILAR_BALANCED   1   // match by evolution stage
+#define TX_SIMILAR_IMPROVED   2   // match by base stat total
+
 // default options set by the dev
 #define TX_RANDOM_STARTER               FALSE
 #define TX_RANDOM_WILD_POKEMON          FALSE
 #define TX_RANDOM_TRAINER               FALSE
 #define TX_RANDOM_STATIC                FALSE
-#define TX_RANDOM_SIMILAR               TRUE
+#define TX_RANDOM_SIMILAR               TX_SIMILAR_BALANCED
 #define TX_RANDOM_MAP_BASED             TRUE
 #define TX_RANDOM_INCLUDE_LEGENDARIES   FALSE
 #define TX_RANDOM_TYPE                  FALSE
@@ -18,6 +23,24 @@
 #define TX_RANDOM_TYPE_EFFECTIVENESS    FALSE
 #define TX_RANDOM_ITEMS                 FALSE
 #define TX_RANDOM_CHAOS_MODE            FALSE
+
+// randomizer enhancements
+#define TX_RANDOM_WILD_LEVEL_SCALED     FALSE
+#define TX_RANDOM_LEGENDARIES           FALSE
+#define TX_RANDOM_MOVES_VGC             0   // 0 off, 1 weighted, 2 strict
+#define TX_RANDOM_GUARANTEE_STAB        FALSE
+#define TX_RANDOM_ABILITIES_VGC         0   // 0 off, 1 weighted, 2 strict
+#define TX_RANDOM_ITEMS_VGC             0   // 0 off, 1 weighted, 2 strict
+#define TX_RANDOM_LEARNSETS             FALSE
+#define TX_RANDOM_TMS_VGC               0   // 0 off, 1 weighted, 2 strict
+#define TX_RANDOM_TM_MOVES              FALSE
+#define TX_FEATURES_CHEAP_BALLS         FALSE
+#define TX_FEATURES_REROLL_CHEAT        FALSE
+
+// VGC weighting modes, shared by the moves/abilities/items/TMs options
+#define TX_VGC_OFF          0
+#define TX_VGC_WEIGHTED     1
+#define TX_VGC_STRICT       2
 
 #define TX_NUZLOCKE_NUZLOCKE 0
 #define TX_NUZLOCKE_NUZLOCKE_HARDCORE 0 //CAREFULL!!!!!

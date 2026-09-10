@@ -86,14 +86,23 @@ enum
     MENUITEM_RANDOM_TRAINER,
     MENUITEM_RANDOM_STATIC,
     MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL,
+    MENUITEM_RANDOM_WILD_LEVEL_SCALED,
     MENUITEM_RANDOM_INCLUDE_LEGENDARIES,
+    MENUITEM_RANDOM_LEGENDARIES,
     MENUITEM_RANDOM_TYPE,
     MENUITEM_RANDOM_MOVES,
+    MENUITEM_RANDOM_MOVES_VGC,
+    MENUITEM_RANDOM_GUARANTEE_STAB,
+    MENUITEM_RANDOM_LEARNSETS,
     MENUITEM_RANDOM_ABILITIES,
+    MENUITEM_RANDOM_ABILITIES_VGC,
     MENUITEM_RANDOM_EVOLUTIONS,
     MENUITEM_RANDOM_EVOLUTIONS_METHODS,
     MENUITEM_RANDOM_TYPE_EFFEC,
     MENUITEM_RANDOM_ITEMS,
+    MENUITEM_RANDOM_ITEMS_VGC,
+    MENUITEM_RANDOM_TMS_VGC,
+    MENUITEM_RANDOM_TM_MOVES,
     MENUITEM_RANDOM_CHAOS,
     MENUITEM_RANDOM_NEXT,
     MENUITEM_RANDOM_COUNT,
@@ -140,6 +149,8 @@ enum
     MENUITEM_CHALLENGES_BASE_STAT_EQUALIZER,
     MENUITEM_CHALLENGES_MIRROR,
     MENUITEM_CHALLENGES_MIRROR_THIEF,
+    MENUITEM_CHALLENGES_CHEAP_BALLS,
+    MENUITEM_CHALLENGES_REROLL_CHEAT,
     MENUITEM_CHALLENGES_SAVE,
     MENUITEM_CHALLENGES_COUNT,
 };
@@ -280,6 +291,17 @@ static void DrawChoices_Random_EvolutionMethods(int selection, int y);
 static void DrawChoices_Random_TypeEffect(int selection, int y);
 static void DrawChoices_Random_Items(int selection, int y);
 static void DrawChoices_Random_OffChaos(int selection, int y);
+static void DrawChoices_Random_WildLevelScaled(int selection, int y);
+static void DrawChoices_Random_LegendaryEncounters(int selection, int y);
+static void DrawChoices_Random_MovesVGC(int selection, int y);
+static void DrawChoices_Random_GuaranteeStab(int selection, int y);
+static void DrawChoices_Random_Learnsets(int selection, int y);
+static void DrawChoices_Random_AbilitiesVGC(int selection, int y);
+static void DrawChoices_Random_ItemsVGC(int selection, int y);
+static void DrawChoices_Random_TMsVGC(int selection, int y);
+static void DrawChoices_Random_TMMoves(int selection, int y);
+static void DrawChoices_Features_CheapBalls(int selection, int y);
+static void DrawChoices_Features_RerollCheat(int selection, int y);
 
 static void DrawChoices_Nuzlocke_OnOff(int selection, int y, bool8 active);
 static void DrawChoices_Challenges_Nuzlocke(int selection, int y);
@@ -416,15 +438,24 @@ struct // MENU_RANDOMIZER
     [MENUITEM_RANDOM_WILD_PKMN]                 = {DrawChoices_Random_WildPkmn,         ProcessInput_Options_Two},
     [MENUITEM_RANDOM_TRAINER]                   = {DrawChoices_Random_Trainer,          ProcessInput_Options_Two},
     [MENUITEM_RANDOM_STATIC]                    = {DrawChoices_Random_Static,           ProcessInput_Options_Two},
-    [MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL]   = {DrawChoices_Random_EvoStages,        ProcessInput_Options_Two},
+    [MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL]   = {DrawChoices_Random_EvoStages,        ProcessInput_Options_Three},
+    [MENUITEM_RANDOM_WILD_LEVEL_SCALED]         = {DrawChoices_Random_WildLevelScaled,  ProcessInput_Options_Two},
     [MENUITEM_RANDOM_INCLUDE_LEGENDARIES]       = {DrawChoices_Random_Legendaries,      ProcessInput_Options_Two},
+    [MENUITEM_RANDOM_LEGENDARIES]               = {DrawChoices_Random_LegendaryEncounters, ProcessInput_Options_Two},
     [MENUITEM_RANDOM_TYPE]                      = {DrawChoices_Random_Types,            ProcessInput_Options_Two},
     [MENUITEM_RANDOM_MOVES]                     = {DrawChoices_Random_Moves,            ProcessInput_Options_Two},
+    [MENUITEM_RANDOM_MOVES_VGC]                 = {DrawChoices_Random_MovesVGC,         ProcessInput_Options_Three},
+    [MENUITEM_RANDOM_GUARANTEE_STAB]            = {DrawChoices_Random_GuaranteeStab,    ProcessInput_Options_Two},
+    [MENUITEM_RANDOM_LEARNSETS]                 = {DrawChoices_Random_Learnsets,        ProcessInput_Options_Two},
     [MENUITEM_RANDOM_ABILITIES]                 = {DrawChoices_Random_Abilities,        ProcessInput_Options_Two},
+    [MENUITEM_RANDOM_ABILITIES_VGC]             = {DrawChoices_Random_AbilitiesVGC,     ProcessInput_Options_Three},
     [MENUITEM_RANDOM_EVOLUTIONS]                = {DrawChoices_Random_Evolutions,       ProcessInput_Options_Two},
     [MENUITEM_RANDOM_EVOLUTIONS_METHODS]        = {DrawChoices_Random_EvolutionMethods, ProcessInput_Options_Two},
     [MENUITEM_RANDOM_TYPE_EFFEC]                = {DrawChoices_Random_TypeEffect,       ProcessInput_Options_Two},
     [MENUITEM_RANDOM_ITEMS]                     = {DrawChoices_Random_Items,            ProcessInput_Options_Two},
+    [MENUITEM_RANDOM_ITEMS_VGC]                 = {DrawChoices_Random_ItemsVGC,         ProcessInput_Options_Three},
+    [MENUITEM_RANDOM_TMS_VGC]                   = {DrawChoices_Random_TMsVGC,           ProcessInput_Options_Three},
+    [MENUITEM_RANDOM_TM_MOVES]                  = {DrawChoices_Random_TMMoves,          ProcessInput_Options_Two},
     [MENUITEM_RANDOM_CHAOS]                     = {DrawChoices_Random_OffChaos,         ProcessInput_Options_Two},
     [MENUITEM_RANDOM_NEXT]                      = {NULL, NULL},
 };
@@ -480,6 +511,8 @@ struct // MENU_CHALLENGES
     [MENUITEM_CHALLENGES_BASE_STAT_EQUALIZER]   = {DrawChoices_Challenges_BaseStatEqualizer,    ProcessInput_Options_Four},
     [MENUITEM_CHALLENGES_MIRROR]                = {DrawChoices_Challenges_Mirror,               ProcessInput_Options_Two},
     [MENUITEM_CHALLENGES_MIRROR_THIEF]          = {DrawChoices_Challenges_Mirror_Thief,         ProcessInput_Options_Two},
+    [MENUITEM_CHALLENGES_CHEAP_BALLS]           = {DrawChoices_Features_CheapBalls,             ProcessInput_Options_Two},
+    [MENUITEM_CHALLENGES_REROLL_CHEAT]          = {DrawChoices_Features_RerollCheat,            ProcessInput_Options_Two},
     [MENUITEM_CHALLENGES_SAVE] = {NULL, NULL},
 };
 
@@ -559,6 +592,17 @@ static const u8 sText_EvolutionMethods[] =          _("EVO LINES");
 static const u8 sText_TypeEff[] =                   _("EFFECTIVENESS");
 static const u8 sText_Items[] =                     _("ITEMS");
 static const u8 sText_Chaos[] =                     _("CHAOS MODE");
+static const u8 sText_WildLevelScaled[] =           _("LEVEL-SCALED WILDS");
+static const u8 sText_LegendaryEncounters[] =       _("RANDOM LEGENDARIES");
+static const u8 sText_MovesVGC[] =                  _("VGC MOVE POOL");
+static const u8 sText_GuaranteeStab[] =             _("GUARANTEE STAB");
+static const u8 sText_Learnsets[] =                 _("SMART LEARNSETS");
+static const u8 sText_AbilitiesVGC[] =              _("VGC ABILITY POOL");
+static const u8 sText_ItemsVGC[] =                  _("VGC ITEM POOL");
+static const u8 sText_TMsVGC[] =                    _("VGC TM POOL");
+static const u8 sText_TMMoves[] =                   _("RANDOM TM MOVES");
+static const u8 sText_CheapBalls[] =                _("CHEAP SHOP");
+static const u8 sText_RerollCheat[] =               _("REROLL CHEAT");
 static const u8 *const sOptionMenuItemsNamesRandom[MENUITEM_RANDOM_COUNT] =
 {
     [MENUITEM_RANDOM_OFF_ON]                    = sText_Randomizer,
@@ -567,14 +611,23 @@ static const u8 *const sOptionMenuItemsNamesRandom[MENUITEM_RANDOM_COUNT] =
     [MENUITEM_RANDOM_TRAINER]                   = sText_Trainer,
     [MENUITEM_RANDOM_STATIC]                    = sText_Static,
     [MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL]   = sText_SimiliarEvolutionLevel,
+    [MENUITEM_RANDOM_WILD_LEVEL_SCALED]         = sText_WildLevelScaled,
     [MENUITEM_RANDOM_INCLUDE_LEGENDARIES]       = sText_InlcudeLegendaries,
+    [MENUITEM_RANDOM_LEGENDARIES]               = sText_LegendaryEncounters,
     [MENUITEM_RANDOM_TYPE]                      = sText_Type,
     [MENUITEM_RANDOM_MOVES]                     = sText_Moves,
+    [MENUITEM_RANDOM_MOVES_VGC]                 = sText_MovesVGC,
+    [MENUITEM_RANDOM_GUARANTEE_STAB]            = sText_GuaranteeStab,
+    [MENUITEM_RANDOM_LEARNSETS]                 = sText_Learnsets,
     [MENUITEM_RANDOM_ABILITIES]                 = sText_Abilities,
+    [MENUITEM_RANDOM_ABILITIES_VGC]             = sText_AbilitiesVGC,
     [MENUITEM_RANDOM_EVOLUTIONS]                = sText_Evolutions,
     [MENUITEM_RANDOM_EVOLUTIONS_METHODS]        = sText_EvolutionMethods,
     [MENUITEM_RANDOM_TYPE_EFFEC]                = sText_TypeEff,
     [MENUITEM_RANDOM_ITEMS]                     = sText_Items,
+    [MENUITEM_RANDOM_ITEMS_VGC]                 = sText_ItemsVGC,
+    [MENUITEM_RANDOM_TMS_VGC]                   = sText_TMsVGC,
+    [MENUITEM_RANDOM_TM_MOVES]                  = sText_TMMoves,
     [MENUITEM_RANDOM_CHAOS]                     = sText_Chaos,
     [MENUITEM_RANDOM_NEXT]                      = sText_Next,
 };
@@ -649,6 +702,8 @@ static const u8 *const sOptionMenuItemsNamesChallenges[MENUITEM_CHALLENGES_COUNT
     [MENUITEM_CHALLENGES_BASE_STAT_EQUALIZER]   = sText_BaseStatEqualizer,
     [MENUITEM_CHALLENGES_MIRROR]                = sText_Mirror,
     [MENUITEM_CHALLENGES_MIRROR_THIEF]          = sText_MirrorThief,
+    [MENUITEM_CHALLENGES_CHEAP_BALLS]           = sText_CheapBalls,
+    [MENUITEM_CHALLENGES_REROLL_CHEAT]          = sText_RerollCheat,
     [MENUITEM_CHALLENGES_SAVE]                  = sText_Save,
 };
 
@@ -721,6 +776,24 @@ static bool8 CheckConditions(int selection)
             case MENUITEM_RANDOM_EVOLUTIONS_METHODS:        return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON];
             case MENUITEM_RANDOM_TYPE_EFFEC:                return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON];
             case MENUITEM_RANDOM_ITEMS:                     return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON];
+            case MENUITEM_RANDOM_WILD_LEVEL_SCALED:         return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
+                                                                && sOptions->sel_randomizer[MENUITEM_RANDOM_WILD_PKMN]
+                                                                && !sOptions->sel_randomizer[MENUITEM_RANDOM_CHAOS];
+            case MENUITEM_RANDOM_LEGENDARIES:               return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
+                                                                && !sOptions->sel_randomizer[MENUITEM_RANDOM_CHAOS];
+            case MENUITEM_RANDOM_MOVES_VGC:                 return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
+                                                                && sOptions->sel_randomizer[MENUITEM_RANDOM_MOVES];
+            case MENUITEM_RANDOM_GUARANTEE_STAB:            return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
+                                                                && sOptions->sel_randomizer[MENUITEM_RANDOM_MOVES];
+            case MENUITEM_RANDOM_LEARNSETS:                 return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
+                                                                && sOptions->sel_randomizer[MENUITEM_RANDOM_MOVES];
+            case MENUITEM_RANDOM_ABILITIES_VGC:             return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
+                                                                && sOptions->sel_randomizer[MENUITEM_RANDOM_ABILITIES];
+            case MENUITEM_RANDOM_ITEMS_VGC:                 return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
+                                                                && sOptions->sel_randomizer[MENUITEM_RANDOM_ITEMS];
+            case MENUITEM_RANDOM_TMS_VGC:                   return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
+                                                                && sOptions->sel_randomizer[MENUITEM_RANDOM_ITEMS];
+            case MENUITEM_RANDOM_TM_MOVES:                  return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON];
             case MENUITEM_RANDOM_CHAOS:                     return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON] && (sOptions->sel_randomizer[MENUITEM_RANDOM_WILD_PKMN]
                                                                 || sOptions->sel_randomizer[MENUITEM_RANDOM_STARTER]
                                                                 || sOptions->sel_randomizer[MENUITEM_RANDOM_TRAINER]
@@ -897,6 +970,29 @@ static const u8 sText_Description_Random_Items_On[]                 = _("Randomi
 static const u8 sText_Description_Random_ChaosMode_Off[]            = _("Chaos mode disabled.");
 static const u8 sText_Description_Random_ChaosMode_On[]             = _("Every above choosen option will be\nvery chaotic. {COLOR 7}{COLOR 8}NOT recommended!");
 static const u8 sText_Description_Random_Next[]                     = _("Continue to Nuzlocke options.");
+static const u8 sText_Description_Random_WildLevelScaled_Off[] = _("Wild evo stage ignores level.");
+static const u8 sText_Description_Random_WildLevelScaled_On[]  = _("Wild mons fit the area's level.");
+static const u8 sText_Description_Random_Legendaries_Off[]     = _("Legendaries are not swapped.");
+static const u8 sText_Description_Random_Legendaries_On[]      = _("Legendaries become other legends.");
+static const u8 sText_Description_Random_MovesVGC_Off[]        = _("All moves equally likely.");
+static const u8 sText_Description_Random_MovesVGC_Weighted[]   = _("Stronger moves are more common.");
+static const u8 sText_Description_Random_MovesVGC_Strict[]     = _("Only top tier moves are rolled.");
+static const u8 sText_Description_Random_GuaranteeStab_Off[]   = _("Moves may not match the type.");
+static const u8 sText_Description_Random_GuaranteeStab_On[]    = _("Always 1 move of its own type.");
+static const u8 sText_Description_Random_Learnsets_Off[]       = _("Learnset rolls are unfiltered.");
+static const u8 sText_Description_Random_Learnsets_On[]        = _("No dupes, power fits the level.");
+static const u8 sText_Description_Random_AbilitiesVGC_Off[]    = _("All abilities equally likely.");
+static const u8 sText_Description_Random_AbilitiesVGC_Weighted[] = _("Better abilities more common.");
+static const u8 sText_Description_Random_AbilitiesVGC_Strict[] = _("Only top tier abilities roll.");
+static const u8 sText_Description_Random_ItemsVGC_Off[]        = _("All items equally likely.");
+static const u8 sText_Description_Random_ItemsVGC_Weighted[]   = _("Better hold items more common.");
+static const u8 sText_Description_Random_ItemsVGC_Strict[]     = _("Only top tier items are rolled.");
+static const u8 sText_Description_Random_TMsVGC_Off[]          = _("All TMs equally likely.");
+static const u8 sText_Description_Random_TMsVGC_Weighted[]     = _("Better TMs are more common.");
+static const u8 sText_Description_Random_TMsVGC_Strict[]       = _("Only top tier TMs are found.");
+static const u8 sText_Description_Random_TMMoves_Off[]         = _("TMs teach their normal moves.");
+static const u8 sText_Description_Random_TMMoves_On[]          = _("TMs teach random moves. No HMs.");
+
 static const u8 *const sOptionMenuItemDescriptionsRandomizer[MENUITEM_RANDOM_COUNT][2] =
 {
     [MENUITEM_RANDOM_OFF_ON]                    = {sText_Description_Randomizer_Off,               sText_Description_Randomizer_On},
@@ -905,14 +1001,23 @@ static const u8 *const sOptionMenuItemDescriptionsRandomizer[MENUITEM_RANDOM_COU
     [MENUITEM_RANDOM_TRAINER]                   = {sText_Description_Random_Trainer_Off,           sText_Description_Random_Trainer_On},
     [MENUITEM_RANDOM_STATIC]                    = {sText_Description_Random_Static_Off,            sText_Description_Random_Static_On},
     [MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL]   = {sText_Description_Random_BalanceTiers_On,    sText_Description_Random_BalanceTiers_Off},
+    [MENUITEM_RANDOM_WILD_LEVEL_SCALED]         = {sText_Description_Random_WildLevelScaled_Off,   sText_Description_Random_WildLevelScaled_On},
     [MENUITEM_RANDOM_INCLUDE_LEGENDARIES]       = {sText_Description_Random_IncludeLegendaries_Off,       sText_Description_Random_IncludeLegendaries_On},
+    [MENUITEM_RANDOM_LEGENDARIES]               = {sText_Description_Random_Legendaries_Off,       sText_Description_Random_Legendaries_On},
     [MENUITEM_RANDOM_TYPE]                      = {sText_Description_Random_Types_Off,             sText_Description_Random_Types_On},
     [MENUITEM_RANDOM_MOVES]                     = {sText_Description_Random_Moves_Off,             sText_Description_Random_Moves_On},
+    [MENUITEM_RANDOM_MOVES_VGC]                 = {sText_Description_Random_MovesVGC_Off,          sText_Description_Random_MovesVGC_Weighted},
+    [MENUITEM_RANDOM_GUARANTEE_STAB]            = {sText_Description_Random_GuaranteeStab_Off,     sText_Description_Random_GuaranteeStab_On},
+    [MENUITEM_RANDOM_LEARNSETS]                 = {sText_Description_Random_Learnsets_Off,         sText_Description_Random_Learnsets_On},
     [MENUITEM_RANDOM_ABILITIES]                 = {sText_Description_Random_Abilities_Off,         sText_Description_Random_Abilities_On},
+    [MENUITEM_RANDOM_ABILITIES_VGC]             = {sText_Description_Random_AbilitiesVGC_Off,      sText_Description_Random_AbilitiesVGC_Weighted},
     [MENUITEM_RANDOM_EVOLUTIONS]                = {sText_Description_Random_Evos_Off,              sText_Description_Random_Evos_On},
     [MENUITEM_RANDOM_EVOLUTIONS_METHODS]        = {sText_Description_Random_Evo_Methods_Off,       sText_Description_Random_Evo_Methods_On},
     [MENUITEM_RANDOM_TYPE_EFFEC]                = {sText_Description_Random_Effectiveness_Off,     sText_Description_Random_Effectiveness_On},
     [MENUITEM_RANDOM_ITEMS]                     = {sText_Description_Random_Items_Off,             sText_Description_Random_Items_On},
+    [MENUITEM_RANDOM_ITEMS_VGC]                 = {sText_Description_Random_ItemsVGC_Off,          sText_Description_Random_ItemsVGC_Weighted},
+    [MENUITEM_RANDOM_TMS_VGC]                   = {sText_Description_Random_TMsVGC_Off,            sText_Description_Random_TMsVGC_Weighted},
+    [MENUITEM_RANDOM_TM_MOVES]                  = {sText_Description_Random_TMMoves_Off,           sText_Description_Random_TMMoves_On},
     [MENUITEM_RANDOM_CHAOS]                     = {sText_Description_Random_ChaosMode_Off,               sText_Description_Random_ChaosMode_On},
     [MENUITEM_RANDOM_NEXT]                      = {sText_Description_Random_Next,                  sText_Empty},
 };
@@ -1017,6 +1122,11 @@ static const u8 sText_Description_Challenges_Expensive_0ff[]            = _("Eve
 static const u8 sText_Description_Challenges_Expensive_5[]              = _("Everything is 5 times more\nexpensive!");
 static const u8 sText_Description_Challenges_Expensive_10[]             = _("Everything is 10 times more\nexpensive! Good ol' capitalism.");
 static const u8 sText_Description_Challenges_Expensive_50[]             = _("Everything is 50 times more\nexpensive! Ultra capitalism!");
+static const u8 sText_Description_Features_CheapBalls_Off[] = _("Shops charge normal prices.");
+static const u8 sText_Description_Features_CheapBalls_On[]  = _("Balls and evo items cost $1.");
+static const u8 sText_Description_Features_RerollCheat_Off[] = _("Ability and nature are fixed.");
+static const u8 sText_Description_Features_RerollCheat_On[]  = _("Reroll them in the stat editor.");
+
 static const u8 *const sOptionMenuItemDescriptionsChallenges[MENUITEM_CHALLENGES_COUNT][5] =
 {
     [MENUITEM_DIFFICULTY_POKECENTER]            = {sText_Description_Difficulty_Pokecenter_Yes,         sText_Description_Difficulty_Pokecenter_No,         sText_Empty,                                        sText_Empty,                                        sText_Empty},
@@ -1027,6 +1137,8 @@ static const u8 *const sOptionMenuItemDescriptionsChallenges[MENUITEM_CHALLENGES
     [MENUITEM_CHALLENGES_BASE_STAT_EQUALIZER]   = {sText_Description_Challenges_BaseStatEqualizer_Base, sText_Description_Challenges_BaseStatEqualizer_100, sText_Description_Challenges_BaseStatEqualizer_255, sText_Description_Challenges_BaseStatEqualizer_500, sText_Empty},
     [MENUITEM_CHALLENGES_MIRROR]                = {sText_Description_Challenges_Mirror_Off,             sText_Description_Challenges_Mirror_Trainer,        sText_Empty,                                        sText_Empty,                                        sText_Empty},
     [MENUITEM_CHALLENGES_MIRROR_THIEF]          = {sText_Description_Challenges_MirrorThief_Off,        sText_Description_Challenges_MirrorThief_On,        sText_Empty,                                        sText_Empty,                                        sText_Empty},
+    [MENUITEM_CHALLENGES_CHEAP_BALLS]           = {sText_Description_Features_CheapBalls_Off,           sText_Description_Features_CheapBalls_On,           sText_Empty,                                        sText_Empty,                                        sText_Empty},
+    [MENUITEM_CHALLENGES_REROLL_CHEAT]          = {sText_Description_Features_RerollCheat_Off,          sText_Description_Features_RerollCheat_On,          sText_Empty,                                        sText_Empty,                                        sText_Empty},
     [MENUITEM_CHALLENGES_SAVE]                  = {sText_Description_Save,                              sText_Empty,                                        sText_Empty,                                        sText_Empty,                                        sText_Empty},
 };
 
@@ -1069,6 +1181,11 @@ static const u8 sText_Description_Disabled_Random_SimiliarEvolutionLevel[]  = _(
 static const u8 sText_Description_Disabled_Random_IncludeLegendaries[]      = _("Only usable with random starter,\nTrainer, wild or static Pokémon.");
 static const u8 sText_Description_Disabled_Random_Chaos_Mode[]              = _("Only usable if other random options\nare activated.");
 static const u8 sText_Description_Disabled_Random_Type_Effectiveness[]      = _("Currently not available.");
+static const u8 sText_Description_Disabled_Random_WildLevelScaled[] = _("Only usable with random wilds!");
+static const u8 sText_Description_Disabled_Random_NeedsMoves[]      = _("Only usable with random moves!");
+static const u8 sText_Description_Disabled_Random_NeedsAbilities[]  = _("Needs random abilities!");
+static const u8 sText_Description_Disabled_Random_NeedsItems[]      = _("Only usable with random items!");
+
 static const u8 *const sOptionMenuItemDescriptionsDisabledRandomizer[MENUITEM_RANDOM_COUNT] =
 {
     [MENUITEM_RANDOM_OFF_ON]                    = sText_Empty,
@@ -1077,14 +1194,23 @@ static const u8 *const sOptionMenuItemDescriptionsDisabledRandomizer[MENUITEM_RA
     [MENUITEM_RANDOM_TRAINER]                   = sText_Empty,
     [MENUITEM_RANDOM_STATIC]                    = sText_Empty,
     [MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL]   = sText_Description_Disabled_Random_SimiliarEvolutionLevel,
+    [MENUITEM_RANDOM_WILD_LEVEL_SCALED]         = sText_Description_Disabled_Random_WildLevelScaled,
     [MENUITEM_RANDOM_INCLUDE_LEGENDARIES]       = sText_Description_Disabled_Random_IncludeLegendaries,
+    [MENUITEM_RANDOM_LEGENDARIES]               = sText_Empty,
     [MENUITEM_RANDOM_TYPE]                      = sText_Empty,
     [MENUITEM_RANDOM_MOVES]                     = sText_Empty,
+    [MENUITEM_RANDOM_MOVES_VGC]                 = sText_Description_Disabled_Random_NeedsMoves,
+    [MENUITEM_RANDOM_GUARANTEE_STAB]            = sText_Description_Disabled_Random_NeedsMoves,
+    [MENUITEM_RANDOM_LEARNSETS]                 = sText_Description_Disabled_Random_NeedsMoves,
     [MENUITEM_RANDOM_ABILITIES]                 = sText_Empty,
+    [MENUITEM_RANDOM_ABILITIES_VGC]             = sText_Description_Disabled_Random_NeedsAbilities,
     [MENUITEM_RANDOM_EVOLUTIONS]                = sText_Empty,
     [MENUITEM_RANDOM_EVOLUTIONS_METHODS]        = sText_Empty,
     [MENUITEM_RANDOM_TYPE_EFFEC]                = sText_Description_Disabled_Random_Type_Effectiveness,
     [MENUITEM_RANDOM_ITEMS]                     = sText_Empty,
+    [MENUITEM_RANDOM_ITEMS_VGC]                 = sText_Description_Disabled_Random_NeedsItems,
+    [MENUITEM_RANDOM_TMS_VGC]                   = sText_Description_Disabled_Random_NeedsItems,
+    [MENUITEM_RANDOM_TM_MOVES]                  = sText_Empty,
     [MENUITEM_RANDOM_CHAOS]                     = sText_Description_Disabled_Random_Chaos_Mode,
     [MENUITEM_RANDOM_NEXT]                      = sText_Empty,
 };
@@ -1127,6 +1253,8 @@ static const u8 *const sOptionMenuItemDescriptionsDisabledChallenges[MENUITEM_CH
     [MENUITEM_CHALLENGES_BASE_STAT_EQUALIZER]   = sText_Empty,
     [MENUITEM_CHALLENGES_MIRROR]                = sText_Empty,
     [MENUITEM_CHALLENGES_MIRROR_THIEF]          = sText_Description_Disabled_Challenges_MirrorThief,
+    [MENUITEM_CHALLENGES_CHEAP_BALLS]           = sText_Empty,
+    [MENUITEM_CHALLENGES_REROLL_CHEAT]          = sText_Empty,
     [MENUITEM_CHALLENGES_SAVE]                  = sText_Empty,
 };
 
@@ -1488,6 +1616,17 @@ void CB2_InitTxRandomizerChallengesMenu(void)
         gSaveBlock1Ptr->tx_Random_Type                      = TX_RANDOM_TYPE;
         gSaveBlock1Ptr->tx_Random_Moves                     = TX_RANDOM_MOVES;
         gSaveBlock1Ptr->tx_Random_Abilities                 = TX_RANDOM_ABILITIES;
+        gSaveBlock1Ptr->tx_Random_WildLevelScaled           = TX_RANDOM_WILD_LEVEL_SCALED;
+        gSaveBlock1Ptr->tx_Random_Legendaries               = TX_RANDOM_LEGENDARIES;
+        gSaveBlock1Ptr->tx_Random_MovesVGC                  = TX_RANDOM_MOVES_VGC;
+        gSaveBlock1Ptr->tx_Random_GuaranteeStab             = TX_RANDOM_GUARANTEE_STAB;
+        gSaveBlock1Ptr->tx_Random_Learnsets                 = TX_RANDOM_LEARNSETS;
+        gSaveBlock1Ptr->tx_Random_AbilitiesVGC              = TX_RANDOM_ABILITIES_VGC;
+        gSaveBlock1Ptr->tx_Random_ItemsVGC                  = TX_RANDOM_ITEMS_VGC;
+        gSaveBlock1Ptr->tx_Random_TMsVGC                    = TX_RANDOM_TMS_VGC;
+        gSaveBlock1Ptr->tx_Random_TMs                       = TX_RANDOM_TM_MOVES;
+        gSaveBlock1Ptr->tx_Features_CheapBalls              = TX_FEATURES_CHEAP_BALLS;
+        gSaveBlock1Ptr->tx_Features_RerollCheat             = TX_FEATURES_REROLL_CHEAT;
         gSaveBlock1Ptr->tx_Random_Evolutions                = TX_RANDOM_EVOLUTION;
         gSaveBlock1Ptr->tx_Random_EvolutionMethods          = TX_RANDOM_EVOLUTION_METHODE;
         gSaveBlock1Ptr->tx_Random_TypeEffectiveness         = TX_RANDOM_TYPE_EFFECTIVENESS;
@@ -1559,11 +1698,22 @@ void CB2_InitTxRandomizerChallengesMenu(void)
         sOptions->sel_randomizer[MENUITEM_RANDOM_WILD_PKMN]                  = gSaveBlock1Ptr->tx_Random_WildPokemon;
         sOptions->sel_randomizer[MENUITEM_RANDOM_TRAINER]                    = gSaveBlock1Ptr->tx_Random_Trainer;
         sOptions->sel_randomizer[MENUITEM_RANDOM_STATIC]                     = gSaveBlock1Ptr->tx_Random_Static;
-        sOptions->sel_randomizer[MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL]    = !gSaveBlock1Ptr->tx_Random_Similar;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL]    = gSaveBlock1Ptr->tx_Random_Similar;
         sOptions->sel_randomizer[MENUITEM_RANDOM_INCLUDE_LEGENDARIES]        = gSaveBlock1Ptr->tx_Random_IncludeLegendaries;
         sOptions->sel_randomizer[MENUITEM_RANDOM_TYPE]                       = gSaveBlock1Ptr->tx_Random_Type;
         sOptions->sel_randomizer[MENUITEM_RANDOM_MOVES]                      = gSaveBlock1Ptr->tx_Random_Moves;
         sOptions->sel_randomizer[MENUITEM_RANDOM_ABILITIES]                  = gSaveBlock1Ptr->tx_Random_Abilities;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_WILD_LEVEL_SCALED]          = gSaveBlock1Ptr->tx_Random_WildLevelScaled;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_LEGENDARIES]                = gSaveBlock1Ptr->tx_Random_Legendaries;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_MOVES_VGC]                  = gSaveBlock1Ptr->tx_Random_MovesVGC;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_GUARANTEE_STAB]             = gSaveBlock1Ptr->tx_Random_GuaranteeStab;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_LEARNSETS]                  = gSaveBlock1Ptr->tx_Random_Learnsets;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_ABILITIES_VGC]              = gSaveBlock1Ptr->tx_Random_AbilitiesVGC;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_ITEMS_VGC]                  = gSaveBlock1Ptr->tx_Random_ItemsVGC;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_TMS_VGC]                    = gSaveBlock1Ptr->tx_Random_TMsVGC;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_TM_MOVES]                   = gSaveBlock1Ptr->tx_Random_TMs;
+        sOptions->sel_challenges[MENUITEM_CHALLENGES_CHEAP_BALLS]            = gSaveBlock1Ptr->tx_Features_CheapBalls;
+        sOptions->sel_challenges[MENUITEM_CHALLENGES_REROLL_CHEAT]           = gSaveBlock1Ptr->tx_Features_RerollCheat;
         sOptions->sel_randomizer[MENUITEM_RANDOM_EVOLUTIONS]                 = gSaveBlock1Ptr->tx_Random_Evolutions;
         sOptions->sel_randomizer[MENUITEM_RANDOM_EVOLUTIONS_METHODS]         = gSaveBlock1Ptr->tx_Random_EvolutionMethods;
         sOptions->sel_randomizer[MENUITEM_RANDOM_TYPE_EFFEC]                 = gSaveBlock1Ptr->tx_Random_TypeEffectiveness;
@@ -1915,12 +2065,21 @@ void SaveData_TxRandomizerAndChallenges(void)
         gSaveBlock1Ptr->tx_Random_WildPokemon        = sOptions->sel_randomizer[MENUITEM_RANDOM_WILD_PKMN];
         gSaveBlock1Ptr->tx_Random_Trainer            = sOptions->sel_randomizer[MENUITEM_RANDOM_TRAINER];
         gSaveBlock1Ptr->tx_Random_Static             = sOptions->sel_randomizer[MENUITEM_RANDOM_STATIC];
-        gSaveBlock1Ptr->tx_Random_Similar            = !sOptions->sel_randomizer[MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL];
+        gSaveBlock1Ptr->tx_Random_Similar            = sOptions->sel_randomizer[MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL];
         gSaveBlock1Ptr->tx_Random_MapBased           = TX_RANDOM_MAP_BASED;
         gSaveBlock1Ptr->tx_Random_IncludeLegendaries = sOptions->sel_randomizer[MENUITEM_RANDOM_INCLUDE_LEGENDARIES];
         gSaveBlock1Ptr->tx_Random_Type               = sOptions->sel_randomizer[MENUITEM_RANDOM_TYPE];
         gSaveBlock1Ptr->tx_Random_Moves              = sOptions->sel_randomizer[MENUITEM_RANDOM_MOVES];
         gSaveBlock1Ptr->tx_Random_Abilities          = sOptions->sel_randomizer[MENUITEM_RANDOM_ABILITIES];
+        gSaveBlock1Ptr->tx_Random_WildLevelScaled    = sOptions->sel_randomizer[MENUITEM_RANDOM_WILD_LEVEL_SCALED];
+        gSaveBlock1Ptr->tx_Random_Legendaries        = sOptions->sel_randomizer[MENUITEM_RANDOM_LEGENDARIES];
+        gSaveBlock1Ptr->tx_Random_MovesVGC           = sOptions->sel_randomizer[MENUITEM_RANDOM_MOVES_VGC];
+        gSaveBlock1Ptr->tx_Random_GuaranteeStab      = sOptions->sel_randomizer[MENUITEM_RANDOM_GUARANTEE_STAB];
+        gSaveBlock1Ptr->tx_Random_Learnsets          = sOptions->sel_randomizer[MENUITEM_RANDOM_LEARNSETS];
+        gSaveBlock1Ptr->tx_Random_AbilitiesVGC       = sOptions->sel_randomizer[MENUITEM_RANDOM_ABILITIES_VGC];
+        gSaveBlock1Ptr->tx_Random_ItemsVGC           = sOptions->sel_randomizer[MENUITEM_RANDOM_ITEMS_VGC];
+        gSaveBlock1Ptr->tx_Random_TMsVGC             = sOptions->sel_randomizer[MENUITEM_RANDOM_TMS_VGC];
+        gSaveBlock1Ptr->tx_Random_TMs                = sOptions->sel_randomizer[MENUITEM_RANDOM_TM_MOVES];
         gSaveBlock1Ptr->tx_Random_Evolutions         = sOptions->sel_randomizer[MENUITEM_RANDOM_EVOLUTIONS];
         gSaveBlock1Ptr->tx_Random_EvolutionMethods   = sOptions->sel_randomizer[MENUITEM_RANDOM_EVOLUTIONS_METHODS];
         gSaveBlock1Ptr->tx_Random_TypeEffectiveness  = sOptions->sel_randomizer[MENUITEM_RANDOM_TYPE_EFFEC];
@@ -1939,6 +2098,15 @@ void SaveData_TxRandomizerAndChallenges(void)
         gSaveBlock1Ptr->tx_Random_Type               = FALSE;
         gSaveBlock1Ptr->tx_Random_Moves              = FALSE;
         gSaveBlock1Ptr->tx_Random_Abilities          = FALSE;
+        gSaveBlock1Ptr->tx_Random_WildLevelScaled    = FALSE;
+        gSaveBlock1Ptr->tx_Random_Legendaries        = FALSE;
+        gSaveBlock1Ptr->tx_Random_MovesVGC           = TX_VGC_OFF;
+        gSaveBlock1Ptr->tx_Random_GuaranteeStab      = FALSE;
+        gSaveBlock1Ptr->tx_Random_Learnsets          = FALSE;
+        gSaveBlock1Ptr->tx_Random_AbilitiesVGC       = TX_VGC_OFF;
+        gSaveBlock1Ptr->tx_Random_ItemsVGC           = TX_VGC_OFF;
+        gSaveBlock1Ptr->tx_Random_TMsVGC             = TX_VGC_OFF;
+        gSaveBlock1Ptr->tx_Random_TMs                = FALSE;
         gSaveBlock1Ptr->tx_Random_Evolutions         = FALSE;
         gSaveBlock1Ptr->tx_Random_EvolutionMethods   = FALSE;
         gSaveBlock1Ptr->tx_Random_TypeEffectiveness  = FALSE;
@@ -2006,6 +2174,8 @@ void SaveData_TxRandomizerAndChallenges(void)
     gSaveBlock1Ptr->tx_Challenges_BaseStatEqualizer    = sOptions->sel_challenges[MENUITEM_CHALLENGES_BASE_STAT_EQUALIZER];
     gSaveBlock1Ptr->tx_Challenges_Mirror               = sOptions->sel_challenges[MENUITEM_CHALLENGES_MIRROR];
     gSaveBlock1Ptr->tx_Challenges_Mirror_Thief         = sOptions->sel_challenges[MENUITEM_CHALLENGES_MIRROR_THIEF];
+    gSaveBlock1Ptr->tx_Features_CheapBalls             = sOptions->sel_challenges[MENUITEM_CHALLENGES_CHEAP_BALLS];
+    gSaveBlock1Ptr->tx_Features_RerollCheat            = sOptions->sel_challenges[MENUITEM_CHALLENGES_REROLL_CHEAT];
     gSaveBlock1Ptr->tx_Challenges_PCHeal               = sOptions->sel_challenges[MENUITEM_CHALLENGES_PCHEAL];
     gSaveBlock1Ptr->tx_Challenges_PkmnCenter           = sOptions->sel_challenges[MENUITEM_DIFFICULTY_POKECENTER];
     gSaveBlock1Ptr->tx_Challenges_Expensive            = sOptions->sel_challenges[MENUITEM_CHALLENGES_EXPENSIVE];
@@ -2404,14 +2574,18 @@ static void DrawChoices_Random_Static(int selection, int y)
     bool8 active = CheckConditions(MENUITEM_RANDOM_STATIC);
     DrawChoices_Random_OffRandom(selection, y, active);
 }
+static const u8 sText_Balancing_Balanced[] = _("Balanced");
+static const u8 sText_Balancing_Improved[] = _("Improved");
 static void DrawChoices_Random_EvoStages(int selection, int y)
 {
     bool8 active = CheckConditions(MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL);
-    u8 styles[2] = {0};
+    u8 styles[3] = {0};
+    int xMid = GetMiddleX(sText_Off, sText_Balancing_Balanced, sText_Balancing_Improved);
     styles[selection] = 1;
 
-    DrawOptionMenuChoice(sText_On, 104, y, styles[0], active);
-    DrawOptionMenuChoice(sText_Off, GetStringRightAlignXOffset(1, sText_Off, 198), y, styles[1], active);
+    DrawOptionMenuChoice(sText_Off, 104, y, styles[0], active);
+    DrawOptionMenuChoice(sText_Balancing_Balanced, xMid, y, styles[1], active);
+    DrawOptionMenuChoice(sText_Balancing_Improved, GetStringRightAlignXOffset(1, sText_Balancing_Improved, 198), y, styles[2], active);
 }
 static void DrawChoices_Random_Legendaries(int selection, int y)
 {
@@ -2432,6 +2606,62 @@ static void DrawChoices_Random_Abilities(int selection, int y)
 {
     bool8 active = CheckConditions(MENUITEM_RANDOM_ABILITIES);
     DrawChoices_Random_OffRandom(selection, y, active);
+}
+static void DrawChoices_Random_WildLevelScaled(int selection, int y)
+{
+    DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_RANDOM_WILD_LEVEL_SCALED));
+}
+static void DrawChoices_Random_LegendaryEncounters(int selection, int y)
+{
+    DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_RANDOM_LEGENDARIES));
+}
+static void DrawChoices_Random_GuaranteeStab(int selection, int y)
+{
+    DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_RANDOM_GUARANTEE_STAB));
+}
+static void DrawChoices_Random_Learnsets(int selection, int y)
+{
+    DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_RANDOM_LEARNSETS));
+}
+static void DrawChoices_Random_TMMoves(int selection, int y)
+{
+    DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_RANDOM_TM_MOVES));
+}
+static const u8 sText_VGC_Weighted[] = _("Weighted");
+static const u8 sText_VGC_Strict[]   = _("Strict");
+static void DrawChoices_VGC_Mode(int selection, int y, bool8 active)
+{
+    u8 styles[3] = {0};
+    int xMid = GetMiddleX(sText_Off, sText_VGC_Weighted, sText_VGC_Strict);
+    styles[selection] = 1;
+
+    DrawOptionMenuChoice(sText_Off, 104, y, styles[0], active);
+    DrawOptionMenuChoice(sText_VGC_Weighted, xMid, y, styles[1], active);
+    DrawOptionMenuChoice(sText_VGC_Strict, GetStringRightAlignXOffset(1, sText_VGC_Strict, 198), y, styles[2], active);
+}
+static void DrawChoices_Random_MovesVGC(int selection, int y)
+{
+    DrawChoices_VGC_Mode(selection, y, CheckConditions(MENUITEM_RANDOM_MOVES_VGC));
+}
+static void DrawChoices_Random_AbilitiesVGC(int selection, int y)
+{
+    DrawChoices_VGC_Mode(selection, y, CheckConditions(MENUITEM_RANDOM_ABILITIES_VGC));
+}
+static void DrawChoices_Random_ItemsVGC(int selection, int y)
+{
+    DrawChoices_VGC_Mode(selection, y, CheckConditions(MENUITEM_RANDOM_ITEMS_VGC));
+}
+static void DrawChoices_Random_TMsVGC(int selection, int y)
+{
+    DrawChoices_VGC_Mode(selection, y, CheckConditions(MENUITEM_RANDOM_TMS_VGC));
+}
+static void DrawChoices_Features_CheapBalls(int selection, int y)
+{
+    DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_CHALLENGES_CHEAP_BALLS));
+}
+static void DrawChoices_Features_RerollCheat(int selection, int y)
+{
+    DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_CHALLENGES_REROLL_CHEAT));
 }
 static void DrawChoices_Random_Evolutions(int selection, int y)
 {

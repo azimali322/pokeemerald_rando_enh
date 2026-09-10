@@ -110,6 +110,9 @@ u8 ScriptGiveMon(u16 species, u8 level, u16 item, u32 unused1, u32 unused2, u8 u
     }
     else
         CreateMon(&mon, species, level, USE_RANDOM_IVS, FALSE, 0, OT_ID_PLAYER_ID, 0);
+
+    if (gSaveBlock1Ptr->tx_Random_GuaranteeStab && gSaveBlock1Ptr->tx_Random_Moves)
+        EnsureStabMove(&mon);
     heldItem[0] = item;
     heldItem[1] = item >> 8;
     SetMonData(&mon, MON_DATA_HELD_ITEM, heldItem);
@@ -195,6 +198,8 @@ void CreateScriptedWildMon(u16 species, u8 level, u16 item)
 
     ZeroEnemyPartyMons();
     CreateMon(&gEnemyParty[0], species, level, USE_RANDOM_IVS, 0, 0, OT_ID_PLAYER_ID, 0);
+    if (gSaveBlock1Ptr->tx_Random_GuaranteeStab && gSaveBlock1Ptr->tx_Random_Moves)
+        EnsureStabMove(&gEnemyParty[0]);
     if (item)
     {
         heldItem[0] = item;

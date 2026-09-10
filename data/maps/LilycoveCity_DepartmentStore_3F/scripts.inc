@@ -19,6 +19,22 @@ LilycoveCity_DepartmentStore_3F_Pokemart_Vitamins:
 	.2byte ITEM_ZINC
 	.2byte ITEM_CARBOS
 	.2byte ITEM_HP_UP
+@ evolution stones
+	.2byte ITEM_SUN_STONE
+	.2byte ITEM_MOON_STONE
+	.2byte ITEM_FIRE_STONE
+	.2byte ITEM_THUNDER_STONE
+	.2byte ITEM_WATER_STONE
+	.2byte ITEM_LEAF_STONE
+@ trade-evolution held items (use with the Self-trader on 1F)
+	.2byte ITEM_KINGS_ROCK
+	.2byte ITEM_METAL_COAT
+	.2byte ITEM_HARD_STONE
+	.2byte ITEM_DRAGON_SCALE
+	.2byte ITEM_UP_GRADE
+	.2byte ITEM_SPELL_TAG
+	.2byte ITEM_DEEP_SEA_TOOTH
+	.2byte ITEM_DEEP_SEA_SCALE
 	.2byte ITEM_NONE
 	release
 	end

@@ -89,6 +89,10 @@ static void CreateInitialRoamerMon(bool16 createLatios)
     else
         ROAMER->species = SPECIES_LATIOS;
 
+    //tx_randomizer_and_challenges: roamers assign species directly, so they need the hook too
+    if (gSaveBlock1Ptr->tx_Random_Legendaries)
+        ROAMER->species = GetRandomLegendary(ROAMER->species);
+
     CreateMon(&gEnemyParty[0], ROAMER->species, 60, USE_RANDOM_IVS, FALSE, 0, OT_ID_PLAYER_ID, 0);
     ROAMER->level = 40;
     ROAMER->status = 0;
