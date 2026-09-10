@@ -448,8 +448,18 @@ back off the created mon with `GetMonData`, which is correct in every branch.
 Candidates per type (power > 1, non-HM): Normal 52, Fighting 18, Fire/Grass 12, Water 11, Flying/Psychic/
 Ground 10, Ice/Electric/Poison/Bug/Dark 8, Rock 7, Ghost/Steel 6, Dragon 5, **Fairy 2**.
 
-⚠️ **Fairy has only 2 candidates** (and Dragon 5, Ghost/Steel 6). Fairy-types will nearly always receive the
-same move. Expected given the movepool, not a bug — but worth seeing before you judge it.
+**Narrow-type handling.** Fairy has only 2 candidates, so a pure-Fairy mon would get the same move nearly
+every time. Pools smaller than 5 therefore mix in Normal moves: **33% own-type, 67% Normal**. Own-type still
+wins a third of the time — far above the 2/54 (≈4%) it would get from simply merging the two lists.
+
+**Dual-types draw from the union of both types and are unaffected.** A Fairy/Dragon mon picks from all 7
+Fairy+Dragon moves; only mono-types of a narrow type fall back. Verified:
+
+| | |
+|---|---|
+| Species triggering the Normal blend | **7** — Clefairy, Clefable, Cleffa, Togepi, Snubbull, Granbull, Sylveon (all pure Fairy) |
+| Dual-types containing Fairy that **don't** trigger | 17 — Jigglypuff (Normal/Fairy → 54), Mr. Mime (Psychic/Fairy → 12), Togetic (Fairy/Flying → 12), Marill (Water/Fairy → 13) |
+| Dragon (5), Ghost (6), Steel (6) | never trigger — above the threshold |
 
 **T6.12 (no candidates) is covered by this** — the guard exists but cannot fire with current data.
 
@@ -460,7 +470,13 @@ preserved where possible, and the function refuses outright rather than overwrit
 - [ ] **T6.2 — On, wild mons.** Sample 20 wild encounters. **Every one** has ≥1 damaging move matching one of
       its types.
 - [ ] **T6.3 — On, captured.** The caught version of that mon retains the STAB move.
-- [ ] **T6.4 — Dual types.** A dual-type mon needs only **one** of its two types matched, not both.
+- [ ] **T6.4 — Dual types.** A dual-type mon needs only **one** of its two types matched, and draws from the
+      **union** of both types' moves. Check a Fairy/Flying mon (Togetic): its STAB should sometimes be Fairy
+      and sometimes Flying, from the combined 12-move pool.
+- [ ] **T6.4b — Narrow mono-type blend.** Sample ~15 pure-Fairy encounters (Clefairy, Togepi, Snubbull,
+      Sylveon). Roughly **1 in 3** should get a Fairy move; the rest a Normal move. Both outcomes are correct.
+- [ ] **T6.4c — Blend does NOT fire elsewhere.** A pure-Dragon, pure-Ghost or pure-Steel mon should still get
+      its own type every time — those pools are above the threshold.
 - [ ] **T6.5 — Trainers.** *Random Trainer* + *Random Moves* + *Guarantee STAB* On: every opponent mon has a
       matching-type move.
 - [ ] **T6.6 — Trainers use the randomized species.** Handled by reading species off the created mon rather

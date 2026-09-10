@@ -12545,6 +12545,13 @@ static bool8 IsHMMove(u16 move)
         || move == MOVE_FLASH || move == MOVE_ROCK_SMASH || move == MOVE_WATERFALL || move == MOVE_DIVE;
 }
 
+// Some types have almost no damaging moves in this ROM -- Fairy has 2, Dragon 5, Ghost/Steel 6.
+// A dual-type mon draws from the union of both its types, so it is only mono-types of a narrow
+// type that end up with near-zero variety. For those, Normal moves are mixed in: the mon still
+// usually gets true STAB, but not the same one move every single time.
+#define STAB_NARROW_POOL     5   // own-type pools smaller than this get Normal mixed in
+#define STAB_NARROW_OWN_PCT 33   // ...and this is the chance of still rolling own-type
+
 static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
 {
     if (move == MOVE_NONE || move >= MOVES_COUNT)
@@ -12561,7 +12568,7 @@ void EnsureStabMove(struct Pokemon *mon)
 {
     u16 species, move, chosen = MOVE_NONE;
     u16 candidateCount = 0, pick, seen = 0;
-    u8 type1, type2, i, slot;
+    u8 type1, type2, searchType1, searchType2, i, slot;
     u8 emptySlot = MAX_MON_MOVES, weakestSlot = MAX_MON_MOVES;
     u16 weakestPower = 0xFFFF;
 
@@ -12614,10 +12621,34 @@ void EnsureStabMove(struct Pokemon *mon)
     if (candidateCount == 0)
         return;     // nothing of this type exists; better to leave the moveset than write junk
 
+    // Narrow pool (a mono-Fairy, say): roll whether to use own-type or fall back to Normal.
+    // Own-type still wins STAB_NARROW_OWN_PCT of the time, far above the share it would get
+    // from simply pooling the two lists together.
+    searchType1 = type1;
+    searchType2 = type2;
+    if (candidateCount < STAB_NARROW_POOL
+        && RandomSeededModulo(species + 0x2C7D, 100) >= STAB_NARROW_OWN_PCT)
+    {
+        u16 normalCount = 0;
+
+        for (move = 1; move < MOVES_COUNT; move++)
+        {
+            if (IsStabCandidate(move, TYPE_NORMAL, TYPE_NORMAL))
+                normalCount++;
+        }
+
+        if (normalCount > 0)    // keep own-type if Normal somehow has nothing
+        {
+            searchType1 = TYPE_NORMAL;
+            searchType2 = TYPE_NORMAL;
+            candidateCount = normalCount;
+        }
+    }
+
     pick = RandomSeededModulo(species + 0x5AB3, candidateCount);
     for (move = 1; move < MOVES_COUNT; move++)
     {
-        if (IsStabCandidate(move, type1, type2))
+        if (IsStabCandidate(move, searchType1, searchType2))
         {
             if (seen == pick)
             {
@@ -12645,8 +12676,8 @@ void EnsureStabMove(struct Pokemon *mon)
     SetMonData(mon, MON_DATA_PP1 + slot, &gBattleMoves[chosen].pp);
 
     #ifndef NDEBUG
-        MgbaPrintf(MGBA_LOG_DEBUG, "TX STAB GUARANTEE  : %d=%S slot=%d -> %d=%S (%d candidates)",
-                   species, gSpeciesNames[species], slot, chosen, gMoveNames[chosen], candidateCount);
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX STAB GUARANTEE  : %d=%S slot=%d -> %d=%S (%d candidates, type %d)",
+                   species, gSpeciesNames[species], slot, chosen, gMoveNames[chosen], candidateCount, searchType1);
     #endif
 }
 
