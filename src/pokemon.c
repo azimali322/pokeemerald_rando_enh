@@ -12486,6 +12486,49 @@ u16 ClampSpeciesToLevel(u16 species, u8 level)
     return species;
 }
 
+
+//tx_randomizer_and_challenges
+// Legendary encounters swap for another legendary rather than an ordinary species.
+//
+// The mapping is a bijection: the pool is shuffled once with a save-derived seed and each legendary
+// takes the entry at its own index, so every legendary maps to a distinct one. Deterministic --
+// ShuffleListU16 is seeded from the trainer ID, so the same save always produces the same mapping.
+u16 GetRandomLegendary(u16 species)
+{
+    u16 shuffled[ARRAY_COUNT(sRandomSpeciesEvoLegendary)];
+    u16 i, index = 0xFFFF;
+
+    for (i = 0; i < ARRAY_COUNT(sRandomSpeciesEvoLegendary); i++)
+    {
+        if (sRandomSpeciesEvoLegendary[i] == species)
+            index = i;
+        shuffled[i] = sRandomSpeciesEvoLegendary[i];
+    }
+
+    if (index == 0xFFFF)    // legendary that isn't in the pool; leave it be
+        return species;
+
+    // Fisher-Yates with a per-iteration seed. ShuffleListU16 would work, but it feeds the same
+    // seed to every iteration, so a single 16-bit value decides the whole permutation -- which
+    // leaves ~1% of trainer IDs mapping 8+ legendaries onto themselves. Varying the seed by
+    // iteration fixes that and is still a pure function of the trainer ID, so it stays
+    // deterministic per save.
+    for (i = ARRAY_COUNT(sRandomSpeciesEvoLegendary) - 1; i > 0; i--)
+    {
+        u16 j = RandomSeededModulo(12289 + i * 31, i + 1);
+        u16 tmp = shuffled[j];
+        shuffled[j] = shuffled[i];
+        shuffled[i] = tmp;
+    }
+
+    #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX RANDOM LEGENDARY: %d=%S -->> %d=%S",
+                   species, gSpeciesNames[species], shuffled[index], gSpeciesNames[shuffled[index]]);
+    #endif
+
+    return shuffled[index];
+}
+
 u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
 {
     u8 slot, slotNew;
@@ -12496,8 +12539,14 @@ u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
     if (gSaveBlock1Ptr->tx_Random_Chaos)
         return sRandomSpeciesLegendary[RandomSeededModulo(species, RANDOM_SPECIES_COUNT_LEGENDARY)];
 
-    //if EVO_TYPE is SELF or LEGENDARY and !tx_Random_IncludeLegendaries
     slot = gSpeciesMapping[species];
+
+    // Legendary -> random legendary. Deliberately ahead of the early-out below, which would
+    // otherwise pass legendaries through untouched whenever Include Legendaries is off.
+    if (gSaveBlock1Ptr->tx_Random_Legendaries && slot == EVO_TYPE_LEGENDARY)
+        return GetRandomLegendary(species);
+
+    //if EVO_TYPE is SELF or LEGENDARY and !tx_Random_IncludeLegendaries
     if (slot == EVO_TYPE_SELF || (slot == EVO_TYPE_LEGENDARY && !gSaveBlock1Ptr->tx_Random_IncludeLegendaries))
         return species;
 

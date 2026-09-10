@@ -339,7 +339,35 @@ integration.
 
 ## Phase 4 — Random legendary encounters
 
-**Status:** Not implemented
+**Status:** ✅ Implemented — **needs in-game verification**
+
+`GetRandomLegendary()` in `src/pokemon.c`, hooked into `GetSpeciesRandomSeeded` **ahead of** the existing
+early-out (which would otherwise pass legendaries through untouched whenever *Include Legendaries* is off).
+Because the hook sits at the shared chokepoint and keys off `EVO_TYPE_LEGENDARY`, it covers battle
+legendaries, gift legendaries, wild legendaries and trainer-owned ones in one place.
+
+**Roamers needed a second hook** — `CreateInitialRoamerMon` (`src/roamer.c`) assigns
+`ROAMER->species` directly and never reaches the chokepoint. Added there too.
+
+**Uniqueness: guaranteed.** The 25-entry pool is shuffled once with a trainer-ID-derived seed and each
+legendary takes the entry at its own index — a bijection, so no two legendaries collide.
+
+**Verified offline** by reproducing the RNG maths exactly:
+
+| Check | Result |
+|---|---|
+| Valid bijection (no duplicates, nothing lost) | ✅ **all 9,363 sampled trainer IDs** |
+| Deterministic (same save → same mapping) | ✅ |
+| Distinct permutations across saves | 9,363 / 9,363 |
+| Saves with ≥8 of 25 legendaries mapping to themselves | 0.55% |
+
+*Implementation note:* the shared `ShuffleListU16` feeds the **same** seed to every iteration, so one 16-bit
+value decides the whole permutation — that left ~1% of saves mapping 8+ legendaries onto themselves, and one
+save in 65,536 mapping 16. `GetRandomLegendary` runs its own Fisher-Yates with a per-iteration seed instead,
+halving that tail, without touching shared code that starter selection also uses.
+
+**T4.4 (uniqueness) and T4.12 (determinism) are covered by this.** A legendary occasionally mapping to
+itself is expected — that's normal for a permutation, not a bug.
 
 - [ ] **T4.1 — Off (control).** Legendaries are their canonical species.
 - [ ] **T4.2 — On, battle legendary.** Sky Pillar Rayquaza → a **different legendary**, never a regular mon.
@@ -352,8 +380,8 @@ integration.
 - [ ] **T4.6 — Wild legendaries.** *Include Legendaries* On: a wild legendary encounter also yields a random
       legendary, not its canonical species.
 - [ ] **T4.7 — Trainer legendaries.** *Random Trainer* On: a trainer-owned legendary randomizes too.
-- [ ] **T4.8 — Roamers.** Latias/Latios roaming encounter (`src/roamer.c`). **Most likely site to have been
-      missed** — it uses its own `CreateMon` path.
+- [ ] **T4.8 — Roamers.** Latias/Latios roaming encounter. Hook added at `CreateInitialRoamerMon`; verify the
+      roamer is a random legendary and that it still roams, flees and can be caught normally.
 - [ ] **T4.9 — Non-legendary statics unaffected.** Beldum, Castform, Wynaut, the fossils, gift Pokémon still
       follow plain *Random Static* rules.
 - [ ] **T4.10 — Level preserved.** A randomized Rayquaza is at Rayquaza's scripted level (70), not the

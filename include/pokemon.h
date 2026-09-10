@@ -585,6 +585,7 @@ u16 PickRandomStarter(u16 *speciesList, u8 starterId);
 u8 GetTypeBySpecies(u16 species, u8 typeNum);
 u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset);
 u16 ClampSpeciesToLevel(u16 species, u8 level);
+u16 GetRandomLegendary(u16 species);
 u16 GetRandomMove(u16 input_move, u16 species);
 u8 GetRandomType(void);
 u8 EvolutionBlockedByEvoLimit(u16 species);

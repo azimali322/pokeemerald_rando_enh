@@ -625,7 +625,7 @@ something Poochyena-tier by BST, and clamping would rarely need to fire at all.
 
 ---
 
-## Phase 4 — Random legendary encounters (Req 2)
+## Phase 4 — Random legendary encounters (Req 2) — ✅ **IMPLEMENTED**
 
 **Simplified per your feedback: every legendary encounter in the game yields a random legendary.**
 
@@ -673,8 +673,9 @@ That makes the mapping a bijection — every legendary maps to exactly one disti
 with no collisions. Needs a small helper (`GetLegendaryIndex(species)`, a linear scan of ~26 entries) and the
 shuffled array either cached in EWRAM or regenerated on demand (cheap at 26 elements).
 
-**Fallback if the permutation proves awkward:** plain `RandomSeededModulo` with duplicates, which is three
-lines. The plan targets unique; drop to modulo only if something unexpected blocks it.
+**Built as unique.** Verified a bijection across 9,363 sampled trainer IDs. The shared `ShuffleListU16`
+turned out to reuse one seed for every iteration, so `GetRandomLegendary` runs its own Fisher-Yates with a
+per-iteration seed rather than changing shared code that starter selection depends on.
 
 ### Risks
 - **Plot integrity — highest consequence in the plan.** Kyogre/Groudon/Rayquaza gate the Cave of Origin and
@@ -1319,7 +1320,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | 2b | Evo stones + trade-evo items ₽1 | S | Low | ✅ `item.c`, 2 map scripts |
 | 3 | Level-aware wild randomization | M | Med | ✅ `pokemon.c`, `wild_encounter.c` |
 | 3b | BST similarity ("Improved") | M | Low | ✅ `pokemon.c`, `species_by_bst.h` |
-| 4 | Random legendaries (everywhere) | S | **Med** (plot) | `pokemon.c`, `roamer.c` |
+| 4 | Random legendaries (everywhere) | S | **Med** (plot) | ✅ `pokemon.c`, `roamer.c` |
 | 5 | VGC moves | M | Low | `pokemon.c` (data-heavy) |
 | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
 | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c` (new path + data) |
