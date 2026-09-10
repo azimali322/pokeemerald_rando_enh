@@ -537,7 +537,7 @@ difficulty balance. Flag it if you want it; it's a small follow-up.
 
 ---
 
-## Phase 3b — BST similarity mode (New Req 14)
+## Phase 3b — BST similarity mode / "Improved" balancing (New Req 14) — ✅ **IMPLEMENTED**
 
 Pairs with Phase 3. Phase 3 controls **how evolved** a wild mon is; this controls **how strong** it is.
 Background and worked examples in [Appendix G](#appendix-g--tertus-dynamic-species-tables-explained).
@@ -548,20 +548,25 @@ Background and worked examples in [Appendix G](#appendix-g--tertus-dynamic-speci
 power. The `EVO_TYPE_0` bucket holds 179 species from **Sunkern (BST 180)** to **Lapras (BST 535)** — so the
 balance option itself puts a 3× power gap in one swap pool.
 
-### The design
+### The design — as built
 
-A third setting on the existing similarity axis, rather than a separate toggle — the three are mutually
-exclusive ways of answering "what should this species become?":
+The existing **BALANCING** option became three-state rather than gaining a separate toggle, since the three
+are mutually exclusive answers to "what should this species become?":
 
-| `tx_Random_SimilarMode` | Behaviour |
-|---|---|
-| 0 — Off | Any species → any species (today's default) |
-| 1 — Evolution stage | Today's `tx_Random_Similar` |
-| 2 — **Base stats** | **New** — swap within ±10.24% BST |
+| `tx_Random_Similar` | Menu label | Behaviour |
+|---|---|---|
+| 0 | **Off** | Any species → any species |
+| 1 | **Balanced** | Evolution-stage matching (the original behaviour) |
+| 2 | **Improved** | Swap within ±10.24% base stat total |
 
-**Migration note:** `tx_Random_Similar` is an existing 1-bit save field. Widen it to 2 bits and keep 0/1
-meaning what they mean today, so old values still read correctly. There are 548 spare bytes in `SaveBlock1`
-(measured in Phase 1), so this is free.
+Field widened 1 → 2 bits; 0 and 1 keep their existing meanings.
+
+**One wrinkle worth recording:** the old menu was *inverted* — `DrawChoices_Random_EvoStages` drew index 0 as
+"On", and load/save applied a `!`. That negation is removed, so the mapping is now a plain 0/1/2. Anything
+touching this option must not reintroduce it.
+
+`PickRandomStarter` still treats the field as truthy, so *Improved* falls back to the stage-0 starter pool.
+That is intended — starters should stay first-stage regardless of balancing mode.
 
 ### Implementation
 
@@ -602,10 +607,10 @@ They compose cleanly and are worth running together: BST picks a species of appr
 `ClampSpeciesToLevel` walks it down to an appropriate evolution stage. A Lv4 Route 102 encounter would pick
 something Poochyena-tier by BST, and clamping would rarely need to fire at all.
 
-### Edge cases
-- **Narrow bands at the extremes.** Sunkern (BST 180) has only **6** candidates in band; Magikarp (200) has
-  22; Tauros (510) has 147. At the very bottom the pool is small enough that repeats will be common. Consider
-  widening the band when fewer than ~8 candidates are found, or accept the repetition.
+### Edge cases — resolved in the build
+- **Narrow bands at the extremes.** Handled: the band widens up to 4× when it would hold fewer than 8
+  candidates. Sunkern goes 6 → 17, Slaking → 32. Measured narrowest band across all 400 species is **13**
+  (Azurill); none is empty.
 - **Legendaries.** A ±10.24% band around Mewtwo (680) is almost entirely other legendaries, which is a sane
   outcome — but confirm it respects `tx_Random_IncludeLegendaries` rather than sneaking them in.
 - **Species missing base stats.** The generator parsed 436 of ~462; the rest are forms or placeholders. Ensure
@@ -1309,11 +1314,11 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | Phase | Requirement | Size | Risk | Key files |
 |---|---|---|---|---|
 | 0 | Build env | S | Low | — |
-| 1 | Save + menu plumbing | M | **Med** (save layout) | `global.h`, `tx_rac_menu.c`, `tx_rac_viewer.c` |
-| 2 | Cheap Ultra Balls | S | Low | `item.c`, `shop.c` |
-| 2b | Evo stones + trade-evo items ₽1 | S | Low | `item.c`, 2 map scripts |
-| 3 | Level-aware wild randomization | M | Med | `pokemon.c`, `wild_encounter.c` |
-| 3b | BST similarity mode | M | Low | `pokemon.c`, generated BST table |
+| 1 | Save + menu plumbing | M | **Med** (save layout) | ✅ `global.h`, `tx_rac_menu.c`, `tx_rac_viewer.c` |
+| 2 | Cheap Ultra Balls | S | Low | ✅ `item.c` |
+| 2b | Evo stones + trade-evo items ₽1 | S | Low | ✅ `item.c`, 2 map scripts |
+| 3 | Level-aware wild randomization | M | Med | ✅ `pokemon.c`, `wild_encounter.c` |
+| 3b | BST similarity ("Improved") | M | Low | ✅ `pokemon.c`, `species_by_bst.h` |
 | 4 | Random legendaries (everywhere) | S | **Med** (plot) | `pokemon.c`, `roamer.c` |
 | 5 | VGC moves | M | Low | `pokemon.c` (data-heavy) |
 | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
