@@ -94,12 +94,21 @@ it can be diagnosed.
 
 ## Phase 1 — Save flags & menu plumbing
 
-**Status:** Not implemented
+**Status:** ✅ Implemented (commit `78f6f11`) — **needs in-game verification**
+
+Build passes, `SaveBlock1FreeSpace` assert holds. Measured: `sizeof(struct SaveBlock1)` = 15,788 / 16,336,
+**548 bytes free**. EWRAM unchanged at 99.62%.
+
+New options — randomizer page: *Level-Scaled Wilds*, *Random Legendaries*, *VGC Move Pool*,
+*Guarantee STAB*, *Smart Learnsets*, *VGC Ability Pool*, *VGC Item Pool*, *VGC TM Pool*, *Random TM Moves*.
+Features page: *Cheap Shop*, *Reroll Cheat*.
+
+**Each new option is gated** — it greys out unless its parent is on (e.g. *VGC Move Pool* needs
+*Moves*; *Level-Scaled Wilds* needs *Wild Pkmn*). Verify the grey-out messages in T1.10.
 
 Eleven new options exist, display, persist, and default correctly — with no behaviour behind them yet.
 
-- [ ] **T1.1 — Build gate.** Compiles clean, with **no `SaveBlock1FreeSpace` static-assert failure**
-      (`src/save.c:80`). If this fires, the bitfields overflowed the save sector and no gameplay test matters.
+- [x] **T1.1 — Build gate.** Compiles clean; no `SaveBlock1FreeSpace` failure. ✓
 - [ ] **T1.2 — All eleven present.** *Level-Scaled Wilds*, *Random Legendaries*, *VGC Moves*, *Guarantee STAB*,
       *VGC Abilities*, *VGC Items*, *Random Learnsets*, *VGC TMs*, *Random TM Moves*, *Cheap Balls*,
       *Reroll Cheat* — each next to the option it modifies.
@@ -113,8 +122,11 @@ Eleven new options exist, display, persist, and default correctly — with no be
       Off → Weighted → Strict → Off, with the label matching the stored value at each step.
 - [ ] **T1.8 — No regression.** Every pre-existing option still displays and persists. Bitfield insertion can
       silently shift neighbours.
-- [ ] **T1.9 — Save size.** 16 new bits = 2 bytes. Confirm the `SaveBlock1FreeSpace` assert still has headroom
-      for later additions; if it's now tight, note how much is left.
+- [x] **T1.9 — Save size.** 15 bits used; **548 bytes (~4,384 bits) still free.** Save flags are not scarce. ✓
+- [ ] **T1.10 — Gating.** Each new option greys out when its parent is off, with the right hint text:
+      *VGC Move Pool* / *Guarantee STAB* / *Smart Learnsets* need *Moves*; *VGC Ability Pool* needs
+      *Abilities*; *VGC Item Pool* and *VGC TM Pool* need *Items*; *Level-Scaled Wilds* needs *Wild Pkmn*.
+- [ ] **T1.11 — Menu ordering.** Each new option appears directly beneath the option it modifies.
 
 ---
 
@@ -144,16 +156,26 @@ Eleven new options exist, display, persist, and default correctly — with no be
 
 ## Phase 2b — Evolution stones & trade-evolution items
 
-**Status:** Not implemented
+**Status:** ✅ Implemented (commit `78f6f11`) — **needs in-game verification**
+
+- Lilycove Dept. Store **3F left clerk** now stocks the 6 stones + the 8 trade-evolution held items
+  alongside the vitamins.
+- **Self-trader (1F) dropped from ₽10,000 → ₽1** — both the `checkmoney` gate and the `removemoney`
+  deduction were changed.
+- `ItemId_GetPrice()` returns **₽1** for Ultra Ball, the 6 stones, and the 8 trade items when
+  *Cheap Shop* is on (`IsCheapCheatItem`, `src/item.c`).
+
+Note: **8 distinct items** cover the 11 trade-item evolutions — King's Rock, Metal Coat and Up-Grade each
+serve two lines.
 
 - [ ] **T2b.1 — Control.** Before the change, no mart sells any evolution stone.
 - [ ] **T2b.2 — Stones stocked.** Lilycove Dept. Store 3F sells all six: Sun, Moon, Fire, Thunder, Water, Leaf.
 - [ ] **T2b.3 — Stones ₽1.** All six priced ₽1 in list, quantity, and confirmation screens.
 - [ ] **T2b.4 — Stones work.** Buy a Fire Stone, use it on a valid species (e.g. Vulpix), it evolves.
-- [ ] **T2b.5 — Trade-evo items stocked at Lilycove.** King's Rock, Metal Coat, Hard Stone, Dragon Scale,
-      Up-Grade, Spell Tag, Deep Sea Tooth, Deep Sea Scale — all eight, all ₽1.
-- [ ] **T2b.6 — Trade-evo items stocked at Slateport.** Same eight on the Energy Guru's list. Slateport is
-      reachable far earlier than Lilycove, which is the point.
+- [ ] **T2b.5 — Trade-evo items stocked at Lilycove 3F (left clerk).** King's Rock, Metal Coat, Hard Stone,
+      Dragon Scale, Up-Grade, Spell Tag, Deep Sea Tooth, Deep Sea Scale — all eight, all ₽1.
+- [ ] **T2b.6 — Slateport (NOT YET DONE).** The 8 trade items are not yet on the Energy Guru's list. Decide
+      whether you still want them there — Lilycove alone means no trade evolution before Lilycove.
 - [ ] **T2b.7 — Full trade-item evolution.** Buy a Metal Coat, give it to a Scyther, use the Self-trader on
       Lilycove 1F → **Scizor**. This is the end-to-end test that the requirement is actually satisfied.
 - [ ] **T2b.8 — Plain trade evolution.** Kadabra / Machoke / Graveler / Haunter evolve via the Self-trader
@@ -165,8 +187,8 @@ Eleven new options exist, display, persist, and default correctly — with no be
       sell for more. Highest-priority check in this phase.
 - [ ] **T2b.11 — Other marts unaffected.** Regular Poké Marts (which use the badge-indexed global list) don't
       suddenly stock stones.
-- [ ] **T2b.12 — Self-trader price.** If dropped to ₽1, verify both the `checkmoney` gate and the
-      `removemoney` deduction were changed — changing only one either blocks the trade or gives it free.
+- [ ] **T2b.12 — Self-trader ₽1.** Both `checkmoney` and `removemoney` changed. With ₽0 the machine should
+      still refuse; with ₽1 it should trade and deduct exactly ₽1.
 - [ ] **T2b.13 — King's Rock balance note.** ₽1 King's Rock makes flinch-stacking trivially available.
       Expected, but confirm it's the intent.
 
