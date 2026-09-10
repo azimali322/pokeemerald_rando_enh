@@ -1312,7 +1312,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 6 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
+**Progress: 7 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
