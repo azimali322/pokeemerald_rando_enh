@@ -2932,6 +2932,8 @@ static const u8 gSpeciesMapping[NUM_SPECIES+1] =
     //[SPECIES_DEOXYS_DEFENSE]    = EVO_TYPE_LEGENDARY,
     //[SPECIES_DEOXYS_SPEED]      = EVO_TYPE_LEGENDARY,
 };
+#include "data/pokemon/species_by_bst.h"
+
 #define RANDOM_SPECIES_COUNT ARRAY_COUNT(sRandomSpecies)
 static const u16 sRandomSpecies[] =
 {
@@ -12228,6 +12230,90 @@ u8 GetTypeBySpecies(u16 species, u8 typeNum)
     return type;
 }
 
+
+//tx_randomizer_and_challenges
+// "Improved" balancing: swap a species for one of similar base stat total.
+//
+// Evolution-stage balancing ("Balanced") is a poor proxy for power -- the stage-0 bucket runs from
+// Sunkern (BST 180) to Lapras (BST 535). Matching on BST instead keeps swaps genuinely comparable.
+//
+// BST is static, so the sorted index lives in ROM (src/data/pokemon/species_by_bst.h) rather than
+// being rebuilt in EWRAM at boot. Finding the band is two binary searches instead of a 400-entry scan.
+
+#define BST_BAND_NUMERATOR   1024   // +/-10.24%, matching the reference implementation
+#define BST_BAND_DENOMINATOR 10000
+#define BST_MIN_CANDIDATES   8      // widen the band rather than repeat the same few species
+
+static u16 GetSpeciesBST(u16 species)
+{
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return 0;
+
+    return gSpeciesInfo[species].baseHP
+         + gSpeciesInfo[species].baseAttack
+         + gSpeciesInfo[species].baseDefense
+         + gSpeciesInfo[species].baseSpeed
+         + gSpeciesInfo[species].baseSpAttack
+         + gSpeciesInfo[species].baseSpDefense;
+}
+
+// First index whose BST is >= target. Returns count if there is none.
+static u16 LowerBoundByBST(const u16 *table, u16 count, u16 target)
+{
+    u16 lo = 0, hi = count;
+
+    while (lo < hi)
+    {
+        u16 mid = lo + (hi - lo) / 2;
+        if (GetSpeciesBST(table[mid]) < target)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+    return lo;
+}
+
+static u16 GetRandomSpeciesByBST(u16 species, u16 seed)
+{
+    const u16 *table;
+    u16 count, bst, delta, lo, hi, span;
+    u8 widen;
+
+    if (gSaveBlock1Ptr->tx_Random_IncludeLegendaries)
+    {
+        table = sSpeciesByBSTLegendary;
+        count = ARRAY_COUNT(sSpeciesByBSTLegendary);
+    }
+    else
+    {
+        table = sSpeciesByBST;
+        count = ARRAY_COUNT(sSpeciesByBST);
+    }
+
+    bst = GetSpeciesBST(species);
+    if (bst == 0)   // not a real species; leave it to the caller's fallback
+        return species;
+
+    // Integer maths only -- this runs on the encounter path and the GBA has no FPU.
+    // Widen the band if the first pass finds too few candidates, which happens at the
+    // extremes (Sunkern's band holds only 6 species).
+    for (widen = 1; widen <= 4; widen++)
+    {
+        delta = (bst * BST_BAND_NUMERATOR * widen) / BST_BAND_DENOMINATOR;
+        lo = LowerBoundByBST(table, count, (bst > delta) ? bst - delta : 0);
+        hi = LowerBoundByBST(table, count, bst + delta + 1);
+
+        if (hi > lo && (hi - lo) >= BST_MIN_CANDIDATES)
+            break;
+    }
+
+    span = hi - lo;
+    if (span == 0)  // nothing in band even widened; fall back rather than read out of range
+        return species;
+
+    return table[lo + RandomSeededModulo(species + seed, span)];
+}
+
 static u16 GetRandomSpecies(u16 species, u8 mapBased, u8 type, u16 additionalOffset) //INTERNAL use only!
 {
     u8 slot, slotNew;
@@ -12235,6 +12321,19 @@ static u16 GetRandomSpecies(u16 species, u8 mapBased, u8 type, u16 additionalOff
     if (mapBased)
         mapOffset = NuzlockeGetCurrentRegionMapSectionId();
 
+
+    if (gSaveBlock1Ptr->tx_Random_Similar == TX_SIMILAR_IMPROVED)
+    {
+        u16 speciesResult = GetRandomSpeciesByBST(species, mapOffset + additionalOffset);
+
+        #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "%S: BST %d=%S(%d) -->> %d=%S(%d)", gRandomizationTypes[type],
+                   species, gSpeciesNames[species], GetSpeciesBST(species),
+                   speciesResult, gSpeciesNames[speciesResult], GetSpeciesBST(speciesResult));
+        #endif
+
+        return speciesResult;
+    }
 
     if (gSaveBlock1Ptr->tx_Random_Similar)
     {

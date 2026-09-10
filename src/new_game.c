@@ -292,7 +292,7 @@ void CheckIfRandomizerIsActive(void)
 {
     if (((gSaveBlock1Ptr->tx_Random_Chaos == 1)
         || (gSaveBlock1Ptr->tx_Random_WildPokemon == 1)
-        || (gSaveBlock1Ptr->tx_Random_Similar == 1)
+        || (gSaveBlock1Ptr->tx_Random_Similar != 0)
         || (gSaveBlock1Ptr->tx_Random_MapBased == 1)
         || (gSaveBlock1Ptr->tx_Random_IncludeLegendaries == 1)
         || (gSaveBlock1Ptr->tx_Random_Type == 1)

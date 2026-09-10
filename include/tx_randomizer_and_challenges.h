@@ -2,12 +2,17 @@
 #define GUARD_DIFFICULTY_H
 //tx_randomizer_and_challenges
 
+// Balancing modes for tx_Random_Similar
+#define TX_SIMILAR_OFF        0
+#define TX_SIMILAR_BALANCED   1   // match by evolution stage
+#define TX_SIMILAR_IMPROVED   2   // match by base stat total
+
 // default options set by the dev
 #define TX_RANDOM_STARTER               FALSE
 #define TX_RANDOM_WILD_POKEMON          FALSE
 #define TX_RANDOM_TRAINER               FALSE
 #define TX_RANDOM_STATIC                FALSE
-#define TX_RANDOM_SIMILAR               TRUE
+#define TX_RANDOM_SIMILAR               TX_SIMILAR_BALANCED
 #define TX_RANDOM_MAP_BASED             TRUE
 #define TX_RANDOM_INCLUDE_LEGENDARIES   FALSE
 #define TX_RANDOM_TYPE                  FALSE

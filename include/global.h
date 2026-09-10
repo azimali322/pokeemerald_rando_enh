@@ -1134,7 +1134,7 @@ struct SaveBlock1
     /*0x3D88*/ u8 NuzlockeEncounterFlags[9]; //tx_randomizer_and_challenges
         u8 tx_Random_Chaos:1;
         u8 tx_Random_WildPokemon:1;
-        u8 tx_Random_Similar:1;
+        u8 tx_Random_Similar:2;   // 0 off, 1 balanced (evo stage), 2 improved (BST)
         u8 tx_Random_MapBased:1;
         u8 tx_Random_IncludeLegendaries:1;
         u8 tx_Random_Type:1;

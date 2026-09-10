@@ -169,6 +169,9 @@ static const u8 sText_VGC_Off_V[]             = _("Off");
 static const u8 sText_VGC_Weighted_V[]        = _("Weighted");
 static const u8 sText_VGC_Strict_V[]          = _("Strict");
 static const u8 *const sText_VGC_Strings[]    = { sText_VGC_Off_V, sText_VGC_Weighted_V, sText_VGC_Strict_V };
+static const u8 sText_Balancing_Balanced_V[]  = _("Balanced");
+static const u8 sText_Balancing_Improved_V[]  = _("Improved");
+static const u8 *const sText_Balancing_Strings[] = { sText_VGC_Off_V, sText_Balancing_Balanced_V, sText_Balancing_Improved_V };
 static const u8 sText_Rand_Chaos[]            = _("CHAOS");
 
 
@@ -484,7 +487,7 @@ static u8 GetSel_Rand_Starter(void)        { return gSaveBlock1Ptr->tx_Random_St
 static u8 GetSel_Rand_Wild(void)           { return gSaveBlock1Ptr->tx_Random_WildPokemon        ? 1 : 0; }
 static u8 GetSel_Rand_Trainer(void)        { return gSaveBlock1Ptr->tx_Random_Trainer            ? 1 : 0; }
 static u8 GetSel_Rand_Static(void)         { return gSaveBlock1Ptr->tx_Random_Static             ? 1 : 0; }
-static u8 GetSel_Rand_SimilarEvoLvl(void)  { return gSaveBlock1Ptr->tx_Random_Similar            ? 1 : 0; }
+static u8 GetSel_Rand_SimilarEvoLvl(void)  { return gSaveBlock1Ptr->tx_Random_Similar; }  // 0 off, 1 balanced, 2 improved
 static u8 GetSel_Rand_IncludeLegends(void) { return gSaveBlock1Ptr->tx_Random_IncludeLegendaries ? 1 : 0; }
 static u8 GetSel_Rand_Type(void)           { return gSaveBlock1Ptr->tx_Random_Type               ? 1 : 0; }
 static u8 GetSel_Rand_Moves(void)          { return gSaveBlock1Ptr->tx_Random_Moves              ? 1 : 0; }
@@ -615,7 +618,7 @@ static const struct ViewerBoolRow sBoolRows_Page3[] = {
     { sText_Rand_Wild,           GetSel_Rand_Wild           },
     { sText_Rand_Trainer,        GetSel_Rand_Trainer        },
     { sText_Rand_Static,         GetSel_Rand_Static         },
-    { sText_Rand_SimilarEvoLvl,  GetSel_Rand_SimilarEvoLvl  },
+    { sText_Rand_SimilarEvoLvl,  NULL                       }, // 3-state
     { sText_Rand_WildLevelScaled,GetSel_Rand_WildLevelScaled},
     { sText_Rand_IncludeLegends, GetSel_Rand_IncludeLegends },
     { sText_Rand_Legendaries,    GetSel_Rand_Legendaries    },
@@ -906,6 +909,13 @@ static void Viewer_DrawRow_Page3(u8 visRow, u16 idx)
     if (row->getSel == NULL) // 3-state VGC rows: Off / Weighted / Strict
     {
         u8 v;
+        if (row->label == sText_Rand_SimilarEvoLvl)
+        {
+            v = GetSel_Rand_SimilarEvoLvl();
+            if (v > 2) v = 0;
+            Viewer_DrawSingleValueRow(visRow, row->label, sText_Balancing_Strings[v], selected);
+            return;
+        }
         if (row->label == sText_Rand_MovesVGC)          v = GetSel_Rand_MovesVGC();
         else if (row->label == sText_Rand_AbilitiesVGC) v = GetSel_Rand_AbilitiesVGC();
         else if (row->label == sText_Rand_ItemsVGC)     v = GetSel_Rand_ItemsVGC();
