@@ -362,6 +362,8 @@
 #define B_WIN_EFFECTIVENESS_DOWN 25
 #define B_WIN_EFFECTIVENESS_NONE 26
 #define B_WIN_MOVE_DESCRIPTION   27
+#define B_WIN_OPPONENT_TYPE_1    28 // tx: target's first type icon
+#define B_WIN_OPPONENT_TYPE_2    29 // tx: target's second type icon (hidden if mono-type)
 
 // The following are duplicate id values for windows that Battle Arena uses differently.
 #define ARENA_WIN_PLAYER_NAME      15

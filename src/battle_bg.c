@@ -416,6 +416,26 @@ static const struct WindowTemplate sStandardBattleWindowTemplates[] =
         .paletteNum = 5,
         .baseBlock = 0x0350,
     },
+    //tx_randomizer_and_challenges: target's types, in the empty area right of the description.
+    // 0x3BC..0x3CC of the 68 tiles free above B_WIN_MOVE_DESCRIPTION.
+    [B_WIN_OPPONENT_TYPE_1] = {
+        .bg = 0,
+        .tilemapLeft = 21,
+        .tilemapTop = 47,
+        .width = 4,
+        .height = 2,
+        .paletteNum = 13,
+        .baseBlock = 0x03BC,
+    },
+    [B_WIN_OPPONENT_TYPE_2] = {
+        .bg = 0,
+        .tilemapLeft = 25,
+        .tilemapTop = 47,
+        .width = 4,
+        .height = 2,
+        .paletteNum = 13,
+        .baseBlock = 0x03C4,
+    },
     DUMMY_WIN_TEMPLATE
 };
 
@@ -672,6 +692,26 @@ static const struct WindowTemplate sBattleArenaWindowTemplates[] =
         .height = 6,
         .paletteNum = 5,
         .baseBlock = 0x0350,
+    },
+    //tx_randomizer_and_challenges: target's types, in the empty area right of the description.
+    // 0x3BC..0x3CC of the 68 tiles free above B_WIN_MOVE_DESCRIPTION.
+    [B_WIN_OPPONENT_TYPE_1] = {
+        .bg = 0,
+        .tilemapLeft = 21,
+        .tilemapTop = 47,
+        .width = 4,
+        .height = 2,
+        .paletteNum = 13,
+        .baseBlock = 0x03BC,
+    },
+    [B_WIN_OPPONENT_TYPE_2] = {
+        .bg = 0,
+        .tilemapLeft = 25,
+        .tilemapTop = 47,
+        .width = 4,
+        .height = 2,
+        .paletteNum = 13,
+        .baseBlock = 0x03C4,
     },
     DUMMY_WIN_TEMPLATE
 };

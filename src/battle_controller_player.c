@@ -107,6 +107,8 @@ static void MoveSelectionDestroyCursorAt(u8);
 static void MoveSelectionDisplayPpNumber(void);
 static void MoveSelectionDisplayMoveTypeDoubles(u8 targetId);
 static void MoveSelectionDisplayMoveType(void);
+static void MoveSelectionDisplayOpponentTypes(u8 targetId);
+static void MoveSelectionHideOpponentTypes(void);
 static void MoveSelectionDisplayMoveDescription(void);
 static void MoveSelectionDisplayMoveNames(void);
 static void HandleMoveSwitching(void);
@@ -738,6 +740,8 @@ static void HandleInputChooseMove(void)
     else if ((JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)  && !sDescriptionSubmenu)
     {
         PlaySE(SE_SELECT);
+        //tx_randomizer_and_challenges: don't leave the type box over "What will X do?"
+        MoveSelectionHideOpponentTypes();
         BtlController_EmitTwoReturnValues(BUFFER_B, 10, 0xFFFF);
         PlayerBufferExecCompleted();
     }
@@ -1898,6 +1902,66 @@ static void MoveSelectionDisplaySTAB(void) //Displays STAB icon
     CopyWindowToVram(B_WIN_STAB, 2);
 }
 
+
+//tx_randomizer_and_challenges
+// Show the current target's type(s) during move selection, so you can read the matchup without
+// leaving the battle. Reuses the move-type icon sheet, which already has one 32x16 icon per type.
+//
+// Types come from gBattleMons, not gSpeciesInfo: that is live battle state, so this is correct
+// under the Modern/Fairy type modes, the type randomizer, and mid-battle changes like Conversion.
+static void MoveSelectionHideOpponentTypes(void)
+{
+    FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_1, PIXEL_FILL(0));
+    FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_2, PIXEL_FILL(0));
+    ClearWindowTilemap(B_WIN_OPPONENT_TYPE_1);
+    ClearWindowTilemap(B_WIN_OPPONENT_TYPE_2);
+    CopyWindowToVram(B_WIN_OPPONENT_TYPE_1, COPYWIN_FULL);
+    CopyWindowToVram(B_WIN_OPPONENT_TYPE_2, COPYWIN_FULL);
+}
+
+static void MoveSelectionDisplayOpponentTypes(u8 targetId)
+{
+    u8 type1, type2;
+
+    // Tied to the same option as the effectiveness and STAB hints: a player who turns those off
+    // does not want a type readout either.
+    if (gSaveBlock2Ptr->optionTypeEffective != 0)
+    {
+        MoveSelectionHideOpponentTypes();
+        return;
+    }
+
+    if (targetId >= MAX_BATTLERS_COUNT || gBattleMons[targetId].species == SPECIES_NONE)
+    {
+        MoveSelectionHideOpponentTypes();
+        return;
+    }
+
+    type1 = gBattleMons[targetId].type1;
+    type2 = gBattleMons[targetId].type2;
+
+    LoadPalette(sMoveTypeIcons_Pal, 13 * 16, 32);
+
+    FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_1, PIXEL_FILL(15));
+    BlitBitmapToWindow(B_WIN_OPPONENT_TYPE_1, (const u8 *)&sMoveTypeIcons_Gfx[(type1 * 0x100) / 4], 0, 0, 32, 16);
+    PutWindowTilemap(B_WIN_OPPONENT_TYPE_1);
+    CopyWindowToVram(B_WIN_OPPONENT_TYPE_1, COPYWIN_FULL);
+
+    if (type2 != type1)     // mono-type mons store the same type twice; don't draw it again
+    {
+        FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_2, PIXEL_FILL(15));
+        BlitBitmapToWindow(B_WIN_OPPONENT_TYPE_2, (const u8 *)&sMoveTypeIcons_Gfx[(type2 * 0x100) / 4], 0, 0, 32, 16);
+        PutWindowTilemap(B_WIN_OPPONENT_TYPE_2);
+        CopyWindowToVram(B_WIN_OPPONENT_TYPE_2, COPYWIN_FULL);
+    }
+    else
+    {
+        FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_2, PIXEL_FILL(0));
+        ClearWindowTilemap(B_WIN_OPPONENT_TYPE_2);
+        CopyWindowToVram(B_WIN_OPPONENT_TYPE_2, COPYWIN_FULL);
+    }
+}
+
 static void MoveSelectionDisplayMoveTypeDoubles(u8 targetId)
 {
 	u8 type; //Move Type
@@ -1945,6 +2009,7 @@ static void MoveSelectionDisplayMoveTypeDoubles(u8 targetId)
 	
 	MoveSelectionDisplayEffectiveness(targetId);
 	MoveSelectionDisplaySTAB();
+	MoveSelectionDisplayOpponentTypes(targetId);
 }
 
 static void MoveSelectionDisplayMoveType(void) //Made this display a Move Type Icon AND Category Icon
@@ -1993,7 +2058,11 @@ static void MoveSelectionDisplayMoveType(void) //Made this display a Move Type I
     CopyWindowToVram(B_WIN_MOVE_TYPE_ICON, 2);
     CopyWindowToVram(B_WIN_PSS_ICON, 2);
 	
-	if (!IsDoubleBattle()) MoveSelectionDisplayEffectiveness(targetId);
+	if (!IsDoubleBattle())
+    {
+        MoveSelectionDisplayEffectiveness(targetId);
+        MoveSelectionDisplayOpponentTypes(targetId);
+    }
 	else //Hide effective icon when in doubles battle and target isn't selected
     {
         FillWindowPixelBuffer(B_WIN_EFFECTIVENESS_UP, PIXEL_FILL(14));
@@ -2002,6 +2071,8 @@ static void MoveSelectionDisplayMoveType(void) //Made this display a Move Type I
         CopyWindowToVram(B_WIN_EFFECTIVENESS_UP, 2);
         CopyWindowToVram(B_WIN_EFFECTIVENESS_DOWN, 2);
         CopyWindowToVram(B_WIN_EFFECTIVENESS_NONE, 2);
+        // doubles: no target chosen yet, so nothing meaningful to show
+        MoveSelectionHideOpponentTypes();
     }
 	MoveSelectionDisplaySTAB();
 }
