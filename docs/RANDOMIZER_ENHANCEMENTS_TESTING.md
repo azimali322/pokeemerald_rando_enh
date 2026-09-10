@@ -701,7 +701,31 @@ These test the design in the plan.
 
 ## Phase 9 — Opponent type display in battle
 
-**Status:** Not implemented
+**Status:** ✅ Implemented — **needs in-game verification**
+
+Two new windows, `B_WIN_OPPONENT_TYPE_1/2`, drawn by `MoveSelectionDisplayOpponentTypes()` in
+`src/battle_controller_player.c`. Reuses the existing move-type icon sheet (one 32×16 icon per type,
+palette 13) — no new graphics.
+
+Placed in the empty region **right of the move description**: columns 21-28, rows 47-48, directly above the
+existing move-type and category icons.
+
+| Check | Result |
+|---|---|
+| Templates added to **both** window tables | ✅ standard **and** arena |
+| Tile budget | 0x3BC-0x3CC used; **52 of 1024 still free** |
+| Screen-rect overlap with any other window | **none** ✅ |
+| Tile-range overlap with any other window | **none** ✅ |
+
+Reads `gBattleMons[targetId].type1/type2` — **live battle state, not `gSpeciesInfo`** — so it is
+automatically correct under the Modern/Fairy type modes, the type randomizer, and mid-battle type changes.
+
+Mono-type mons store the same type twice, so the second window is cleared rather than drawing a duplicate.
+Gated on `optionTypeEffective`, matching the effectiveness and STAB hints. Hidden on B-button exit so it
+does not linger over "What will X do?", and hidden in doubles until a target is actually selected.
+
+**T9.5, T9.11 and T9.17 are partly covered** by the overlap and budget checks above — but only play
+confirms it *looks* right.
 
 - [ ] **T9.1 — Renders.** Trainer battle → Fight menu → opponent's type icon(s) visible.
 - [ ] **T9.2 — Correct types.** Icons match the opponent's actual types; cross-check against the Pokédex.

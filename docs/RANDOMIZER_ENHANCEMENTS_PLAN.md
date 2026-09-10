@@ -1169,7 +1169,7 @@ Two new bits in Phase 1: `tx_Random_TMsVGC` (2 bits: Off/Weighted/Strict) for (a
 
 ---
 
-## Phase 9 — Opponent type display in battle (Req 5)
+## Phase 9 — Opponent type display in battle (Req 5) — ✅ **IMPLEMENTED**
 
 **Your decision: tied to the existing `optionTypeEffective` setting.**
 
@@ -1313,7 +1313,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 8 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
+**Progress: 9 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
@@ -1330,7 +1330,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | ☐ | 8 | VGC hold items | M | Med | `item.c` — **blocked on item tiers** |
 | ☐ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
 | ☐ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c` — **blocked on TM tiers** |
-| ☐ | 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
+| ✅ | 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
 | ☐ | 10 | Level Cap Candy *(optional)* | **L** | **High** | `items.h`, `party_menu.c`, `pokemon_storage_system.c` |
 | ☐ | 11 | Reroll cheat *(optional)* | M | Med | `ui_stat_editor.c` |
 
