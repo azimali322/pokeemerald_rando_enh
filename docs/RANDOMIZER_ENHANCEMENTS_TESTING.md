@@ -196,7 +196,30 @@ serve two lines.
 
 ## Phase 3 — Level-appropriate wild randomization
 
-**Status:** Not implemented
+**Status:** ✅ Implemented — **needs in-game verification**
+
+`ClampSpeciesToLevel()` + `GetSpeciesMinLevel()` in `src/pokemon.c`, hooked into `CreateWildMon`
+(`src/wild_encounter.c`). Zero EWRAM cost — all logic, no tables.
+
+**Verified offline** by simulating the algorithm against the real `src/data/pokemon/evolution.h`:
+
+| Species | Encounter Lv | Min Lv | Result |
+|---|---:|---:|---|
+| Salamence | 4 | 50 | **Bagon** ← your example |
+| Salamence | 30 | 50 | **Shelgon** ← Super Rod case |
+| Salamence | 55 | 50 | Salamence (unchanged) |
+| Dragonite | 4 | 55 | Dratini |
+| Ninetales (stone) | 5 | 28 | Vulpix |
+| Machamp (trade) | 5 | 32 | Machop |
+| Crobat (friendship) | 5 | 22 | Zubat |
+| Milotic (beauty) | 5 | 30 | Feebas |
+| Beautifly (branching) | 3 | 10 | Wurmple |
+| Tauros / Lapras (single-stage) | 5 | 1 | unchanged |
+| Mewtwo / Kyogre (legendary) | 4 | 1 | unchanged |
+| Pichu (baby) | 5 | 1 | unchanged |
+
+Swept all species × 5 levels: no invalid results, no non-terminating walks. **T3.15, T3.16, T3.17, T3.18,
+and T3.19 are covered by this** — the in-game checks below are for integration, not algorithm correctness.
 
 The headline feature. Test against the mGBA log — it prints both evo stages (`EVO TYPE 2-->>EVO TYPE 0`),
 making the clamp directly visible.

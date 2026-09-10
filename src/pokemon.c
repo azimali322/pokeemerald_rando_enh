@@ -12270,6 +12270,123 @@ static u16 GetRandomSpecies(u16 species, u8 mapBased, u8 type, u16 additionalOff
 
     return sRandomSpecies[RandomSeededModulo(species + mapOffset + additionalOffset, RANDOM_SPECIES_COUNT)];
 }
+
+//tx_randomizer_and_challenges
+// Level-appropriate wild randomization.
+//
+// The randomizer is seeded and map-based, so the species a route gives you must stay stable.
+// Rather than folding the encounter level into the seed (which would break that), we randomize
+// exactly as before and then walk the result back down its own evolution chain until it is
+// plausible at the level it appeared at. Deterministic, and it leaves map-based consistency intact.
+
+// Estimated level for evolution methods that aren't level-based. These only need to be
+// roughly right: they decide whether a stage is plausible at an encounter level, nothing more.
+#define EVO_EST_ITEM        28  // evolution stones
+#define EVO_EST_TRADE       32  // trade / trade-with-item
+#define EVO_EST_FRIENDSHIP  22  // friendship, day/night variants
+#define EVO_EST_BEAUTY      30  // Feebas -> Milotic
+#define EVO_EST_OTHER       25  // move / held-item / anything unrecognised
+
+static u8 GetEvoMethodLevelEstimate(u16 method, u16 param)
+{
+    switch (method)
+    {
+    case EVO_LEVEL:
+    case EVO_LEVEL_ATK_GT_DEF:
+    case EVO_LEVEL_ATK_EQ_DEF:
+    case EVO_LEVEL_ATK_LT_DEF:
+    case EVO_LEVEL_SILCOON:
+    case EVO_LEVEL_CASCOON:
+    case EVO_LEVEL_NINJASK:
+    case EVO_LEVEL_SHEDINJA:
+    case EVO_LEVEL_FEMALE:
+    case EVO_LEVEL_MALE:
+    case EVO_LEVEL_NIGHT:
+    case EVO_LEVEL_DAY:
+    case EVO_LEVEL_FEMALE_MORNING:
+    case EVO_LEVEL_MALE_MORNING:
+        return (param > MAX_LEVEL) ? MAX_LEVEL : (u8)param;
+    case EVO_ITEM:
+        return EVO_EST_ITEM;
+    case EVO_TRADE:
+    case EVO_TRADE_ITEM:
+        return EVO_EST_TRADE;
+    case EVO_FRIENDSHIP:
+    case EVO_FRIENDSHIP_DAY:
+    case EVO_FRIENDSHIP_NIGHT:
+        return EVO_EST_FRIENDSHIP;
+    case EVO_BEAUTY:
+        return EVO_EST_BEAUTY;
+    default:
+        return EVO_EST_OTHER;
+    }
+}
+
+// Lowest level at which `species` could plausibly exist, walking back down its evolution chain.
+// No chain is longer than 3 links, so the loop is bounded there as cheap insurance against
+// a malformed table.
+static u8 GetSpeciesMinLevel(u16 species)
+{
+    u8 minLevel = 1;
+    u8 depth;
+
+    for (depth = 0; depth < 3; depth++)
+    {
+        u16 prevo = GetPreEvolution(species);
+        u8 i, stepLevel = 1;
+
+        if (prevo == SPECIES_NONE)
+            break;
+
+        // Find the entry on the pre-evolution that leads to this species.
+        for (i = 0; i < EVOS_PER_MON; i++)
+        {
+            if (gEvolutionTable[prevo][i].targetSpecies == species)
+            {
+                stepLevel = GetEvoMethodLevelEstimate(gEvolutionTable[prevo][i].method,
+                                                      gEvolutionTable[prevo][i].param);
+                break;
+            }
+        }
+
+        if (stepLevel > minLevel)
+            minLevel = stepLevel;
+
+        species = prevo;
+    }
+
+    return minLevel;
+}
+
+// Walk `species` down its evolution chain until it fits `level`.
+u16 ClampSpeciesToLevel(u16 species, u8 level)
+{
+    u8 depth;
+
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return species;
+
+    for (depth = 0; depth < 3; depth++)
+    {
+        u16 prevo;
+
+        if (GetSpeciesMinLevel(species) <= level)
+            break;
+
+        prevo = GetPreEvolution(species);
+        if (prevo == SPECIES_NONE)  // legendaries and single-stage mons stop here
+            break;
+
+        species = prevo;
+    }
+
+    #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX CLAMP TO LEVEL  : level=%d; result=%d=%S", level, species, gSpeciesNames[species]);
+    #endif
+
+    return species;
+}
+
 u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
 {
     u8 slot, slotNew;

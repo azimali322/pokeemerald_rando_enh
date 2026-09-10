@@ -462,6 +462,12 @@ static void CreateWildMon(u16 species, u8 level)
         MgbaPrintf(MGBA_LOG_DEBUG, "******** CreateWildMon ********");
         #endif
         species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_WILD_POKEMON, 0);
+
+        // Keep the evolution stage plausible for the level this encounter rolled.
+        // Every wild path -- grass, water, all four rods, Feebas, mass outbreaks -- reaches
+        // CreateWildMon, so the per-rod behaviour falls out of each table's own levels.
+        if (gSaveBlock1Ptr->tx_Random_WildLevelScaled)
+            species = ClampSpeciesToLevel(species, level);
     }
 
     switch (gSpeciesInfo[species].genderRatio)
