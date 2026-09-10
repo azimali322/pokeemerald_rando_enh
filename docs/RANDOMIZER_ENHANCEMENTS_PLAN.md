@@ -1752,10 +1752,10 @@ saves, every playthrough gets identical randomization, which gets stale fast.
 **5. `IsRandomizationPossible(tableSpecies, matchSpecies)`** — answers "could X have become Y?" Useful for
 dex hints or an in-game "what did this become" helper. Nice-to-have.
 
-**6. Dynamic EWRAM species tables** (`RANDOMIZER_DYNAMIC_SPECIES`) — builds randomization tables at runtime
-instead of hardcoding them, at 6 bytes per species. **Now ruled out on hard grounds, not preference:** that's
-~2.7 KB (6 × 462) and the Phase 0 build measured **~988 bytes of EWRAM free**. It does not fit. Modern
-Emerald's hardcoded `sRandomSpecies*` arrays live in ROM, where there's 10 MB spare.
+**6. Dynamic EWRAM species tables** (`RANDOMIZER_DYNAMIC_SPECIES`) — see the detailed breakdown in
+[Appendix G](#appendix-g--tertus-dynamic-species-tables-explained). Short version: **the implementation is
+blocked by EWRAM, but the one feature it uniquely enables (BST mode) is not** — it can be done with a
+ROM-resident sorted table instead.
 
 ### Not worth taking
 
@@ -1771,3 +1771,89 @@ no code. (Modern Emerald already has type randomization via `tx_Random_Type`, so
 Tertu is built on **pokeemerald-expansion**, a substantially different base — `gSpeciesInfo`/`gMovesInfo` vs
 this repo's `gBattleMoves`/`gMoveNames`, a different RNG (`Sfc32State` streams), different party plumbing.
 Nothing here is copy-pasteable. Treat these as **design ideas to reimplement**, not code to port.
+
+
+---
+
+## Appendix G — Tertu's dynamic species tables, explained
+
+### What they physically are
+
+Three parallel `u16` arrays, one entry per species, built in EWRAM at runtime
+(`struct SpeciesTable`, `src/randomizer.c:330`):
+
+```c
+struct SpeciesTable
+{
+    u16 groupData[RANDOMIZER_SPECIES_COUNT];            // each species' "group" value
+    u16 speciesToGroupIndex[RANDOMIZER_SPECIES_COUNT];  // species id  -> sorted index
+    u16 groupIndexToSpecies[RANDOMIZER_SPECIES_COUNT];  // sorted index -> species id
+};
+```
+
+3 × 2 bytes × 462 species = **~2.7 KB of EWRAM**, which is what the config means by *"consumes 6 bytes for
+each species present."*
+
+### What they actually accomplish
+
+They are a **sorted index that makes range queries cheap.** The table is heap-sorted by group
+(`BuildRandomizerSpeciesTable`, `:560`), so the randomizer can answer *"give me a random species whose group
+falls in [min, max]"* with a **binary search** (`GetIndicesFromGroupRange`, `:384`) instead of scanning all
+462 species.
+
+"Group" means something different per mode — that's the clever part, one table structure serving four
+behaviours:
+
+| Mode | Group value | Equivalent in Modern Emerald |
+|---|---|---|
+| `MON_RANDOM` | all one group | `sRandomSpecies[]` |
+| `MON_RANDOM_LEGEND_AWARE` | legendary vs not | `sRandomSpeciesLegendary[]` |
+| `MON_EVOLUTION` | evolution stage | `gSpeciesMapping[]` + `sRandomSpeciesEvo0/1/2` |
+| **`MON_RANDOM_BST`** | **the species' base stat total** | **nothing** |
+
+### So what's genuinely missing without them
+
+**Exactly one thing: BST-similarity matching.**
+
+Three of the four modes already have hardcoded `const` equivalents in this ROM, and hardcoded is *better*
+here — it costs ROM (10 MB spare) instead of EWRAM (988 bytes spare), and needs no build step at boot.
+
+`MON_RANDOM_BST` is the exception. It groups species by base stat total and swaps within a **±10.24% band**
+(`GetGroupRange`, `:366`). Modern Emerald cannot express this, because a range query over a continuous value
+is precisely what a sorted index is for and a flat `const` list isn't.
+
+**Why BST mode is worth wanting.** Modern Emerald's only "balance" option is `tx_Random_Similar`, which
+matches by *evolution stage*. Stage is a crude proxy for power:
+
+- A stage-0 Magikarp (BST 200) and a stage-0 Dratini (BST 300) are treated as interchangeable.
+- Fully-evolved Beautifly (BST 395) and Salamence (BST 600) are both "stage 2".
+- Single-stage mons are `EVO_TYPE_SELF` and **never get randomized at all** — Tauros, Lapras, Skarmory and
+  friends are simply excluded from the shuffle.
+
+BST matching fixes all three: it swaps by actual power, and it has something meaningful to say about
+single-stage species.
+
+### The important correction: you can have BST mode without the EWRAM cost
+
+My earlier "skip it" advice conflated the *feature* with Tertu's *implementation*. They're separable.
+
+BST is a **static property** — it never changes at runtime. So the sorted index doesn't need to be built in
+RAM at all; it can be a `const` array generated at build time and binary-searched directly out of ROM:
+
+```c
+// sorted by base stat total, ascending
+static const u16 sSpeciesByBST[NUM_SPECIES] = { /* generated */ };
+```
+
+That is **924 bytes of ROM and zero EWRAM** — versus 2.7 KB of EWRAM you don't have. You lose only the
+ability to switch modes without recompiling, which doesn't matter when the mode is a save flag anyway.
+
+**Verdict: skip the dynamic tables, take BST mode.** Worth adding as its own small phase if you want it —
+one generated table, one `GetRandomSpeciesByBST()` helper, one menu option alongside *Similar Evolution
+Level*. Say the word.
+
+### The other thing they enable, which you do not need
+
+Switching randomization mode mid-game and rebuilding the tables on the fly (`PreloadRandomizationTables`).
+Modern Emerald settles its options at new-game time and keeps them in the save, so there is nothing to
+rebuild. No loss.
