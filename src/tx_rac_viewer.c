@@ -154,6 +154,21 @@ static const u8 sText_Rand_Evolutions[]       = _("EVOLUTIONS");
 static const u8 sText_Rand_EvoMethods[]       = _("EVO LINES");
 static const u8 sText_Rand_TypeEffect[]       = _("EFFECTIVENESS");
 static const u8 sText_Rand_Items[]            = _("ITEMS");
+static const u8 sText_Rand_WildLevelScaled[]  = _("LEVEL-SCALED WILDS");
+static const u8 sText_Rand_Legendaries[]      = _("RANDOM LEGENDARIES");
+static const u8 sText_Rand_MovesVGC[]         = _("VGC MOVE POOL");
+static const u8 sText_Rand_GuaranteeStab[]    = _("GUARANTEE STAB");
+static const u8 sText_Rand_Learnsets[]        = _("SMART LEARNSETS");
+static const u8 sText_Rand_AbilitiesVGC[]     = _("VGC ABILITY POOL");
+static const u8 sText_Rand_ItemsVGC[]         = _("VGC ITEM POOL");
+static const u8 sText_Rand_TMsVGC[]           = _("VGC TM POOL");
+static const u8 sText_Rand_TMMoves[]          = _("RANDOM TM MOVES");
+static const u8 sText_Chk_CheapBalls[]        = _("CHEAP SHOP");
+static const u8 sText_Chk_RerollCheat[]       = _("REROLL CHEAT");
+static const u8 sText_VGC_Off_V[]             = _("Off");
+static const u8 sText_VGC_Weighted_V[]        = _("Weighted");
+static const u8 sText_VGC_Strict_V[]          = _("Strict");
+static const u8 *const sText_VGC_Strings[]    = { sText_VGC_Off_V, sText_VGC_Weighted_V, sText_VGC_Strict_V };
 static const u8 sText_Rand_Chaos[]            = _("CHAOS");
 
 
@@ -479,6 +494,17 @@ static u8 GetSel_Rand_EvoMethods(void)     { return gSaveBlock1Ptr->tx_Random_Ev
 static u8 GetSel_Rand_TypeEffect(void)     { return gSaveBlock1Ptr->tx_Random_TypeEffectiveness  ? 1 : 0; }
 static u8 GetSel_Rand_Items(void)          { return gSaveBlock1Ptr->tx_Random_Items              ? 1 : 0; }
 static u8 GetSel_Rand_Chaos(void)          { return gSaveBlock1Ptr->tx_Random_Chaos              ? 1 : 0; }
+static u8 GetSel_Rand_WildLevelScaled(void){ return gSaveBlock1Ptr->tx_Random_WildLevelScaled    ? 1 : 0; }
+static u8 GetSel_Rand_Legendaries(void)    { return gSaveBlock1Ptr->tx_Random_Legendaries        ? 1 : 0; }
+static u8 GetSel_Rand_GuaranteeStab(void)  { return gSaveBlock1Ptr->tx_Random_GuaranteeStab      ? 1 : 0; }
+static u8 GetSel_Rand_Learnsets(void)      { return gSaveBlock1Ptr->tx_Random_Learnsets          ? 1 : 0; }
+static u8 GetSel_Rand_TMMoves(void)        { return gSaveBlock1Ptr->tx_Random_TMs                ? 1 : 0; }
+static u8 GetSel_Rand_MovesVGC(void)       { return gSaveBlock1Ptr->tx_Random_MovesVGC; }
+static u8 GetSel_Rand_AbilitiesVGC(void)   { return gSaveBlock1Ptr->tx_Random_AbilitiesVGC; }
+static u8 GetSel_Rand_ItemsVGC(void)       { return gSaveBlock1Ptr->tx_Random_ItemsVGC; }
+static u8 GetSel_Rand_TMsVGC(void)         { return gSaveBlock1Ptr->tx_Random_TMsVGC; }
+static u8 GetSel_Chk_CheapBalls(void)      { return gSaveBlock1Ptr->tx_Features_CheapBalls       ? 1 : 0; }
+static u8 GetSel_Chk_RerollCheat(void)     { return gSaveBlock1Ptr->tx_Features_RerollCheat      ? 1 : 0; }
 
 // Page 4 (Nuzlocke) getters
 // Returns 0=OFF, 1=EASY, 2=STANDARD, 3=HARDCORE based on how the menu writes the flags
@@ -590,14 +616,23 @@ static const struct ViewerBoolRow sBoolRows_Page3[] = {
     { sText_Rand_Trainer,        GetSel_Rand_Trainer        },
     { sText_Rand_Static,         GetSel_Rand_Static         },
     { sText_Rand_SimilarEvoLvl,  GetSel_Rand_SimilarEvoLvl  },
+    { sText_Rand_WildLevelScaled,GetSel_Rand_WildLevelScaled},
     { sText_Rand_IncludeLegends, GetSel_Rand_IncludeLegends },
+    { sText_Rand_Legendaries,    GetSel_Rand_Legendaries    },
     { sText_Rand_Type,           GetSel_Rand_Type           },
     { sText_Rand_Moves,          GetSel_Rand_Moves          },
+    { sText_Rand_MovesVGC,       NULL                       }, // 3-state
+    { sText_Rand_GuaranteeStab,  GetSel_Rand_GuaranteeStab  },
+    { sText_Rand_Learnsets,      GetSel_Rand_Learnsets      },
     { sText_Rand_Abilities,      GetSel_Rand_Abilities      },
+    { sText_Rand_AbilitiesVGC,   NULL                       }, // 3-state
     { sText_Rand_Evolutions,     GetSel_Rand_Evolutions     },
     { sText_Rand_EvoMethods,     GetSel_Rand_EvoMethods     },
     { sText_Rand_TypeEffect,     GetSel_Rand_TypeEffect     },
     { sText_Rand_Items,          GetSel_Rand_Items          },
+    { sText_Rand_ItemsVGC,       NULL                       }, // 3-state
+    { sText_Rand_TMsVGC,         NULL                       }, // 3-state
+    { sText_Rand_TMMoves,        GetSel_Rand_TMMoves        },
     { sText_Rand_Chaos,          GetSel_Rand_Chaos          },
 };
 
@@ -639,6 +674,8 @@ static const struct ViewerBoolRow sBoolRows_Page6[] = {
     { sText_Chk_BaseStatEq,    NULL                   }, // idx 5 — single-value
     { sText_Chk_Mirror,        GetSel_Chk_Mirror      }, // idx 6 — bool
     { sText_Chk_MirrorThief,   GetSel_Chk_MirrorThief },  // idx 7 — bool
+    { sText_Chk_CheapBalls,    GetSel_Chk_CheapBalls  },  // idx 8 — bool
+    { sText_Chk_RerollCheat,   GetSel_Chk_RerollCheat },  // idx 9 — bool
 };
 
 
@@ -864,7 +901,20 @@ static void Viewer_DrawRow_Page2(u8 visRow, u16 idx)
 static void Viewer_DrawRow_Page3(u8 visRow, u16 idx)
 {
     const struct ViewerBoolRow *row = &sBoolRows_Page3[idx];
-    Viewer_DrawBoolRow(visRow, row->label, row->getSel(), (idx == sCurIndex));
+    const bool8 selected = (idx == sCurIndex);
+
+    if (row->getSel == NULL) // 3-state VGC rows: Off / Weighted / Strict
+    {
+        u8 v;
+        if (row->label == sText_Rand_MovesVGC)          v = GetSel_Rand_MovesVGC();
+        else if (row->label == sText_Rand_AbilitiesVGC) v = GetSel_Rand_AbilitiesVGC();
+        else if (row->label == sText_Rand_ItemsVGC)     v = GetSel_Rand_ItemsVGC();
+        else                                            v = GetSel_Rand_TMsVGC();
+        if (v > 2) v = 0;
+        Viewer_DrawSingleValueRow(visRow, row->label, sText_VGC_Strings[v], selected);
+        return;
+    }
+    Viewer_DrawBoolRow(visRow, row->label, row->getSel(), selected);
 }
 
 

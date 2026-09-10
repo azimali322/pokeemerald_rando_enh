@@ -19,6 +19,24 @@
 #define TX_RANDOM_ITEMS                 FALSE
 #define TX_RANDOM_CHAOS_MODE            FALSE
 
+// randomizer enhancements
+#define TX_RANDOM_WILD_LEVEL_SCALED     FALSE
+#define TX_RANDOM_LEGENDARIES           FALSE
+#define TX_RANDOM_MOVES_VGC             0   // 0 off, 1 weighted, 2 strict
+#define TX_RANDOM_GUARANTEE_STAB        FALSE
+#define TX_RANDOM_ABILITIES_VGC         0   // 0 off, 1 weighted, 2 strict
+#define TX_RANDOM_ITEMS_VGC             0   // 0 off, 1 weighted, 2 strict
+#define TX_RANDOM_LEARNSETS             FALSE
+#define TX_RANDOM_TMS_VGC               0   // 0 off, 1 weighted, 2 strict
+#define TX_RANDOM_TM_MOVES              FALSE
+#define TX_FEATURES_CHEAP_BALLS         FALSE
+#define TX_FEATURES_REROLL_CHEAT        FALSE
+
+// VGC weighting modes, shared by the moves/abilities/items/TMs options
+#define TX_VGC_OFF          0
+#define TX_VGC_WEIGHTED     1
+#define TX_VGC_STRICT       2
+
 #define TX_NUZLOCKE_NUZLOCKE 0
 #define TX_NUZLOCKE_NUZLOCKE_HARDCORE 0 //CAREFULL!!!!!
 #define TX_NUZLOCKE_SPECIES_CLAUSE 1

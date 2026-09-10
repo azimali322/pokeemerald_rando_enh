@@ -1201,6 +1201,18 @@ struct SaveBlock1
         u8 tx_Mode_TypeEffectiveness:1;
         u8 tx_Difficulty_CatchRate:3;
         u8 tx_Features_WT:1;
+        // randomizer enhancements
+        u8 tx_Random_WildLevelScaled:1;     // wild evo stage matches encounter level
+        u8 tx_Random_Legendaries:1;         // legendary encounters -> random legendary
+        u8 tx_Random_MovesVGC:2;            // 0 off, 1 weighted, 2 strict
+        u8 tx_Random_GuaranteeStab:1;       // >=1 move matching the mon's type
+        u8 tx_Random_AbilitiesVGC:2;        // 0 off, 1 weighted, 2 strict
+        u8 tx_Random_ItemsVGC:2;            // 0 off, 1 weighted, 2 strict
+        u8 tx_Random_Learnsets:1;           // learnset dedupe/level-scaling/STAB
+        u8 tx_Random_TMsVGC:2;              // 0 off, 1 weighted, 2 strict (which TM drops)
+        u8 tx_Random_TMs:1;                 // randomize which move a TM teaches
+        u8 tx_Features_CheapBalls:1;        // cheap Ultra Balls + evolution items
+        u8 tx_Features_RerollCheat:1;       // reroll ability/nature in the stat editor
 };
 
 extern struct SaveBlock1* gSaveBlock1Ptr;
