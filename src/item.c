@@ -37,6 +37,7 @@ EWRAM_DATA struct BagPocket gBagPockets[POCKETS_COUNT] = {0};
 // rodata
 #include "data/text/item_descriptions.h"
 #include "data/items.h"
+#include "data/pokemon/item_tiers.h"
 
 // code
 u16 GetBagItemQuantity(u16 *quantity)
@@ -1294,6 +1295,46 @@ static u16 PickWeightedTM(u16 seed)
     return ITEM_TM01 + RandomSeededModulo(seed, NUM_TECHNICAL_MACHINES);
 }
 
+//tx_randomizer_and_challenges
+// Weighted item pool. Weights are per-tier totals; divided by tier size they give per-item ratios of
+// 2x / 2x / 4x / 10x going down. The 4x step keeps evolution stones findable -- about 1 roll in 344 --
+// while the 10x step below it pushes healing, vitamins and utility effectively out of the pool.
+//
+// Scaled by 100 so the thresholds stay integer -- no FPU on this hardware.
+#define ITEM_W_T1 1859   // 18.59%
+#define ITEM_W_T2 1859   // 18.59%
+#define ITEM_W_T3 4647   // 46.47%
+#define ITEM_W_T4 1452   // 14.52%
+// tier 5 takes the remaining 1.83%
+
+static u16 GetWeightedItem(u16 itemId, u8 mapId)
+{
+    const u16 *table;
+    u16 count, roll;
+
+    // Strict draws from tiers 1 and 2 only.
+    if (gSaveBlock1Ptr->tx_Random_ItemsVGC == TX_VGC_STRICT)
+    {
+        roll = RandomSeededModulo(itemId * 7 + mapId * 13 + 0x2F5B,
+                                  ARRAY_COUNT(sItemTier1) + ARRAY_COUNT(sItemTier2));
+        if (roll < ARRAY_COUNT(sItemTier1))
+            return sItemTier1[roll];
+        return sItemTier2[roll - ARRAY_COUNT(sItemTier1)];
+    }
+
+    roll = RandomSeededModulo(itemId + mapId + 0x7A13, 10000);
+
+    if (roll < ITEM_W_T1)                                              { table = sItemTier1; count = ARRAY_COUNT(sItemTier1); }
+    else if (roll < ITEM_W_T1 + ITEM_W_T2)                             { table = sItemTier2; count = ARRAY_COUNT(sItemTier2); }
+    else if (roll < ITEM_W_T1 + ITEM_W_T2 + ITEM_W_T3)                 { table = sItemTier3; count = ARRAY_COUNT(sItemTier3); }
+    else if (roll < ITEM_W_T1 + ITEM_W_T2 + ITEM_W_T3 + ITEM_W_T4)     { table = sItemTier4; count = ARRAY_COUNT(sItemTier4); }
+    else                                                               { table = sItemTier5; count = ARRAY_COUNT(sItemTier5); }
+
+    // Different linear combination from the tier roll above -- keying both off the same value
+    // locks each tier to one index. That cost the move pool 66 of 367 entries before it was caught.
+    return table[RandomSeededModulo(itemId * 7 + mapId * 13 + 0x2F5B, count)];
+}
+
 u16 RandomItemId(u16 itemId)
 {
     u8 mapId = NuzlockeGetCurrentRegionMapSectionId();
@@ -1328,7 +1369,13 @@ u16 RandomItemId(u16 itemId)
         }
     }
     else if (ItemId_GetPocket(itemId) != POCKET_KEY_ITEMS)
-        itemId = sRandomValidItems[RandomSeededModulo(itemId + mapId, RANDOM_ITEM_COUNT)];
+    {
+        //tx_randomizer_and_challenges
+        if (gSaveBlock1Ptr->tx_Random_ItemsVGC != TX_VGC_OFF)
+            itemId = GetWeightedItem(itemId, mapId);
+        else
+            itemId = sRandomValidItems[RandomSeededModulo(itemId + mapId, RANDOM_ITEM_COUNT)];
+    }
 
     return itemId;
 }
