@@ -1004,7 +1004,7 @@ Implement the filter as a **rejection pass** over the weighted result (re-roll i
 
 ---
 
-## Phase 8b — Learnset randomization overhaul (New Req 11)
+## Phase 8b — Learnset randomization overhaul (New Req 11) — ✅ **IMPLEMENTED**
 
 ### First: the Tertu learnset pattern doesn't exist
 
@@ -1313,7 +1313,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 9 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
+**Progress: 10 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
@@ -1328,7 +1328,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | ✅ | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
 | ✅ | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c`, `ability_tiers.h` |
 | ☐ | 8 | VGC hold items | M | Med | `item.c` — **blocked on item tiers** |
-| ☐ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
+| ✅ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
 | ☐ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c` — **blocked on TM tiers** |
 | ✅ | 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
 | ☐ | 10 | Level Cap Candy *(optional)* | **L** | **High** | `items.h`, `party_menu.c`, `pokemon_storage_system.c` |

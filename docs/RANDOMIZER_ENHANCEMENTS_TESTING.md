@@ -624,7 +624,39 @@ the seed is species-only by construction, but only play confirms nothing else re
 
 ## Phase 8b — Learnset randomization overhaul
 
-**Status:** Not implemented
+**Status:** ✅ Implemented — **needs in-game verification**
+
+`GetRandomLearnsetMove()` in `src/pokemon.c`, replacing the raw `GetRandomMove` call at **all five**
+functions that map learnset entries: `GiveBoxMonInitialMoveset`, `MonTryLearningNewMove`,
+`GetMoveRelearnerMoves`, `GetLevelUpMovesBySpecies` (each with two branches for the Modern Moves modes).
+
+**Built without the move tiers**, which are still outstanding — level scaling uses raw power thresholds
+instead of tier tables, so nothing here blocks on `tiering/MOVES.md`.
+
+What it does, given the slot it is filling:
+
+| Constraint | Rule |
+|---|---|
+| Level-appropriate power | ≤ 60 at levels 1-15, ≤ 100 at 16-35, unbounded at 36+ |
+| Shape preserved | a damaging slot stays damaging, a status slot stays status |
+| First move | always a same-type **attack** — previously the starter only |
+| Duplicates | re-rolled, so a collision no longer silently wastes the slot |
+
+**Verified offline** by reproducing the RNG maths over 4,000 rolls:
+
+| Check | Result |
+|---|---|
+| All five sites agree for the same (move, species, level) | ✅ |
+| Level-cap violations | **0** |
+| Max power at levels 1-15 / 16-35 / 36+ | 60 / 100 / 250 |
+| Average power by band | 22.0 → 33.6 → 41.3 |
+| Damaging/status shape preserved | **100%** |
+
+Determinism across all five sites is the load-bearing property here: the move relearner and the
+level-up-moves list must show exactly what the Pokémon actually learns. Since the re-roll chain is a pure
+function of (original move, species, learn level), they cannot diverge.
+
+**T8b.2, T8b.3, T8b.7 and T8b.8 are covered by this.**
 
 Note: Tertu's `RANDOMIZE_LEARNSET` is unimplemented, so there's no reference behaviour to compare against.
 These test the design in the plan.
@@ -636,7 +668,11 @@ These test the design in the plan.
 - [ ] **T8b.3 — Level-scaled power.** Moves learned at Lv1-15 are weak (power ≤ ~60); moves learned at Lv36+
       skew strong. Spot-check 5 species across the whole learnset, not just the first few entries.
 - [ ] **T8b.4 — Early offense guaranteed.** **Every** species' first learnset entry is a damaging move — not
-      just the starter. Verify on wild mons, which is where the current code doesn't apply the guard.
+      just the starter. Verify on wild mons, which is where the old code didn't apply the guard.
+- [ ] **T8b.14 — Relearner agreement (critical).** Open the Move Relearner and compare its list against the
+      moves the Pokémon actually learns on level-up, and against the summary's level-up move list. **All three
+      must match.** They are computed independently and only agree because the roll is deterministic — a
+      mismatch means one site is passing a different learn level.
 - [ ] **T8b.5 — Early STAB guaranteed.** The first entry matches one of the species' types.
 - [ ] **T8b.6 — Starter unaffected in a bad way.** The existing starter damaging-move guard
       (`src/pokemon.c:6176`) still works, or is cleanly superseded. No double-application, no regression.
