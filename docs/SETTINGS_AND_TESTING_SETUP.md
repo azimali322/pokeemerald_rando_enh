@@ -127,6 +127,32 @@ gift Pokemon.
 
 Keep both on for play. Turn *Guarantee STAB* off only when testing learnsets in isolation, per section 3b.
 
+### TMs are a weaker safety net here than in vanilla
+
+A natural plan is "if a Pokemon has no same-type move, teach it a TM." That works less often in this fork,
+because **`RANDOM TM MOVES` re-rolls what every TM teaches** from the weighted pool — and that roll is not
+type-aware. Compatibility still follows the *TM slot*, not the move (`CanMonLearnTMHM` takes
+`item - ITEM_TM01`), so a species can learn whatever TM01 now holds if and only if it could learn Focus
+Punch before. The result is that which TMs are useful to a given Pokemon is re-rolled along with them.
+
+Measured across 5 trainer IDs and every species — same-type **damaging** TMs a species is actually
+compatible with:
+
+| | mean | median | species with **none** |
+|---|---|---|---|
+| `RANDOM TM MOVES` **on** | 1.07 | 1 | **37.2%** |
+| `RANDOM TM MOVES` off (stock TM set) | 2.13 | 2 | 7.6% |
+
+So with TM moves randomized, over a third of species have **no** same-type attacking TM available at all,
+and the average species has one. Species learn 19.8 of the 50 TMs on average, which is the limiting factor.
+
+Two consequences worth planning around:
+
+- TMs are **single use** unless `REUSABLE TMS` is on, and that option only appears when `GAMEMODE` is set
+  to **Custom** (it is hidden under Classic and Modern). If TMs are your fallback, turn it on.
+- If you want TMs to be a reliable patch for type coverage, leave `RANDOM TM MOVES` **off**. The stock TM
+  set is deliberately spread across types; the randomized one is not.
+
 ### Two behaviours worth understanding
 
 **`VGC ABILITY POOL` replaces the base ability randomizer, it does not add to it.** With it on,
