@@ -1296,16 +1296,16 @@ static u16 PickWeightedTM(u16 seed)
 }
 
 //tx_randomizer_and_challenges
-// Weighted item pool. Weights are per-tier totals; divided by tier size they give the requested
-// per-item ratios of 2x / 2x / 10x / 10x going down. The two big drops at the bottom are what push
-// healing, vitamins and balls out of the way without removing them entirely.
+// Weighted item pool. Weights are per-tier totals; divided by tier size they give per-item ratios of
+// 2x / 2x / 4x / 10x going down. The 4x step keeps evolution stones findable -- about 1 roll in 344 --
+// while the 10x step below it pushes healing, vitamins and utility effectively out of the pool.
 //
 // Scaled by 100 so the thresholds stay integer -- no FPU on this hardware.
-#define ITEM_W_T1 2061   // 20.61%
-#define ITEM_W_T2 2061   // 20.61%
-#define ITEM_W_T3 5153   // 51.53%
-#define ITEM_W_T4  644   //  6.44%
-// tier 5 takes the remaining 0.81%
+#define ITEM_W_T1 1859   // 18.59%
+#define ITEM_W_T2 1859   // 18.59%
+#define ITEM_W_T3 4647   // 46.47%
+#define ITEM_W_T4 1452   // 14.52%
+// tier 5 takes the remaining 1.83%
 
 static u16 GetWeightedItem(u16 itemId, u8 mapId)
 {

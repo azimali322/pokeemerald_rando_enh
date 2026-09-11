@@ -10,13 +10,13 @@ Pool: the 188 items in `sRandomValidItems[]`. TMs and key items never reach this
 
 | Tier | Contents | n | Weight | Per-item | × uniform | vs next tier |
 |---|---|---:|---:|---:|---:|---:|
-| 1 | Premier hold items | 4 | 20.61% | 5.1525% | 9.69× | 2× |
-| 2 | Strong hold items | 8 | 20.61% | 2.5762% | 4.84× | 2× |
-| 3 | Other battle hold items | 40 | 51.53% | 1.2883% | 2.42× | 10× |
-| 4 | Evolution, balls, flavour berries, species-locked | 50 | 6.44% | 0.1288% | 0.24× | 10× |
-| 5 | Healing, vitamins, utility, junk | 63 | 0.81% | 0.0129% | 0.02× | — |
+| 1 | Premier hold items | 4 | 18.59% | 4.6475% | 8.74× | 2× |
+| 2 | Strong hold items | 8 | 18.59% | 2.3237% | 4.37× | 2× |
+| 3 | Other battle hold items | 40 | 46.47% | 1.1618% | 2.18× | 4× |
+| 4 | Evolution, balls, flavour berries, species-locked | 50 | 14.52% | 0.2904% | 0.55× | 10× |
+| 5 | Healing, vitamins, utility, junk | 63 | 1.83% | 0.0290% | 0.05× | — |
 
-Uniform baseline is 0.5319% per item. Ratios are exactly as specified: 2× / 2× / 10× / 10×.
+Uniform baseline is 0.5319% per item. Ratios: **2× / 2× / 4× / 10×**. The tier 3→4 gap was softened from 10× so evolution stones stay findable.
 
 ## Never rolled
 

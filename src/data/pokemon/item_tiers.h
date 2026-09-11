@@ -4,7 +4,7 @@
 // battle items and vitamins are near-worthless and sit at the bottom. Mail and battle-only
 // items appear in no table at all and are never rolled.
 
-// Tier 1 -- Premier hold items (4 items, 20.61% weight)
+// Tier 1 -- Premier hold items (4 items, 18.59% weight)
 static const u16 sItemTier1[] =
 {
     ITEM_CHOICE_BAND,
@@ -13,7 +13,7 @@ static const u16 sItemTier1[] =
     ITEM_SITRUS_BERRY,
 };
 
-// Tier 2 -- Strong hold items (8 items, 20.61% weight)
+// Tier 2 -- Strong hold items (8 items, 18.59% weight)
 static const u16 sItemTier2[] =
 {
     ITEM_BRIGHT_POWDER,
@@ -26,7 +26,7 @@ static const u16 sItemTier2[] =
     ITEM_WHITE_HERB,
 };
 
-// Tier 3 -- Other battle hold items (40 items, 51.53% weight)
+// Tier 3 -- Other battle hold items (40 items, 46.47% weight)
 static const u16 sItemTier3[] =
 {
     ITEM_AGUAV_BERRY,
@@ -71,7 +71,7 @@ static const u16 sItemTier3[] =
     ITEM_WIKI_BERRY,
 };
 
-// Tier 4 -- Evolution, balls, flavour berries, species-locked (50 items, 6.44% weight)
+// Tier 4 -- Evolution, balls, flavour berries, species-locked (50 items, 14.52% weight)
 static const u16 sItemTier4[] =
 {
     ITEM_BELUE_BERRY,
@@ -126,7 +126,7 @@ static const u16 sItemTier4[] =
     ITEM_WEPEAR_BERRY,
 };
 
-// Tier 5 -- Healing, vitamins, utility, junk (63 items, 0.81% weight)
+// Tier 5 -- Healing, vitamins, utility, junk (63 items, 1.83% weight)
 static const u16 sItemTier5[] =
 {
     ITEM_AMULET_COIN,

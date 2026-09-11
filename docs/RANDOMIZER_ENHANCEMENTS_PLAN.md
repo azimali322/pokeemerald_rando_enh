@@ -1649,13 +1649,13 @@ Full list in [`tiering/ITEMS_BY_TIER.md`](tiering/ITEMS_BY_TIER.md); tables in
 
 | Tier | Contents | n | Weight | **Per-item** | × uniform | vs next |
 |---|---|---:|---:|---:|---:|---:|
-| 1 | Premier hold items | 4 | 20.61% | **5.146%** | 9.67× | 2× |
-| 2 | Strong hold items | 8 | 20.61% | **2.578%** | 4.85× | 2× |
-| 3 | Other battle hold items | 40 | 51.53% | **1.288%** | 2.42× | 10× |
-| 4 | Evolution items, balls, flavour berries, species-locked | 50 | 6.44% | **0.129%** | 0.24× | 10× |
-| 5 | Healing, vitamins, utility, junk | 63 | 0.81% | **0.013%** | 0.02× | — |
+| 1 | Premier hold items | 4 | 18.59% | **4.638%** | 8.72× | 2× |
+| 2 | Strong hold items | 8 | 18.59% | **2.325%** | 4.37× | 2× |
+| 3 | Other battle hold items | 40 | 46.47% | **1.162%** | 2.18× | 4× |
+| 4 | Evolution items, balls, flavour berries, species-locked | 50 | 14.52% | **0.291%** | 0.55× | 10× |
+| 5 | Healing, vitamins, utility, junk | 63 | 1.83% | **0.029%** | 0.06× | — |
 
-Uniform baseline is 0.606% per item. Ratios land exactly on the 2× / 2× / 10× / 10× requested.
+Uniform baseline is 0.606% per item. Ratios: **2× / 2× / 4× / 10×**.
 
 **23 items are never rolled:** the 12 mail items (no battle value) and the 11 battle-only items (X-items,
 Dire Hit, Guard Spec, Poké Doll, Fluffy Tail, Yellow/Red Flute) that have no hold effect and no field use,
@@ -1663,20 +1663,29 @@ so under the no-battle-items challenge they cannot be used at all.
 
 ### Worth knowing before adjusting
 
-**Tier 1 sits at ~10× uniform, steeper than "close to flat."** That is forced arithmetic rather than a
-choice: once tiers 4 and 5 are suppressed by 10× steps, 99% of the probability mass has nowhere to go but
-the top 52 items. Flattening the top means softening the bottom drops.
+**Tier 3 → 4 was softened from 10× to 4×** after the first pass put evolution stones at 1 roll in 780,
+which was too rare for the stated goal of having them available slightly earlier. Now:
 
-**Tier 5 is effectively never** — 0.013% is about **1 roll in 7,600**. Across a playthrough you would likely
-never see a Potion from an item ball. That is what was asked for; just worth being sure.
+- **any evolution stone: 1.73% of rolls**, roughly 1 in 58 — findable without being common
+- each individual stone: 0.29%, about 1 in 344
+- **tier 5: 1 in 3,400** — healing and vitamins are still effectively out of the pool
 
-**Tier 4 at 0.129% is about 1 in 780**, which covers the evolution stones. The intent was to have those
-available "slightly earlier in game" — at this rate they are rare enough not to count on. If stones matter,
-the cleanest change is softening the tier 3 → 4 gap from 10× to roughly 4×.
+**Tier 1 sits at ~8.7× uniform, steeper than "close to flat."** That is forced arithmetic rather than a
+choice: with tiers 4 and 5 suppressed, most of the probability mass has nowhere to go but the top 52 items.
+Flattening the top further means softening the bottom drops again.
 
 ### Three requested tier-1 items do not exist in this ROM
 
-`FOCUS_SASH`, `CHOICE_SCARF` and `LIFE_ORB` are Generation 4; this is a Gen 3 engine. Substitutions:
+`FOCUS_SASH`, `CHOICE_SCARF` and `LIFE_ORB` are Generation 4; this is a Gen 3 engine.
+
+**There is no setting that adds them.** I checked for twelve Gen 4+ competitive items — Focus Sash, Choice
+Scarf, Choice Specs, Life Orb, Expert Belt, Wise Glasses, Muscle Band, Assault Vest, Eviolite, Rocky Helmet,
+Air Balloon, Weakness Policy — and **none is defined in the ROM at all**. The `tx_Mode_*` options are all
+mechanics toggles (types, stats, abilities, moves, Sturdy, Synchronize, Mints, Citrus berries); none adds
+items. The item list tops out at the Mints. Adding modern hold items would mean defining the items, their
+hold effects, and the battle code to implement them — a project in itself, not a flag.
+
+Substitutions:
 
 | Wanted | Substitute | Reasoning |
 |---|---|---|
