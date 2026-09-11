@@ -106,6 +106,13 @@ bool8 IsNuzlockeNicknamingActive(void)
     return gSaveBlock1Ptr->tx_Nuzlocke_Nicknaming;
 }
 
+//tx_randomizer_and_challenges
+// Gates the Cap Candy: without a level cap there is nothing for it to level a Pokemon up to.
+bool8 IsLevelCapActive(void)
+{
+    return (gSaveBlock1Ptr->tx_Challenges_LevelCap != 0);
+}
+
 bool8 IsPokecenterChallengeActivated(void)
 {
     return gSaveBlock1Ptr->tx_Challenges_PkmnCenter;

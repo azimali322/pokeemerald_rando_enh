@@ -255,7 +255,7 @@
 #define ITEM_STICK 225
 #define ITEM_INFINITE_REPEL 226
 #define ITEM_INFINITE_RARE_CANDIES 227
-#define ITEM_0E4 228
+#define ITEM_LEVEL_CAP_CANDY 228 //tx_randomizer_and_challenges
 #define ITEM_0E5 229
 #define ITEM_0E6 230
 #define ITEM_0E7 231

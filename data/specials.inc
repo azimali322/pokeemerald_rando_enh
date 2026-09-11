@@ -147,6 +147,7 @@ gSpecials::
 	def_special IsPokecenterChallengeActivated 	@ tx_randomizer_and_challenges
 	def_special IsNuzlockeNicknamingActive		@ tx_randomizer_and_challenges
 	def_special IsRandomItemsActivated 			@ tx_randomizer_and_challenges
+	def_special IsLevelCapActive				@ tx_randomizer_and_challenges
 	def_special RandomItem						@ tx_randomizer_and_challenges
 	def_special RandomItemHidden				@ tx_randomizer_and_challenges
 	def_special CountPartyNonEggMons
