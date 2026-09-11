@@ -153,6 +153,81 @@ top two tiers only, so a party will repeat options.
 
 ---
 
+## 3b. Testing Smart Learnsets specifically
+
+Smart Learnsets is the most intricate feature in the fork and the one with the most moving parts, so it
+gets its own recipe. The goal is to isolate it: turn on exactly what it needs, and turn **off** everything
+that would make its output hard to read.
+
+### Settings to use
+
+```
+RANDOMIZER ............ On     <- master switch; nothing works without it
+  WILD PKMN ........... On     <- gives you mons to inspect
+  TRAINER ............. On     <- second source of randomized movesets
+  MOVES ............... On     <- REQUIRED: unlocks the three sub-options below
+  VGC MOVE POOL ....... Weighted
+  SMART LEARNSETS ..... On     <- the feature under test
+  GUARANTEE STAB ...... Off    <- see below
+```
+
+### Settings to deliberately turn OFF
+
+| Turn off | Why it interferes |
+|---|---|
+| **`GUARANTEE STAB`** | It injects a same-type move *at catch time*, on top of the learnset. With it on you cannot tell whether a same-type move came from the learnset or from the injection. Turn it on again for a second pass once the learnset behaviour looks right. |
+| **`CHAOS`** | Replaces the seeded roll with `Random()`, so nothing is reproducible and the same mon gives a different answer every time. It also disables Level-Scaled Wilds and Random Legendaries. |
+| **`VGC MOVE POOL` = Strict** | Draws from the top two tiers only, so every mon's moves look alike and the tier weighting cannot be observed. Use **Weighted**. |
+| **`TYPE`** (type randomizer) | Re-types species, so "does this move match its type" needs you to look up the randomized type first. Fine later, noise now. |
+| **`RANDOM TM MOVES`, `VGC TM POOL`, `VGC ITEM POOL`** | Unrelated to learnsets; they just add log traffic. |
+| `MODERN MOVES`, `FAIRY TYPES`, `MODERN TYPES` | Each swaps which learnset table and type chart are used. Leave at defaults for the first pass, then re-test with them on — the code paths are genuinely different. |
+
+`ABILITIES`, `STATIC`, `BALANCING`, and the difficulty page do not affect learnsets and can be set however
+you like.
+
+### What to actually look at
+
+The **Move Relearner** is the best window into a learnset — it lists every move the species learns, so you
+see the whole randomized table at once rather than four moves at a time. The summary screen's level-up
+list works too.
+
+Check these in order:
+
+1. **Power scales with level.** Nothing over 60 power below level 16, nothing over 100 below level 36.
+   Above 35 there is no cap, and that is intentional.
+2. **The first move is same-type.** Every species, no exceptions.
+3. **One entry above level 35 is same-type and can be full power.** Which entry is fixed per species.
+   62 of 461 species end their learnset at or below level 35 and correctly have no such entry.
+4. **Roughly half the other damaging moves match the type.** Measured at 46%. If *every* damaging move
+   matches, something is over-firing; if almost none do, the bias is not running.
+5. **No repeated same-type move.** A Pokémon should not learn Thunderbolt twice. Shallow types are the
+   ones to check: **Sylveon** is the only mono-Fairy and has just two Fairy moves — it must learn each
+   once, then fall back to the general pool.
+6. **Status slots stay status.** A slot that taught a status move should still teach one.
+
+### Reading the log
+
+With mGBA's Debug channel on, every learnset entry prints one line:
+
+```
+TX LEARNSET TYPE   : 282=KADABRA Lv36 PSYCHIC -> 248=FUTURE SIGHT (120 pow, cap 65535)
+TX LEARNSET GEN    : 282=KADABRA Lv21 PSYBEAM -> 016=GUST (40 pow, cap 100)
+```
+
+`TYPE` means the slot was dealt a same-type move; `GEN` means it rolled the general pool. `cap 65535` is
+the sentinel for "no power cap" — anything at level 36+. A `TYPE` line whose power exceeds its cap is a
+bug, **except** for a mono-Fairy below level 16: Fairy's weakest damaging move here is Play Rough at 90,
+so the cap is lifted rather than leaving the mon with nothing.
+
+### Fastest way to see a lot of it
+
+Give yourself a full party and use the Move Relearner on each — six species per look. Trainer battles are
+the other high-volume source, since every opposing mon is generated fresh. A Pokémon caught and then
+levelled is the case that exercises `MonTryLearningNewMove`, which is a different code path from the one
+that builds a mon's starting moveset; both need a look.
+
+---
+
 ## 4. Setting up a ROM to test
 
 ### Build
@@ -187,7 +262,9 @@ useful testing tool in the project. Every randomizer decision prints its inputs 
 | `%S: BST …(…) -->> …(…)` | Phase 3b — Improved balancing, with both BSTs |
 | `TX RANDOM LEGENDARY: … -->> …` | Phase 4 |
 | `TX VGC MOVE : move=… -> …` | Phase 5 |
-| `TX STAB GUARANTEE : … slot=… -> … (n candidates, type t)` | Phase 6 |
+| `TX STAB GUARANTEE : … Lv… slot=… -> … (p pow, n candidates <= c pow, type t)` | Phase 6 — note the **power cap** `c` and that `p` never exceeds it |
+| `TX LEARNSET TYPE  : … Lv… orig -> new (p pow, cap c)` | Phase 8b — this slot was **dealt a same-type move** |
+| `TX LEARNSET GEN   : … Lv… orig -> new (p pow, cap c)` | Phase 8b — this slot rolled the **general pool** |
 | `TX VGC ABILITY : … num=… -> …` | Phase 7 |
 
 Without the log, the statistical phases (5, 7, 8, 8c) are close to untestable by eye.

@@ -34,8 +34,9 @@ options off, the game plays exactly like stock Modern Emerald.
 | Feature | What it does |
 |---|---|
 | **Weighted move pool** | All 367 randomizable moves ranked against a community tier list and weighted, so good moves come up more often without eliminating variety. |
-| **Guarantee STAB** | Every randomized Pokémon gets at least one damaging move matching its own type. Dual-types draw from both; the few mono-types with very shallow movepools (Fairy has 2 damaging moves) blend in Normal moves so they don't all get the same one. |
-| **Smart learnsets** | Fixes three problems with per-entry randomization: Hyper Beam at level 5 (power now scales with the learn level), movesets with no attacks (a damaging slot stays damaging), and duplicate rolls silently wasting a learnset slot. |
+| **Guarantee STAB** | Every randomized Pokémon gets at least one damaging move matching its own type, **tier-weighted**, matched to whichever of Attack/Sp. Atk it actually uses, and **held to the power band for its level** — a level 5 catch will not arrive knowing Eruption. Dual-types draw from both types; the few mono-types with very shallow movepools (Fairy has 2 damaging moves) blend in Normal moves so they don't all get the same one. |
+| **Smart learnsets** | Fixes three problems with per-entry randomization: Hyper Beam at level 5 (power scales with the learn level), movesets with no attacks (a damaging slot stays damaging), and duplicate rolls silently wasting a slot. Two slots are **guaranteed same-type**: the first move it ever learns, and one entry above level 35 drawn with **no power cap**, so a Pokémon always grows into a full-power move of its own type. |
+| **Same-type bias** | Every *other* damaging learnset slot leans toward the Pokémon's own type 40% of the time, tier-weighted — so movesets read as belonging to the species without becoming mono-type. Off-type moves stay common on purpose. Same-type moves are dealt **without replacement**, so a shallow type like Fairy gets each of its moves once and then falls back to the general pool instead of repeating one. |
 | **Random TM moves** | Reassigns what each TM teaches, drawn from the weighted pool, no duplicates. **HMs are never touched** — randomizing Surf or Strength would soft-lock a run. |
 | **Weighted TM drops** | Which TM appears in an item ball is weighted by the tier of the move it teaches. |
 
@@ -60,7 +61,7 @@ options off, the game plays exactly like stock Modern Emerald.
 | Item | Notes |
 |---|---|
 | **Level Cap Candy in the PC** | Party-menu use works; box use is deferred. Box Pokémon have no level or current-HP field, so the round-trip needs care. |
-| **Per-type STAB tiering** | Guarantee STAB currently picks uniformly from the matching-type moves. Tiering those would bias toward better options. |
+| **Play-testing** | Everything above is verified by reproducing the algorithms against the ROM's own data tables, not by playing. The build compiles and the logic checks out; in-game behaviour is still unconfirmed. See `docs/RANDOMIZER_ENHANCEMENTS_TESTING.md`. |
 
 ---
 
@@ -79,8 +80,8 @@ beneath it in the menu.
 | Setting | Values | Requires |
 |---|---|---|
 | `BALANCING` | Off / Balanced / **Improved** | a species option on |
-| `LEVEL-SCALED WILDS` | Off / On | **Wild Pkmn** |
-| `RANDOM LEGENDARIES` | Off / On | — |
+| `LEVEL-SCALED WILDS` | Off / On | **Wild Pkmn**, and `CHAOS` off |
+| `RANDOM LEGENDARIES` | Off / On | `CHAOS` off |
 | `VGC MOVE POOL` | Off / Weighted / Strict | **Moves** |
 | `GUARANTEE STAB` | Off / On | **Moves** |
 | `SMART LEARNSETS` | Off / On | **Moves** |

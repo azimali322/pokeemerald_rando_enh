@@ -13413,7 +13413,15 @@ u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wa
     // species' other type slots, which is what makes dealing possible.
     dealt = GetDealtTypeMove(species, originalMove, learnLevel);
     if (dealt != MOVE_NONE)
+    {
+        #ifndef NDEBUG
+            MgbaPrintf(MGBA_LOG_DEBUG, "TX LEARNSET TYPE   : %d=%S Lv%d %S -> %d=%S (%d pow, cap %d)",
+                       species, gSpeciesNames[species], learnLevel, gMoveNames[originalMove],
+                       dealt, gMoveNames[dealt], gBattleMoves[dealt].power,
+                       GetStabPowerCapForLevel(learnLevel));
+        #endif
         return dealt;
+    }
 
     wantDamaging = (gBattleMoves[originalMove].power > 1);
     if (wantStab)
@@ -13422,11 +13430,20 @@ u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wa
     for (i = 0; i < LEARNSET_MAX_REROLLS; i++)
     {
         if (IsLearnsetMoveAllowed(result, species, learnLevel, wantDamaging, FALSE))
-            return result;
+            break;
         result = GetRandomMove(result + i + 1, species);
     }
 
-    return result;  // constraints unsatisfiable; the unfiltered roll is still a valid move
+    // Falls out of the loop unsatisfied on the last iteration; the unfiltered roll is still a
+    // valid move, so it is used rather than failing.
+    #ifndef NDEBUG
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX LEARNSET GEN    : %d=%S Lv%d %S -> %d=%S (%d pow, cap %d)",
+                   species, gSpeciesNames[species], learnLevel, gMoveNames[originalMove],
+                   result, gMoveNames[result], gBattleMoves[result].power,
+                   GetStabPowerCapForLevel(learnLevel));
+    #endif
+
+    return result;
 }
 
 //tx_randomizer_and_challenges
