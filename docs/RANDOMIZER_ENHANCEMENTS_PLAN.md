@@ -1313,7 +1313,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 10 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
+**Progress: 11 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
@@ -1324,7 +1324,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | ✅ | 3 | Level-aware wild randomization | M | Med | `pokemon.c`, `wild_encounter.c` |
 | ✅ | 3b | BST similarity ("Improved") | M | Low | `pokemon.c`, `species_by_bst.h` |
 | ✅ | 4 | Random legendaries (everywhere) | S | **Med** (plot) | `pokemon.c`, `roamer.c` |
-| ☐ | 5 | VGC moves | M | Low | `pokemon.c` — **blocked on move tiers** |
+| ✅ | 5 | Weighted move pool | M | Low | `pokemon.c`, `move_tiers.h` |
 | ✅ | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
 | ✅ | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c`, `ability_tiers.h` |
 | ☐ | 8 | VGC hold items | M | Med | `item.c` — **blocked on item tiers** |
