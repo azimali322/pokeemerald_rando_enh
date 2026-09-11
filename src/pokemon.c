@@ -12666,6 +12666,12 @@ static u8 GetPreferredMoveCategory(struct Pokemon *mon)
     return (atk > spAtk) ? MOVE_CATEGORY_PHYSICAL : MOVE_CATEGORY_SPECIAL;
 }
 
+// Callers draw from the same weighted pool but must not all land on the same move for a species,
+// or a mon's catch-time STAB and its learnset STAB would be the same move.
+#define STAB_SALT_CATCH             0
+#define STAB_SALT_LEARNSET_FIRST    0x1D4B
+#define STAB_SALT_LEARNSET_LATE     0x2F5B
+
 // maxPower caps how strong the injected move may be, so a level 5 Pokemon is not handed Eruption.
 // Shared with the learnset pass below so both use one set of bands; STAB_POWER_ANY = no cap.
 #define LEARNSET_EARLY_LEVEL    15
@@ -12682,6 +12688,19 @@ static u16 GetStabPowerCapForLevel(u8 level)
         return LEARNSET_MID_MAX_POW;
 
     return STAB_POWER_ANY;
+}
+
+// Species-level counterpart to GetPreferredMoveCategory, for callers that have no mon to read --
+// the learnset is a property of the species, so base stats are the only sensible input.
+static u8 GetPreferredCategoryBySpecies(u16 species)
+{
+    u8 atk = gSpeciesInfo[species].baseAttack;
+    u8 spAtk = gSpeciesInfo[species].baseSpAttack;
+
+    if (atk == spAtk)
+        return STAB_CAT_ANY;
+
+    return (atk > spAtk) ? MOVE_CATEGORY_PHYSICAL : MOVE_CATEGORY_SPECIAL;
 }
 
 static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
@@ -12746,7 +12765,7 @@ static u16 PickStabInTier(const u16 *tierTable, u16 tierCount, u8 type1, u8 type
 // than a better move in a tier that holds many -- Ember would out-roll Flamethrower. Scaling by the
 // global tier size makes each move's odds proportional to its own tier's per-move rate, so a better
 // move is always likelier than a worse one whatever the type's distribution looks like.
-static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower)
+static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower, u16 salt)
 {
     const u16 *tables[6] = { sMoveTier1, sMoveTier2, sMoveTier3, sMoveTier4, sMoveTier5, sMoveTier6 };
     const u16 counts[6] = { ARRAY_COUNT(sMoveTier1), ARRAY_COUNT(sMoveTier2), ARRAY_COUNT(sMoveTier3),
@@ -12771,7 +12790,7 @@ static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category, u16 m
     if (total == 0)
         return MOVE_NONE;
 
-    roll = RandomSeededModulo(species * 7 + 0x5AB3, total);
+    roll = RandomSeededModulo(species * 7 + 0x5AB3 + salt, total);
 
     for (t = 0; t < 6; t++)
     {
@@ -12781,13 +12800,13 @@ static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category, u16 m
         acc += share[t];
         if (roll < acc)
             return PickStabInTier(tables[t], counts[t], type1, type2, category, maxPower,
-                                  RandomSeededModulo(species * 11 + t * 17 + 0x3C29, n[t]));
+                                  RandomSeededModulo(species * 11 + t * 17 + 0x3C29 + salt, n[t]));
     }
 
     return MOVE_NONE;
 }
 
-static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower)
+static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower, u16 salt)
 {
     u16 move, n = 0, seen = 0, pick;
 
@@ -12799,7 +12818,7 @@ static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 max
     if (n == 0)
         return MOVE_NONE;
 
-    pick = RandomSeededModulo(species + 0x5AB3, n);
+    pick = RandomSeededModulo(species + 0x5AB3 + salt, n);
     for (move = 1; move < MOVES_COUNT; move++)
     {
         if (IsStabCandidateAt(move, type1, type2, category, maxPower))
@@ -12816,7 +12835,7 @@ static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 max
 // -> any category, uniform; then the whole ladder again with the level cap lifted. The cap is
 // relaxed last on purpose -- a level-appropriate move of the wrong category still beats handing a
 // level 5 Pokemon a 150-power move. Every step still guarantees same-type coverage.
-static u16 PickStabMove(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower)
+static u16 PickStabMove(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower, u16 salt)
 {
     u16 chosen = MOVE_NONE;
     u8 pass;
@@ -12827,16 +12846,16 @@ static u16 PickStabMove(u16 species, u8 type1, u8 type2, u8 category, u16 maxPow
 
         if (gSaveBlock1Ptr->tx_Random_MovesVGC != TX_VGC_OFF)
         {
-            chosen = PickStabFromTiers(species, type1, type2, category, cap);
+            chosen = PickStabFromTiers(species, type1, type2, category, cap, salt);
             if (chosen == MOVE_NONE && category != STAB_CAT_ANY)
-                chosen = PickStabFromTiers(species, type1, type2, STAB_CAT_ANY, cap);
+                chosen = PickStabFromTiers(species, type1, type2, STAB_CAT_ANY, cap, salt);
             if (chosen != MOVE_NONE)
                 return chosen;
         }
 
-        chosen = PickStabUniform(species, type1, type2, category, cap);
+        chosen = PickStabUniform(species, type1, type2, category, cap, salt);
         if (chosen == MOVE_NONE && category != STAB_CAT_ANY)
-            chosen = PickStabUniform(species, type1, type2, STAB_CAT_ANY, cap);
+            chosen = PickStabUniform(species, type1, type2, STAB_CAT_ANY, cap, salt);
         if (chosen != MOVE_NONE)
             return chosen;
 
@@ -12941,7 +12960,8 @@ void EnsureStabMove(struct Pokemon *mon)
     // Prefer the category the Pokemon can actually use, and -- when the weighted move pool is on --
     // prefer better moves within that. Both are preferences, not requirements: the pass below
     // relaxes category first, then tier, so a Pokemon always ends up with same-type coverage.
-    chosen = PickStabMove(species, searchType1, searchType2, GetPreferredMoveCategory(mon), maxPower);
+    chosen = PickStabMove(species, searchType1, searchType2, GetPreferredMoveCategory(mon), maxPower,
+                          STAB_SALT_CATCH);
 
     if (chosen == MOVE_NONE)
         return;
@@ -13061,9 +13081,80 @@ static bool8 IsLearnsetMoveAllowed(u16 move, u16 species, u8 learnLevel, bool8 w
     return TRUE;
 }
 
+// The first learnset entry is STAB-guaranteed, but it is also the earliest, so it is capped at
+// LEARNSET_EARLY_MAX_POW. Without a second guarantee a Pokemon can level all the way to 100 and
+// never roll a damaging same-type move above the cap: measured at 75% of species before this
+// existed. So one entry learned above LEARNSET_MID_LEVEL -- where no power cap applies -- is also
+// forced to same-type, giving every Pokemon one full-power STAB move it grows into.
+//
+// Returns the learn level of the chosen entry, or 0 when the species has no entry that late
+// (62 of 461 species end their learnset at or below LEARNSET_MID_LEVEL; nothing to promote).
+//
+// Pure function of the species, so every caller -- the move relearner, the level-up list, and the
+// actual level-up -- agrees on which entry is the promoted one.
+static u8 GetLateStabLearnLevel(u16 species)
+{
+    const u16 *learnset;
+    u16 i, entry;
+    u8 level, count = 0, damagingCount = 0, pick;
+
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return 0;
+
+    learnset = (gSaveBlock1Ptr->tx_Mode_Modern_Moves == 0) ? gLevelUpLearnsets_Original[species]
+                                                           : gLevelUpLearnsets[species];
+
+    // Count late entries, and separately those whose original slot was an attack. Promoting a
+    // damaging slot keeps the learnset's shape; a status slot is only used if there is no choice.
+    for (i = 0; learnset[i] != LEVEL_UP_END; i++)
+    {
+        if ((u8)((learnset[i] & LEVEL_UP_MOVE_LV) >> 9) <= LEARNSET_MID_LEVEL)
+            continue;
+
+        count++;
+        if (gBattleMoves[learnset[i] & LEVEL_UP_MOVE_ID].power > 1)
+            damagingCount++;
+    }
+
+    if (count == 0)
+        return 0;
+
+    if (damagingCount > 0)
+    {
+        pick = RandomSeededModulo(species * 23 + 0x77A1, damagingCount);
+
+        for (i = 0; learnset[i] != LEVEL_UP_END; i++)
+        {
+            entry = learnset[i];
+            level = (u8)((entry & LEVEL_UP_MOVE_LV) >> 9);
+
+            if (level <= LEARNSET_MID_LEVEL || gBattleMoves[entry & LEVEL_UP_MOVE_ID].power <= 1)
+                continue;
+            if (pick-- == 0)
+                return level;
+        }
+    }
+
+    // Every late entry is a status move; promote one anyway -- a guaranteed attack is the point.
+    pick = RandomSeededModulo(species * 23 + 0x77A1, count);
+
+    for (i = 0; learnset[i] != LEVEL_UP_END; i++)
+    {
+        level = (u8)((learnset[i] & LEVEL_UP_MOVE_LV) >> 9);
+
+        if (level <= LEARNSET_MID_LEVEL)
+            continue;
+        if (pick-- == 0)
+            return level;
+    }
+
+    return 0;
+}
+
 u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wantStab)
 {
     u16 result = GetRandomMove(originalMove, species);
+    u16 stabSalt = STAB_SALT_CATCH;
     bool8 wantDamaging;
     u8 i;
 
@@ -13073,9 +13164,35 @@ u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wa
     if (originalMove == MOVE_NONE || originalMove >= MOVES_COUNT)
         return result;
 
+    if (wantStab)
+    {
+        stabSalt = STAB_SALT_LEARNSET_FIRST;
+    }
+    // Promote the one late entry picked for this species. Above LEARNSET_MID_LEVEL no power cap
+    // applies, so this is the slot that can roll a full-power same-type move.
+    else if (learnLevel > LEARNSET_MID_LEVEL && learnLevel == GetLateStabLearnLevel(species))
+    {
+        wantStab = TRUE;
+        stabSalt = STAB_SALT_LEARNSET_LATE;
+    }
+
+    // A guaranteed slot enumerates its pool rather than re-rolling into it. Rejection sampling
+    // cannot deliver a guarantee here: a same-type move under the level's power cap is a thin
+    // slice of 367, so LEARNSET_MAX_REROLLS draws missed it 61.5% of the time overall and 94.8%
+    // for Psychic. PickStabMove walks the candidates directly, so the slot always fills.
+    if (wantStab)
+    {
+        u16 stab = PickStabMove(species, GetTypeBySpecies(species, 1), GetTypeBySpecies(species, 2),
+                                GetPreferredCategoryBySpecies(species),
+                                GetStabPowerCapForLevel(learnLevel), stabSalt);
+
+        if (stab != MOVE_NONE)
+            return stab;
+    }
+
     wantDamaging = (gBattleMoves[originalMove].power > 1);
     if (wantStab)
-        wantDamaging = TRUE;    // the guaranteed first move is always an attack
+        wantDamaging = TRUE;    // a guaranteed same-type move is always an attack
 
     for (i = 0; i < LEARNSET_MAX_REROLLS; i++)
     {

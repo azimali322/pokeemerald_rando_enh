@@ -686,12 +686,23 @@ What it does, given the slot it is filling:
 | Level-appropriate power | ≤ 60 at levels 1-15, ≤ 100 at 16-35, unbounded at 36+ |
 | Shape preserved | a damaging slot stays damaging, a status slot stays status |
 | First move | always a same-type **attack** — previously the starter only |
+| One late move | one entry above level 35 is also a same-type attack, drawn with **no power cap** |
 | Duplicates | re-rolled, so a collision no longer silently wastes the slot |
 
-**Verified offline** by reproducing the RNG maths over 4,000 rolls:
+**The two guaranteed slots did not actually deliver.** Both were implemented as rejection sampling:
+re-roll up to `LEARNSET_MAX_REROLLS` (24) times and accept the first roll that happens to match. A
+same-type move under the level's power cap is a thin slice of 367, so 24 draws usually missed it. The
+"guaranteed" first move was same-type only **38.5%** of the time overall — and **5.2%** for Psychic,
+**5.4%** for Electric. Both guaranteed slots now call `PickStabMove()`, which enumerates the candidate
+pool instead of re-rolling into it, so the slot always fills. Non-guaranteed slots still use rejection
+sampling, which is fine — they express preferences, not guarantees.
+
+**Verified offline** by reproducing the RNG maths:
 
 | Check | Result |
 |---|---|
+| First slot is a same-type attack | 38.5% → **100%** (20,460 cases) |
+| A same-type attack exists above level 35 | 25.0% → **100%** (18,660 cases) |
 | All five sites agree for the same (move, species, level) | ✅ |
 | Level-cap violations | **0** |
 | Max power at levels 1-15 / 16-35 / 36+ | 60 / 100 / 250 |
@@ -719,7 +730,22 @@ These test the design in the plan.
       moves the Pokémon actually learns on level-up, and against the summary's level-up move list. **All three
       must match.** They are computed independently and only agree because the roll is deterministic — a
       mismatch means one site is passing a different learn level.
-- [ ] **T8b.5 — Early STAB guaranteed.** The first entry matches one of the species' types.
+- [ ] **T8b.5 — Early STAB guaranteed.** The first entry matches one of the species' types. This used
+      to be a claim rather than a guarantee — see the note below — so check it on a narrow type
+      (Psychic, Electric, Dragon) rather than on a Normal-type where it almost always held anyway.
+- [ ] **T8b.5a — Late STAB guaranteed.** One entry learned above level 35 is a same-type attack with
+      **no power cap**. Level a mon past 35 and confirm it learns a full-power same-type move. Which
+      entry gets promoted is fixed per species, so it is the same slot on every playthrough with the
+      same trainer ID.
+- [ ] **T8b.5b — Promoted slot keeps its shape.** The promoted entry is chosen from the species' late
+      *damaging* entries where any exist (391 of 399 species), so a status slot is normally not eaten.
+      For the 8 species whose late entries are all status, one is converted — that is intended.
+- [ ] **T8b.5c — Species with no late entry.** 62 of 461 species end their learnset at or below level 35.
+      They get no late guarantee and must behave exactly as before. Confirm no crash and no empty slot.
+- [ ] **T8b.5d — Not a duplicate of the catch-time move.** The Phase 6 injected move and the promoted
+      learnset move are drawn with different seed salts. They can still coincide for a narrow type
+      (~37% when the species has only 3-5 eligible moves, ~9% at 11+); when they do, the level-up is
+      simply a no-op and the mon keeps the move. Confirm this does not read as a lost level-up.
 - [ ] **T8b.6 — Starter unaffected in a bad way.** The existing starter damaging-move guard
       (`src/pokemon.c:6176`) still works, or is cleanly superseded. No double-application, no regression.
 - [ ] **T8b.7 — Learnsets are not corrupted.** `gLevelUpLearnsets` is `const` ROM data. Confirm the post-pass
