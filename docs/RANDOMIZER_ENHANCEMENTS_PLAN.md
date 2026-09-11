@@ -1,7 +1,10 @@
 # Randomizer Enhancements — Implementation Plan
 
 Fork of [resetes12/pokeemerald](https://github.com/resetes12/pokeemerald) (Pokémon Modern Emerald).
-Companion doc: [`RANDOMIZER_ENHANCEMENTS_TESTING.md`](RANDOMIZER_ENHANCEMENTS_TESTING.md) — updated at the end of each phase.
+Companion docs:
+- [`SETTINGS_AND_TESTING_SETUP.md`](SETTINGS_AND_TESTING_SETUP.md) — **inventory of what is built, every
+  toggle and what it requires, and how to set up a ROM to test**
+- [`RANDOMIZER_ENHANCEMENTS_TESTING.md`](RANDOMIZER_ENHANCEMENTS_TESTING.md) — per-phase test checklists
 
 **Revision 6** — **Phase 0 is complete, the ROM builds** (`make MODERN=1`); build revealed **EWRAM at 99.62%**,
 which constrains several later phases; new Phase 2b (evolution stones + trade-evolution items at ₽1).
