@@ -127,31 +127,46 @@ gift Pokemon.
 
 Keep both on for play. Turn *Guarantee STAB* off only when testing learnsets in isolation, per section 3b.
 
-### TMs are a weaker safety net here than in vanilla
+### How TM compatibility actually works here (it is not vanilla)
 
-A natural plan is "if a Pokemon has no same-type move, teach it a TM." That works less often in this fork,
-because **`RANDOM TM MOVES` re-rolls what every TM teaches** from the weighted pool — and that roll is not
-type-aware. Compatibility still follows the *TM slot*, not the move (`CanMonLearnTMHM` takes
-`item - ITEM_TM01`), so a species can learn whatever TM01 now holds if and only if it could learn Focus
-Punch before. The result is that which TMs are useful to a given Pokemon is re-rolled along with them.
+Two independent things are randomized, and it is worth being precise about both.
 
-Measured across 5 trainer IDs and every species — same-type **damaging** TMs a species is actually
-compatible with:
+**1. What each TM teaches** — `RANDOM TM MOVES` re-rolls every TM's move from the weighted tier pool.
+The roll is not type-aware, and moves that are not TMs in Emerald at all (Ice Punch, Dragon Dance, …) can
+land on a TM slot.
 
-| | mean | median | species with **none** |
-|---|---|---|---|
-| `RANDOM TM MOVES` **on** | 1.07 | 1 | **37.2%** |
-| `RANDOM TM MOVES` off (stock TM set) | 2.13 | 2 | 7.6% |
+**2. Who can learn that TM** — this is the surprising one. `CanMonLearnTMHM()` in `src/pokemon.c:10200`
+does this before looking anything up:
 
-So with TM moves randomized, over a third of species have **no** same-type attacking TM available at all,
-and the average species has one. Species learn 19.8 of the 50 TMs on average, which is the limiting factor.
+```c
+if (gSaveBlock1Ptr->tx_Random_Moves)
+    species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_MOVES, 0);
+```
 
-Two consequences worth planning around:
+So with **`MOVES` on, a Pokemon does not use its own TM compatibility list at all** — it borrows the list
+of a different, seeded species. The substitute is fixed per species, so it is stable across a save, but it
+has nothing to do with what the Pokemon can canonically learn. This is stock upstream behaviour, not
+something this fork added, and it applies in both Modern Moves branches.
 
-- TMs are **single use** unless `REUSABLE TMS` is on, and that option only appears when `GAMEMODE` is set
-  to **Custom** (it is hidden under Classic and Modern). If TMs are your fallback, turn it on.
-- If you want TMs to be a reliable patch for type coverage, leave `RANDOM TM MOVES` **off**. The stock TM
-  set is deliberately spread across types; the randomized one is not.
+**Worked example.** Articuno can learn 23 TM slots in vanilla and **cannot** learn TM01. Ice Punch is not a
+TM in Emerald at all — it is a Move Tutor move. With `MOVES` + `RANDOM TM MOVES` on, Ice Punch may land on
+some TM slot, and whether Articuno can use it depends only on whether *Articuno's substituted species* has
+that slot flagged. Canon compatibility does not enter into it in either direction: Articuno can end up able
+to learn moves it never could, and unable to learn Blizzard.
+
+**What that means for type coverage.** Modelling the substitution, a species has on average **0.92**
+same-type damaging TMs it can actually learn, and **40.8%** have none at all. So TMs are a thin safety net
+for a Pokemon with no same-type move — thinner than the stock TM set, where the spread across types is
+deliberate.
+
+Levers, if TMs are meant to be your fallback:
+
+- Leave **`RANDOM TM MOVES` off**. The stock TM list is spread across types on purpose. (Compatibility is
+  still substituted whenever `MOVES` is on — that part cannot be turned off separately.)
+- Turn **`MOVES` off** if you want genuine vanilla TM compatibility. That also disables Smart Learnsets,
+  Guarantee STAB and the VGC move pool, so it is a big trade.
+- **`REUSABLE TMS`** removes the single-use limit. It is **on automatically under `GAMEMODE: Modern`**, off
+  under Classic, and freely editable under Custom.
 
 ### Two behaviours worth understanding
 
