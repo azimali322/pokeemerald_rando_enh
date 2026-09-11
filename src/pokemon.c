@@ -2936,6 +2936,17 @@ static const u8 gSpeciesMapping[NUM_SPECIES+1] =
 #include "data/pokemon/ability_tiers.h"
 #include "data/pokemon/move_tiers.h"
 
+//tx_randomizer_and_challenges
+// Tier weights for the move pool, as percentages. Declared here rather than beside GetRandomMove
+// because the STAB guarantee reads them too, and it appears earlier in the file.
+#define MOVE_W_T1  4
+#define MOVE_W_T2 24
+#define MOVE_W_T3 38
+#define MOVE_W_T4 27
+#define MOVE_W_T5  6
+// tier 6 takes the remaining 1
+
+
 #define RANDOM_SPECIES_COUNT ARRAY_COUNT(sRandomSpecies)
 static const u16 sRandomSpecies[] =
 {
@@ -12639,6 +12650,22 @@ static bool8 IsHMMove(u16 move)
 #define STAB_NARROW_POOL     5   // own-type pools smaller than this get Normal mixed in
 #define STAB_NARROW_OWN_PCT 67   // ...and this is the chance of still rolling own-type
 
+// Which attacking stat this Pokemon actually uses. A physical STAB move on a special attacker is
+// close to a wasted slot, so the guaranteed move should match the stat it will be used with.
+// Reads the mon's real stats, not base stats, so nature/IVs/EVs count.
+#define STAB_CAT_ANY 0xFF
+
+static u8 GetPreferredMoveCategory(struct Pokemon *mon)
+{
+    u16 atk = GetMonData(mon, MON_DATA_ATK, NULL);
+    u16 spAtk = GetMonData(mon, MON_DATA_SPATK, NULL);
+
+    if (atk == spAtk)
+        return STAB_CAT_ANY;    // no preference; don't narrow the pool for nothing
+
+    return (atk > spAtk) ? MOVE_CATEGORY_PHYSICAL : MOVE_CATEGORY_SPECIAL;
+}
+
 static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
 {
     if (move == MOVE_NONE || move >= MOVES_COUNT)
@@ -12649,6 +12676,138 @@ static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
         return FALSE;
 
     return (gBattleMoves[move].type == type1 || gBattleMoves[move].type == type2);
+}
+
+// Counts, then picks, the nth matching move -- two passes so no 367-entry buffer hits the stack.
+static u16 CountStabInTier(const u16 *tierTable, u16 tierCount, u8 type1, u8 type2, u8 category)
+{
+    u16 i, n = 0;
+
+    for (i = 0; i < tierCount; i++)
+    {
+        if (IsStabCandidate(tierTable[i], type1, type2)
+            && (category == STAB_CAT_ANY || gBattleMoves[tierTable[i]].category == category))
+            n++;
+    }
+    return n;
+}
+
+static u16 PickStabInTier(const u16 *tierTable, u16 tierCount, u8 type1, u8 type2, u8 category, u16 index)
+{
+    u16 i, n = 0;
+
+    for (i = 0; i < tierCount; i++)
+    {
+        if (IsStabCandidate(tierTable[i], type1, type2)
+            && (category == STAB_CAT_ANY || gBattleMoves[tierTable[i]].category == category))
+        {
+            if (n == index)
+                return tierTable[i];
+            n++;
+        }
+    }
+    return MOVE_NONE;
+}
+
+// Rolls across the tiers that have candidates. Two subtleties, both learned the hard way:
+//
+// Taking the best non-empty tier instead of rolling would collapse most types to a single move --
+// Fire has exactly one physical candidate in its best tier, so every physical Fire-type would get
+// Blaze Kick.
+//
+// And the tier's share has to be scaled by how many of ITS moves exist globally, not used raw.
+// Weighting raw would give a move in a tier that happens to hold few of this type more probability
+// than a better move in a tier that holds many -- Ember would out-roll Flamethrower. Scaling by the
+// global tier size makes each move's odds proportional to its own tier's per-move rate, so a better
+// move is always likelier than a worse one whatever the type's distribution looks like.
+static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category)
+{
+    const u16 *tables[6] = { sMoveTier1, sMoveTier2, sMoveTier3, sMoveTier4, sMoveTier5, sMoveTier6 };
+    const u16 counts[6] = { ARRAY_COUNT(sMoveTier1), ARRAY_COUNT(sMoveTier2), ARRAY_COUNT(sMoveTier3),
+                            ARRAY_COUNT(sMoveTier4), ARRAY_COUNT(sMoveTier5), ARRAY_COUNT(sMoveTier6) };
+    const u16 weights[6] = { MOVE_W_T1, MOVE_W_T2, MOVE_W_T3, MOVE_W_T4, MOVE_W_T5,
+                             100 - MOVE_W_T1 - MOVE_W_T2 - MOVE_W_T3 - MOVE_W_T4 - MOVE_W_T5 };
+    u16 n[6], share[6];
+    u32 total = 0, acc = 0;
+    u16 roll;
+    u8 t;
+
+    for (t = 0; t < 6; t++)
+    {
+        // per-move rate for this tier, scaled by 1000 to stay in integers
+        u16 perMove = (weights[t] * 1000) / counts[t];
+
+        n[t] = CountStabInTier(tables[t], counts[t], type1, type2, category);
+        share[t] = n[t] * perMove;
+        total += share[t];
+    }
+
+    if (total == 0)
+        return MOVE_NONE;
+
+    roll = RandomSeededModulo(species * 7 + 0x5AB3, total);
+
+    for (t = 0; t < 6; t++)
+    {
+        if (n[t] == 0)
+            continue;
+
+        acc += share[t];
+        if (roll < acc)
+            return PickStabInTier(tables[t], counts[t], type1, type2, category,
+                                  RandomSeededModulo(species * 11 + t * 17 + 0x3C29, n[t]));
+    }
+
+    return MOVE_NONE;
+}
+
+static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 fallbackCount)
+{
+    u16 move, n = 0, seen = 0, pick;
+
+    for (move = 1; move < MOVES_COUNT; move++)
+    {
+        if (IsStabCandidate(move, type1, type2)
+            && (category == STAB_CAT_ANY || gBattleMoves[move].category == category))
+            n++;
+    }
+    if (n == 0)
+        return MOVE_NONE;
+
+    pick = RandomSeededModulo(species + 0x5AB3, n);
+    for (move = 1; move < MOVES_COUNT; move++)
+    {
+        if (IsStabCandidate(move, type1, type2)
+            && (category == STAB_CAT_ANY || gBattleMoves[move].category == category))
+        {
+            if (seen == pick)
+                return move;
+            seen++;
+        }
+    }
+    return MOVE_NONE;
+}
+
+// Relaxes in order: matching category + tiers -> any category + tiers -> matching category, uniform
+// -> any category, uniform. Every step still guarantees same-type coverage.
+static u16 PickStabMove(u16 species, u8 type1, u8 type2, u8 category, u16 fallbackCount)
+{
+    u16 chosen = MOVE_NONE;
+
+    if (gSaveBlock1Ptr->tx_Random_MovesVGC != TX_VGC_OFF)
+    {
+        chosen = PickStabFromTiers(species, type1, type2, category);
+        if (chosen == MOVE_NONE && category != STAB_CAT_ANY)
+            chosen = PickStabFromTiers(species, type1, type2, STAB_CAT_ANY);
+        if (chosen != MOVE_NONE)
+            return chosen;
+    }
+
+    chosen = PickStabUniform(species, type1, type2, category, fallbackCount);
+    if (chosen == MOVE_NONE && category != STAB_CAT_ANY)
+        chosen = PickStabUniform(species, type1, type2, STAB_CAT_ANY, fallbackCount);
+
+    return chosen;
 }
 
 void EnsureStabMove(struct Pokemon *mon)
@@ -12732,19 +12891,10 @@ void EnsureStabMove(struct Pokemon *mon)
         }
     }
 
-    pick = RandomSeededModulo(species + 0x5AB3, candidateCount);
-    for (move = 1; move < MOVES_COUNT; move++)
-    {
-        if (IsStabCandidate(move, searchType1, searchType2))
-        {
-            if (seen == pick)
-            {
-                chosen = move;
-                break;
-            }
-            seen++;
-        }
-    }
+    // Prefer the category the Pokemon can actually use, and -- when the weighted move pool is on --
+    // prefer better moves within that. Both are preferences, not requirements: the pass below
+    // relaxes category first, then tier, so a Pokemon always ends up with same-type coverage.
+    chosen = PickStabMove(species, searchType1, searchType2, GetPreferredMoveCategory(mon), candidateCount);
 
     if (chosen == MOVE_NONE)
         return;
@@ -12912,12 +13062,6 @@ u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wa
 // As with abilities these are divided by tier size so the per-move odds fall monotonically --
 // and the shape of this pool makes that far less forgiving than it was for abilities. Tier 1
 // holds 3 moves and tier 4 holds 157, so equal weights would be wildly unequal per move.
-#define MOVE_W_T1  4
-#define MOVE_W_T2 24
-#define MOVE_W_T3 38
-#define MOVE_W_T4 27
-#define MOVE_W_T5  6
-// tier 6 takes the remaining 1
 
 u16 GetTierWeightedMove(u16 move, u16 species)
 {

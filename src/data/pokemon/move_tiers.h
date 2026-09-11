@@ -236,6 +236,7 @@ static const u16 sMoveTier4[] =
     MOVE_POUND,
     MOVE_POWER_GEM,
     MOVE_PSYBEAM,
+    MOVE_PSYCHIC,   // moved up from tier 5 to sit with Psycho Boost and Dream Eater
     MOVE_PSYCHO_BOOST,
     MOVE_PSYCHO_CUT,
     MOVE_PSYCH_UP,
@@ -345,7 +346,6 @@ static const u16 sMoveTier5[] =
     MOVE_POISON_TAIL,
     MOVE_POWDER_SNOW,
     MOVE_PRESENT,
-    MOVE_PSYCHIC,
     MOVE_PSYWAVE,
     MOVE_RAZOR_WIND,
     MOVE_ROLLING_KICK,
