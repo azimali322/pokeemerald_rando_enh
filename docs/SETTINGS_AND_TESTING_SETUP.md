@@ -31,7 +31,7 @@ rows 12-13 are on PR **#13** and are *not on `master` until that is merged*.
 | 10 | Level Cap Candy (party menu) | ✅ | #7 |
 | 11 | Nature / ability reroll cheat | ✅ | #7 |
 | 12 | Per-type STAB tiering + physical/special split | ✅ | #12 |
-| 13 | STAB/learnset refinements — level-capped STAB injection, guaranteed uncapped same-type move above Lv35, 40% same-type bias on ordinary slots, own-type pool dealt without replacement | ✅ | **#13 (open)** |
+| 13 | STAB/learnset refinements — level-capped STAB injection, guaranteed uncapped same-type move above Lv30, 40% same-type bias on ordinary slots, own-type pool dealt without replacement | ✅ | #13 |
 
 ### What's left
 
@@ -49,7 +49,7 @@ Both optional — nothing is blocked:
   (see Appendix B). One-line fix, but it changes every trainer, so it wants a deliberate decision.
 - **Tertu's dynamic species tables** — ruled out; EWRAM is at 99.6%. See Appendix G.
 - **Reserving a pool move for the guaranteed late slot** — evaluated and **declined**. For a 2-move type
-  (Fairy) the earlier slots can use the pool up before the promoted post-Lv35 slot is reached, so that
+  (Fairy) the earlier slots can use the pool up before the promoted post-Lv30 slot is reached, so that
   slot falls through to the general pool 0.9% of the time overall. Letting guaranteed slots draw first
   would fix it but reshuffles 69.5% of all learnsets; a narrower "don't take the last move" rule fixes it
   for 0.9%. Neither was taken: the mon still learns its same-type moves, just earlier, which is the
@@ -105,6 +105,27 @@ Three features are driven from elsewhere:
 | **Opponent type box in battle** | `optionTypeEffective` — the existing battle-hints option | Options menu, not the randomizer menu |
 | **Level Cap Candy** | `LEVEL CAP` being set to Normal or Hard | Difficulty page. The cheat lady only hands the item over if a cap is set |
 | **Trade evolutions** | Nothing — always available | Self-trader, Lilycove Dept. Store 1F (₽1 with *Cheap Shop*) |
+
+### Is GUARANTEE STAB still worth it once SMART LEARNSETS is on?
+
+Yes, and the reason is the **mid-game**. Smart Learnsets guarantees a same-type move is *learned* — the
+first entry, and one above level 30. It cannot guarantee the move is still in one of the four slots later,
+because a Pokemon holds four moves and a learnset has around twenty. The level 1 guaranteed move is long
+gone by level 25, and the late one has not arrived yet.
+
+Measured with *Smart Learnsets* on and *Guarantee STAB* **off** — share of generated Pokemon holding no
+same-type damaging move at all:
+
+| generated at | Lv5 | Lv10 | Lv15 | Lv20 | Lv25 | Lv30 | Lv40 | Lv50 | Lv70 |
+|---|---|---|---|---|---|---|---|---|---|
+| no same-type move | 6.2% | 8.8% | 17.5% | 24.6% | **25.4%** | 23.8% | 16.9% | 9.8% | 7.0% |
+
+So a quarter of mid-game opponents and encounters would have no STAB at all. *Guarantee STAB* is a final
+per-Pokemon check applied after the moveset is built, on all six generation paths, so it closes that
+window outright. It also still matters when *Smart Learnsets* is off, and it is what covers static and
+gift Pokemon.
+
+Keep both on for play. Turn *Guarantee STAB* off only when testing learnsets in isolation, per section 3b.
 
 ### Two behaviours worth understanding
 
@@ -196,8 +217,8 @@ Check these in order:
 1. **Power scales with level.** Nothing over 60 power below level 16, nothing over 100 below level 36.
    Above 35 there is no cap, and that is intentional.
 2. **The first move is same-type.** Every species, no exceptions.
-3. **One entry above level 35 is same-type and can be full power.** Which entry is fixed per species.
-   62 of 461 species end their learnset at or below level 35 and correctly have no such entry.
+3. **One entry above level 30 is same-type and can be full power.** Which entry is fixed per species.
+   59 of 461 species end their learnset at or below level 30 and correctly have no such entry.
 4. **Roughly half the other damaging moves match the type.** Measured at 46%. If *every* damaging move
    matches, something is over-firing; if almost none do, the bias is not running.
 5. **No repeated same-type move.** A Pokémon should not learn Thunderbolt twice. Shallow types are the
@@ -215,7 +236,7 @@ TX LEARNSET GEN    : 282=KADABRA Lv21 PSYBEAM -> 016=GUST (40 pow, cap 100)
 ```
 
 `TYPE` means the slot was dealt a same-type move; `GEN` means it rolled the general pool. `cap 65535` is
-the sentinel for "no power cap" — anything at level 36+. A `TYPE` line whose power exceeds its cap is a
+the sentinel for "no power cap" — anything at level 31+. A `TYPE` line whose power exceeds its cap is a
 bug, **except** for a mono-Fairy below level 16: Fairy's weakest damaging move here is Play Rough at 90,
 so the cap is lifted rather than leaving the mon with nothing.
 

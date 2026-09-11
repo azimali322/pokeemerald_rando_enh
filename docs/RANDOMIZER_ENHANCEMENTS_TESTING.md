@@ -683,10 +683,10 @@ What it does, given the slot it is filling:
 
 | Constraint | Rule |
 |---|---|
-| Level-appropriate power | ≤ 60 at levels 1-15, ≤ 100 at 16-35, unbounded at 36+ |
+| Level-appropriate power | ≤ 60 at levels 1-15, ≤ 100 at 16-30, unbounded at 31+ |
 | Shape preserved | a damaging slot stays damaging, a status slot stays status |
 | First move | always a same-type **attack** — previously the starter only |
-| One late move | one entry above level 35 is also a same-type attack, drawn with **no power cap** |
+| One late move | one entry above level 30 is also a same-type attack, drawn with **no power cap** |
 | Type bias | every *other* damaging slot leans same-type `LEARNSET_STAB_BIAS_PCT` (40%) of the time |
 | Dealt, not drawn | all type-leaning slots share one deal of the own-type pool — no slot repeats another's move, and once the pool is spent the rest of the learnset is plain randomized |
 | Duplicates | re-rolled, so a collision no longer silently wastes the slot |
@@ -704,7 +704,7 @@ sampling, which is fine — they express preferences, not guarantees.
 | Check | Result |
 |---|---|
 | First slot is a same-type attack | 38.5% → **100%** (20,460 cases) |
-| A same-type attack exists above level 35 | 25.0% → **100%** (18,660 cases) |
+| A same-type attack exists above level 30 | 25.0% → **100%** (18,660 cases) |
 | Ordinary damaging slot is same-type | 10.5% → **46.3%** (65,218 cases) |
 | Repeated same-type moves within one learnset | 20.1% → **2.8%** (45,811 dealt moves) |
 | Duplicates originating in the deal itself | **0** |
@@ -712,7 +712,7 @@ sampling, which is fine — they express preferences, not guarantees.
 | Pokemon with *zero* type-matching moves at Lv50 | 77.7% → **17.0%** |
 | All five sites agree for the same (move, species, level) | ✅ |
 | Level-cap violations | **0** |
-| Max power at levels 1-15 / 16-35 / 36+ | 60 / 100 / 250 |
+| Max power at levels 1-15 / 16-30 / 31+ | 60 / 100 / 250 |
 | Average power by band | 22.0 → 33.6 → 41.3 |
 | Damaging/status shape preserved | **100%** |
 
@@ -729,7 +729,7 @@ These test the design in the plan.
       behaviour — occasional duplicate moves, Hyper Beam at Lv5, mons with four status moves.
 - [ ] **T8b.2 — No duplicates.** Sample 10 randomized learnsets end to end. **No move appears twice** in the
       same species' learnset.
-- [ ] **T8b.3 — Level-scaled power.** Moves learned at Lv1-15 are weak (power ≤ ~60); moves learned at Lv36+
+- [ ] **T8b.3 — Level-scaled power.** Moves learned at Lv1-15 are weak (power ≤ ~60); moves learned at Lv31+
       skew strong. Spot-check 5 species across the whole learnset, not just the first few entries.
 - [ ] **T8b.4 — Early offense guaranteed.** **Every** species' first learnset entry is a damaging move — not
       just the starter. Verify on wild mons, which is where the old code didn't apply the guard.
@@ -740,14 +740,14 @@ These test the design in the plan.
 - [ ] **T8b.5 — Early STAB guaranteed.** The first entry matches one of the species' types. This used
       to be a claim rather than a guarantee — see the note below — so check it on a narrow type
       (Psychic, Electric, Dragon) rather than on a Normal-type where it almost always held anyway.
-- [ ] **T8b.5a — Late STAB guaranteed.** One entry learned above level 35 is a same-type attack with
+- [ ] **T8b.5a — Late STAB guaranteed.** One entry learned above level 30 is a same-type attack with
       **no power cap**. Level a mon past 35 and confirm it learns a full-power same-type move. Which
       entry gets promoted is fixed per species, so it is the same slot on every playthrough with the
       same trainer ID.
 - [ ] **T8b.5b — Promoted slot keeps its shape.** The promoted entry is chosen from the species' late
-      *damaging* entries where any exist (391 of 399 species), so a status slot is normally not eaten.
-      For the 8 species whose late entries are all status, one is converted — that is intended.
-- [ ] **T8b.5c — Species with no late entry.** 62 of 461 species end their learnset at or below level 35.
+      *damaging* entries where any exist (398 of 402 species), so a status slot is normally not eaten.
+      For the 4 species whose late entries are all status, one is converted — that is intended.
+- [ ] **T8b.5c — Species with no late entry.** 59 of 461 species end their learnset at or below level 30.
       They get no late guarantee and must behave exactly as before. Confirm no crash and no empty slot.
 - [ ] **T8b.5h — Narrow types exhaust instead of repeating.** Fairy has **2** damaging moves in this
       ROM, Dragon 5, Ghost and Steel 6. A mono-Fairy (Sylveon is the only one) must learn Moonblast
