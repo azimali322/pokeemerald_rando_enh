@@ -1344,7 +1344,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 14 of 17 phases implemented** (all building clean; merged to `master` via PRs #1-#4).
+**Progress: 15 of 17 phases implemented** (all building clean; merged to `master` via PRs #1-#4).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
@@ -1358,17 +1358,15 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | ✅ | 5 | Weighted move pool | M | Low | `pokemon.c`, `move_tiers.h` |
 | ✅ | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
 | ✅ | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c`, `ability_tiers.h` |
-| ☐ | 8 | VGC hold items | M | Med | `item.c` — **blocked on item tiers** |
+| ✅ | 8 | Weighted item pool | M | Med | `item.c`, `item_tiers.h` |
 | ✅ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
 | ✅ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c`, `pokemon.c` |
 | ✅ | 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
 | ✅ | 10 | Level Cap Candy | **L** | **High** | `items.h`, `party_menu.c` — *PC use not built* |
 | ✅ | 11 | Reroll cheat | M | Med | `ui_stat_editor.c` |
 
-**Blocked on your input: only Phase 8**, which needs item tiers in
-[`tiering/ITEMS.md`](tiering/ITEMS.md). Everything else outstanding is optional (Phases 10 and 11) or an
-enhancement to something already shipped ([`tiering/STAB_MOVES_BY_TYPE.md`](tiering/STAB_MOVES_BY_TYPE.md)
-would upgrade Phase 6 from uniform to tiered).
+**Nothing is blocked.** The only outstanding work is optional: Phase 10's PC-storage use, and tiering
+[`tiering/STAB_MOVES_BY_TYPE.md`](tiering/STAB_MOVES_BY_TYPE.md) to upgrade Phase 6 from uniform to tiered.
 
 **Everything implemented so far is verified only by offline simulation and a clean build.** None of it has
 been run in an emulator — see the test plan for what still needs a human at the controls.
@@ -1637,97 +1635,67 @@ Coverage went **301 → 367**. The ability path had the same latent flaw; it did
 **Rule for any future weighted roll: the tier selector and the within-tier index must be different linear
 combinations of the inputs, and coverage must be measured, not assumed.**
 
-## Appendix C — Hold item tiers
+## Appendix C — Item tiers
 
-> **Status: pending re-tiering.** The full editable pool of **188 items** is in
-> [`tiering/ITEMS.md`](tiering/ITEMS.md), **grouped by function** so the tiering is tractable rather than a
-> flat 188-line list:
->
-> | Group | Count | | Group | Count |
-> |---|---:|---|---|---:|
-> | Battle hold items | 49 | | Flavour berries | 21 |
-> | Berries with hold effects | 22 | | Mail | 12 |
-> | Poké Balls | 12 | | Everything else | 19 |
-> | Healing / medicine | 27 | | **Battle-only dead items** | **11** |
-> | Vitamins & progression | 9 | | Evolution stones | 6 |
->
-> Each entry carries its **hold effect** (`HOLD=NONE` = does nothing when held) and price. The worksheet also
-> documents a suggested tiering strategy — the short version is that an item's randomizer value depends on
-> whether it does anything at all on a *randomly chosen* Pokémon, which demotes the species-locked elites.
->
-> **Constraint to preserve when you re-tier:** healing items must stay common enough to play the game. If
-> Potions and Revives land in a 2%-weight bottom tier, early-game becomes unwinnable.
+**Tiered for how you actually play**, not against a general tier list: a cheat heal item covers healing,
+EVs are set manually, and Ultra Balls are buyable at ₽1. Healing, battle items, vitamins and balls are
+therefore near-worthless here even though a neutral ranking would rate several of them highly.
 
-Drawn from `sRandomValidItems[]` (`src/item.c:1019`, 188 entries).
+Pool: the 188 items in `sRandomValidItems[]`. TMs and key items never reach this path.
+Full list in [`tiering/ITEMS_BY_TIER.md`](tiering/ITEMS_BY_TIER.md); tables in
+`src/data/pokemon/item_tiers.h`.
 
-### Tier 1 — 45% weight: universally useful hold items
+### Weights — measured
 
-```
-ITEM_LEFTOVERS       ITEM_CHOICE_BAND     ITEM_SHELL_BELL      ITEM_FOCUS_BAND
-ITEM_BRIGHT_POWDER   ITEM_QUICK_CLAW      ITEM_SCOPE_LENS      ITEM_KINGS_ROCK
-ITEM_LUM_BERRY       ITEM_SITRUS_BERRY    ITEM_CHESTO_BERRY    ITEM_WHITE_HERB
-ITEM_MENTAL_HERB     ITEM_SALAC_BERRY     ITEM_LIECHI_BERRY    ITEM_PETAYA_BERRY
-```
+| Tier | Contents | n | Weight | **Per-item** | × uniform | vs next |
+|---|---|---:|---:|---:|---:|---:|
+| 1 | Premier hold items | 4 | 20.61% | **5.146%** | 9.67× | 2× |
+| 2 | Strong hold items | 8 | 20.61% | **2.578%** | 4.85× | 2× |
+| 3 | Other battle hold items | 40 | 51.53% | **1.288%** | 2.42× | 10× |
+| 4 | Evolution items, balls, flavour berries, species-locked | 50 | 6.44% | **0.129%** | 0.24× | 10× |
+| 5 | Healing, vitamins, utility, junk | 63 | 0.81% | **0.013%** | 0.02× | — |
 
-Every one works on **any** species — that's the tier 1 criterion, not raw VGC power.
+Uniform baseline is 0.606% per item. Ratios land exactly on the 2× / 2× / 10× / 10× requested.
 
-### Tier 2 — 35% weight: type-boosters, healing, situational
+**23 items are never rolled:** the 12 mail items (no battle value) and the 11 battle-only items (X-items,
+Dire Hit, Guard Spec, Poké Doll, Fluffy Tail, Yellow/Red Flute) that have no hold effect and no field use,
+so under the no-battle-items challenge they cannot be used at all.
 
-**Type-boosting hold items** (good on a matching-type mon, which the Phase 6 STAB guarantee makes likely):
-```
-ITEM_SILVER_POWDER   ITEM_SOFT_SAND       ITEM_HARD_STONE      ITEM_MIRACLE_SEED
-ITEM_BLACK_GLASSES   ITEM_BLACK_BELT      ITEM_MAGNET          ITEM_MYSTIC_WATER
-ITEM_SHARP_BEAK      ITEM_POISON_BARB     ITEM_NEVER_MELT_ICE  ITEM_SPELL_TAG
-ITEM_TWISTED_SPOON   ITEM_CHARCOAL        ITEM_DRAGON_FANG     ITEM_SILK_SCARF
-ITEM_SEA_INCENSE     ITEM_LAX_INCENSE     ITEM_FAIRY_GEM
-```
+### Worth knowing before adjusting
 
-**Remaining pinch berries + status berries:**
-```
-ITEM_APICOT_BERRY    ITEM_GANLON_BERRY    ITEM_STARF_BERRY     ITEM_LANSAT_BERRY
-ITEM_CHERI_BERRY     ITEM_PECHA_BERRY     ITEM_RAWST_BERRY     ITEM_ASPEAR_BERRY
-ITEM_PERSIM_BERRY    ITEM_LEPPA_BERRY     ITEM_ORAN_BERRY
-```
+**Tier 1 sits at ~10× uniform, steeper than "close to flat."** That is forced arithmetic rather than a
+choice: once tiers 4 and 5 are suppressed by 10× steps, 99% of the probability mass has nowhere to go but
+the top 52 items. Flattening the top means softening the bottom drops.
 
-**Healing and revival — deliberately kept here so the game stays playable:**
-```
-ITEM_FULL_RESTORE    ITEM_MAX_POTION      ITEM_HYPER_POTION    ITEM_SUPER_POTION
-ITEM_POTION          ITEM_REVIVE          ITEM_MAX_REVIVE      ITEM_FULL_HEAL
-ITEM_ETHER           ITEM_MAX_ETHER       ITEM_ELIXIR          ITEM_MAX_ELIXIR
-ITEM_SACRED_ASH      ITEM_MOOMOO_MILK     ITEM_LEMONADE        ITEM_BERRY_JUICE
-```
+**Tier 5 is effectively never** — 0.013% is about **1 roll in 7,600**. Across a playthrough you would likely
+never see a Potion from an item ball. That is what was asked for; just worth being sure.
 
-**Progression / vitamins:**
-```
-ITEM_RARE_CANDY      ITEM_PP_UP           ITEM_PP_MAX          ITEM_HP_UP
-ITEM_PROTEIN         ITEM_IRON            ITEM_CARBOS          ITEM_CALCIUM
-ITEM_ZINC            ITEM_ULTRA_BALL      ITEM_GREAT_BALL      ITEM_TIMER_BALL
-ITEM_NET_BALL        ITEM_DIVE_BALL       ITEM_NEST_BALL       ITEM_REPEAT_BALL
-```
+**Tier 4 at 0.129% is about 1 in 780**, which covers the evolution stones. The intent was to have those
+available "slightly earlier in game" — at this rate they are rare enough not to count on. If stones matter,
+the cleanest change is softening the tier 3 → 4 gap from 10× to roughly 4×.
 
-### Tier 3 — 20% tail
+### Three requested tier-1 items do not exist in this ROM
 
-**Species-locked items — powerful in VGC, dead weight in a randomizer (see Phase 8):**
-```
-ITEM_SOUL_DEW        ITEM_LIGHT_BALL      ITEM_THICK_CLUB      ITEM_METAL_POWDER
-ITEM_LUCKY_PUNCH     ITEM_STICK           ITEM_DEEP_SEA_TOOTH  ITEM_DEEP_SEA_SCALE
-```
+`FOCUS_SASH`, `CHOICE_SCARF` and `LIFE_ORB` are Generation 4; this is a Gen 3 engine. Substitutions:
 
-**Battle items you said you won't use:**
-```
-ITEM_X_ATTACK        ITEM_X_DEFEND        ITEM_X_SPEED         ITEM_X_ACCURACY
-ITEM_X_SPECIAL       ITEM_DIRE_HIT        ITEM_GUARD_SPEC
-```
+| Wanted | Substitute | Reasoning |
+|---|---|---|
+| Choice Scarf | **Choice Band** | same Choice mechanic; the only one that exists here |
+| Focus Sash | **Focus Band** (tier 2) | closest Gen 3 analogue — random survive, not guaranteed, so tier 2 |
+| Life Orb | *(none)* | no Gen 3 equivalent |
 
-**Everything else:** mail (12 kinds), shards, flutes, Shoal Salt/Shell, Fertilizer, the flavour berries
-(Figy through Belue), Poké Doll, Fluffy Tail, repels, Escape Rope, evolution stones, Everstone, Cleanse Tag,
-Smoke Ball, Amulet Coin, Lucky Egg, Soothe Bell, Macho Brace, Exp. Share, Up-Grade, Dragon Scale,
-Metal Coat, contest scarves, Master Ball, Safari Ball, Premier Ball, Luxury Ball, Poké Ball.
+Promoted into tier 2 alongside the five named: **Shell Bell** (recovery on every hit) and **Scope Lens**
+(crit rate, pairs with the high-crit moves in the move pool).
 
-**Master Ball note:** it's in the tail, so it's a rare but real drop. That's arguably a *good* randomizer
-moment. Move it to the exclusion list if you'd rather it stay unique.
+### Items moved out of tier 3
 
----
+Tier 3 was meant to be "all the rest of the battle hold items". Several items have a hold effect but no
+*battle* effect and would have inflated it:
+
+- **To tier 5:** Amulet Coin, Exp. Share, Lucky Egg, Soothe Bell, Macho Brace, Cleanse Tag, Smoke Ball —
+  overworld utility, nothing in battle. **Everstone** joins them: it actively *prevents* evolution.
+- **To tier 4:** Soul Dew, Light Ball, Thick Club, Metal Powder, Lucky Punch, Stick, Deep Sea Tooth/Scale —
+  real battle effects, but each works on exactly one species, so on a random Pokémon they do nothing.
 
 ## Appendix D — Weighting methodology
 
