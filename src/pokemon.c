@@ -13155,10 +13155,244 @@ static u8 GetLateStabLearnLevel(u16 species)
     return 0;
 }
 
+static bool8 IsMoveInDealtList(u16 move, const u16 *dealt, u8 dealtCount)
+{
+    u8 i;
+
+    for (i = 0; i < dealtCount; i++)
+    {
+        if (dealt[i] == move)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+// The same-type pool is dealt WITHOUT REPLACEMENT across a species' learnset.
+//
+// Some types barely have a pool to draw from: Fairy has two damaging moves in this ROM, Dragon
+// five, Ghost and Steel six. Picking each slot independently meant a mono-Fairy kept drawing the
+// same two moves -- 20.1% of all same-type moves handed out were repeats. Dealing instead means
+// each type slot takes a move the earlier slots did not, and once the pool is spent the slot falls
+// through to the general tiered pool for the rest of the learnset. A dual type keeps going on its
+// other type for free, because the pool is the union of both.
+//
+// The whole deal is a pure function of the species, so the move relearner, the level-up list and
+// the actual level-up all agree. It is a forward walk, so entry i depends only on entries before
+// it -- truncating the learnset at a mon's current level cannot change what the earlier slots got.
+#define LEARNSET_POOL_MAX       80   // largest real pool is 62 (Normal/Flying); headroom for the type modes
+#define LEARNSET_DEAL_MAX       24
+
+// Which slots lean same-type, and with what seed. Split out so the dealer and any future caller
+// cannot disagree about what counts as a type slot.
+static bool8 IsTypeLeaningSlot(u16 species, u16 move, u8 level, bool8 isFirst, u8 lateLevel,
+                               u16 *saltOut, u8 *categoryOut)
+{
+    if (isFirst)                                        // guaranteed: first thing it ever learns
+    {
+        *saltOut = STAB_SALT_LEARNSET_FIRST;
+        *categoryOut = GetPreferredCategoryBySpecies(species);
+        return TRUE;
+    }
+
+    if (lateLevel != 0 && level == lateLevel)           // guaranteed: one uncapped late move
+    {
+        *saltOut = STAB_SALT_LEARNSET_LATE;
+        *categoryOut = GetPreferredCategoryBySpecies(species);
+        return TRUE;
+    }
+
+    if (gBattleMoves[move].power > 1
+        && RandomSeededModulo(move * 17 + species * 3 + level * 11 + 0x58C7, 100)
+               < LEARNSET_STAB_BIAS_PCT)
+    {
+        // Category deliberately left open: the two guaranteed slots already match the mon's
+        // attacking stat, and forcing it everywhere would flatten the moveset.
+        *saltOut = move * 31 + level * 7 + 0x6A13;
+        *categoryOut = STAB_CAT_ANY;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+// Tier-weighted pick over a prebuilt candidate pool, minus what has already been dealt.
+// Same share formula as PickStabFromTiers -- a tier's weight divided by its *global* size is the
+// per-move rate, so a big tier does not out-vote a small one just by being big.
+static u16 PickFromPool(const u16 *pool, const u8 *poolTier, u8 poolCount, const u16 *dealt,
+                        u8 dealtCount, u8 category, u16 maxPower, u16 salt, u16 species)
+{
+    const u16 weights[6] = { MOVE_W_T1, MOVE_W_T2, MOVE_W_T3, MOVE_W_T4, MOVE_W_T5,
+                             100 - MOVE_W_T1 - MOVE_W_T2 - MOVE_W_T3 - MOVE_W_T4 - MOVE_W_T5 };
+    const u16 globalCounts[6] = { ARRAY_COUNT(sMoveTier1), ARRAY_COUNT(sMoveTier2),
+                                  ARRAY_COUNT(sMoveTier3), ARRAY_COUNT(sMoveTier4),
+                                  ARRAY_COUNT(sMoveTier5), ARRAY_COUNT(sMoveTier6) };
+    u16 n[6], share[6];
+    u32 total = 0, acc = 0;
+    u16 roll;
+    u8 i, t, seen;
+
+    for (t = 0; t < 6; t++)
+        n[t] = 0;
+
+    for (i = 0; i < poolCount; i++)
+    {
+        if (IsMoveInDealtList(pool[i], dealt, dealtCount))
+            continue;
+        if (gBattleMoves[pool[i]].power > maxPower)
+            continue;
+        if (category != STAB_CAT_ANY && gBattleMoves[pool[i]].category != category)
+            continue;
+
+        n[poolTier[i]]++;
+    }
+
+    // Moves randomization off: every eligible move is equally likely, matching PickStabUniform.
+    if (gSaveBlock1Ptr->tx_Random_MovesVGC == TX_VGC_OFF)
+    {
+        for (t = 0; t < 6; t++)
+            total += n[t];
+        if (total == 0)
+            return MOVE_NONE;
+
+        roll = RandomSeededModulo(species + 0x5AB3 + salt, total);
+        seen = 0;
+        for (i = 0; i < poolCount; i++)
+        {
+            if (IsMoveInDealtList(pool[i], dealt, dealtCount))
+                continue;
+            if (gBattleMoves[pool[i]].power > maxPower)
+                continue;
+            if (category != STAB_CAT_ANY && gBattleMoves[pool[i]].category != category)
+                continue;
+            if (seen++ == roll)
+                return pool[i];
+        }
+        return MOVE_NONE;
+    }
+
+    for (t = 0; t < 6; t++)
+    {
+        share[t] = n[t] * ((weights[t] * 1000) / globalCounts[t]);
+        total += share[t];
+    }
+
+    if (total == 0)
+        return MOVE_NONE;
+
+    roll = RandomSeededModulo(species * 7 + 0x5AB3 + salt, total);
+
+    for (t = 0; t < 6; t++)
+    {
+        if (n[t] == 0)
+            continue;
+
+        acc += share[t];
+        if (roll >= acc)
+            continue;
+
+        roll = RandomSeededModulo(species * 11 + t * 17 + 0x3C29 + salt, n[t]);
+        seen = 0;
+        for (i = 0; i < poolCount; i++)
+        {
+            if (poolTier[i] != t)
+                continue;
+            if (IsMoveInDealtList(pool[i], dealt, dealtCount))
+                continue;
+            if (gBattleMoves[pool[i]].power > maxPower)
+                continue;
+            if (category != STAB_CAT_ANY && gBattleMoves[pool[i]].category != category)
+                continue;
+            if (seen++ == roll)
+                return pool[i];
+        }
+        return MOVE_NONE;
+    }
+
+    return MOVE_NONE;
+}
+
+// Returns what this learnset entry should be given from the species' own-type pool, or MOVE_NONE
+// when the entry is not a type slot or the pool has been used up.
+static u16 GetDealtTypeMove(u16 species, u16 originalMove, u8 learnLevel)
+{
+    const u16 *tables[6] = { sMoveTier1, sMoveTier2, sMoveTier3, sMoveTier4, sMoveTier5, sMoveTier6 };
+    const u16 tableCounts[6] = { ARRAY_COUNT(sMoveTier1), ARRAY_COUNT(sMoveTier2),
+                                 ARRAY_COUNT(sMoveTier3), ARRAY_COUNT(sMoveTier4),
+                                 ARRAY_COUNT(sMoveTier5), ARRAY_COUNT(sMoveTier6) };
+    const u16 *learnset;
+    u16 pool[LEARNSET_POOL_MAX];
+    u8 poolTier[LEARNSET_POOL_MAX];
+    u16 dealt[LEARNSET_DEAL_MAX];
+    u16 i, j, move, chosen;
+    u8 poolCount = 0, dealtCount = 0, type1, type2, level, lateLevel, category;
+    u16 salt;
+
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return MOVE_NONE;
+
+    type1 = GetTypeBySpecies(species, 1);
+    type2 = GetTypeBySpecies(species, 2);
+
+    // One pass over the tier tables gives the candidate pool and each candidate's tier together,
+    // so the per-slot work below never has to touch all 367 moves again.
+    for (i = 0; i < 6; i++)
+    {
+        for (j = 0; j < tableCounts[i] && poolCount < LEARNSET_POOL_MAX; j++)
+        {
+            if (IsStabCandidate(tables[i][j], type1, type2))
+            {
+                pool[poolCount] = tables[i][j];
+                poolTier[poolCount] = i;
+                poolCount++;
+            }
+        }
+    }
+
+    if (poolCount == 0)
+        return MOVE_NONE;       // no damaging move of this type exists at all
+
+    learnset = (gSaveBlock1Ptr->tx_Mode_Modern_Moves == 0) ? gLevelUpLearnsets_Original[species]
+                                                           : gLevelUpLearnsets[species];
+    lateLevel = GetLateStabLearnLevel(species);
+
+    for (i = 0; learnset[i] != LEVEL_UP_END; i++)
+    {
+        move = learnset[i] & LEVEL_UP_MOVE_ID;
+        level = (u8)((learnset[i] & LEVEL_UP_MOVE_LV) >> 9);
+
+        if (!IsTypeLeaningSlot(species, move, level, (i == 0), lateLevel, &salt, &category))
+        {
+            if (move == originalMove && level == learnLevel)
+                return MOVE_NONE;   // ordinary slot; the caller rolls the general pool
+            continue;
+        }
+
+        chosen = PickFromPool(pool, poolTier, poolCount, dealt, dealtCount, category,
+                              GetStabPowerCapForLevel(level), salt, species);
+
+        // Relax in the same order PickStabMove does: category first, then the power cap. Only
+        // then is the pool genuinely spent for this slot.
+        if (chosen == MOVE_NONE && category != STAB_CAT_ANY)
+            chosen = PickFromPool(pool, poolTier, poolCount, dealt, dealtCount, STAB_CAT_ANY,
+                                  GetStabPowerCapForLevel(level), salt, species);
+        if (chosen == MOVE_NONE)
+            chosen = PickFromPool(pool, poolTier, poolCount, dealt, dealtCount, STAB_CAT_ANY,
+                                  STAB_POWER_ANY, salt, species);
+
+        if (chosen != MOVE_NONE && dealtCount < LEARNSET_DEAL_MAX)
+            dealt[dealtCount++] = chosen;
+
+        if (move == originalMove && level == learnLevel)
+            return chosen;      // MOVE_NONE here means the pool is used up
+    }
+
+    return MOVE_NONE;
+}
+
 u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wantStab)
 {
     u16 result = GetRandomMove(originalMove, species);
-    u16 stabSalt = STAB_SALT_CATCH;
+    u16 dealt;
     bool8 wantDamaging;
     u8 i;
 
@@ -13168,75 +13402,28 @@ u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wa
     if (originalMove == MOVE_NONE || originalMove >= MOVES_COUNT)
         return result;
 
-    if (wantStab)
-    {
-        stabSalt = STAB_SALT_LEARNSET_FIRST;
-    }
-    // Promote the one late entry picked for this species. Above LEARNSET_MID_LEVEL no power cap
-    // applies, so this is the slot that can roll a full-power same-type move.
-    else if (learnLevel > LEARNSET_MID_LEVEL && learnLevel == GetLateStabLearnLevel(species))
-    {
-        wantStab = TRUE;
-        stabSalt = STAB_SALT_LEARNSET_LATE;
-    }
-
-    // A guaranteed slot enumerates its pool rather than re-rolling into it. Rejection sampling
-    // cannot deliver a guarantee here: a same-type move under the level's power cap is a thin
-    // slice of 367, so LEARNSET_MAX_REROLLS draws missed it 61.5% of the time overall and 94.8%
-    // for Psychic. PickStabMove walks the candidates directly, so the slot always fills.
-    if (wantStab)
-    {
-        u16 stab = PickStabMove(species, GetTypeBySpecies(species, 1), GetTypeBySpecies(species, 2),
-                                GetPreferredCategoryBySpecies(species),
-                                GetStabPowerCapForLevel(learnLevel), stabSalt);
-
-        if (stab != MOVE_NONE)
-            return stab;
-    }
+    // The two guaranteed slots and every type-leaning slot are all resolved by one deal over the
+    // species' own-type pool, so no two of them can land on the same move while the pool still
+    // has something left. MOVE_NONE means either this is an ordinary slot or the pool is spent --
+    // both fall through to the general tiered roll below, which is the intent: once a narrow type
+    // is used up, the rest of the learnset is a plain randomized moveset again.
+    //
+    // wantStab is not consulted here. The dealer identifies the first slot itself, from the
+    // learnset, which is the same slot the callers flag -- and unlike them it also knows the
+    // species' other type slots, which is what makes dealing possible.
+    dealt = GetDealtTypeMove(species, originalMove, learnLevel);
+    if (dealt != MOVE_NONE)
+        return dealt;
 
     wantDamaging = (gBattleMoves[originalMove].power > 1);
     if (wantStab)
-        wantDamaging = TRUE;    // a guaranteed same-type move is always an attack
-
-    // An ordinary damaging slot leans toward the species' own type without committing to it.
-    // Left to chance, a mon's own type is roughly 1 in 17 of the pool, so only 10.5% of its
-    // randomized attacks matched it and movesets read as type-less. The biased draw goes through
-    // the same tier tables, so it is a *good* move of the right type, not merely one of the right
-    // type. Category is deliberately left open here -- the two guaranteed slots already match the
-    // mon's attacking stat, and forcing it everywhere would flatten the moveset.
-    //
-    // The bias roll and the move pick use different linear combinations of the same inputs. A
-    // shared value with a constant offset would lock each slot to one move; that mistake cost 66
-    // of 367 moves their reachability once already.
-    if (!wantStab && wantDamaging
-        && RandomSeededModulo(originalMove * 17 + species * 3 + learnLevel * 11 + 0x58C7, 100)
-               < LEARNSET_STAB_BIAS_PCT)
-    {
-        u16 biased = PickStabMove(species, GetTypeBySpecies(species, 1), GetTypeBySpecies(species, 2),
-                                  STAB_CAT_ANY, GetStabPowerCapForLevel(learnLevel),
-                                  originalMove * 31 + learnLevel * 7 + 0x6A13);
-
-        if (biased != MOVE_NONE)
-            return biased;
-    }
+        wantDamaging = TRUE;    // the first slot stays an attack even if the deal came up empty
 
     for (i = 0; i < LEARNSET_MAX_REROLLS; i++)
     {
-        if (IsLearnsetMoveAllowed(result, species, learnLevel, wantDamaging, wantStab))
+        if (IsLearnsetMoveAllowed(result, species, learnLevel, wantDamaging, FALSE))
             return result;
         result = GetRandomMove(result + i + 1, species);
-    }
-
-    // Same-type may be impossible for a narrow type at a low level -- relax the type
-    // requirement before giving up, so the mon still gets an attack rather than junk.
-    if (wantStab)
-    {
-        for (i = 0; i < LEARNSET_MAX_REROLLS; i++)
-        {
-            if (IsLearnsetMoveAllowed(result, species, learnLevel, TRUE, FALSE))
-                return result;
-            result = GetRandomMove(result + i + 1, species);
-        }
     }
 
     return result;  // constraints unsatisfiable; the unfiltered roll is still a valid move

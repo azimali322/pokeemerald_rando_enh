@@ -688,6 +688,7 @@ What it does, given the slot it is filling:
 | First move | always a same-type **attack** — previously the starter only |
 | One late move | one entry above level 35 is also a same-type attack, drawn with **no power cap** |
 | Type bias | every *other* damaging slot leans same-type `LEARNSET_STAB_BIAS_PCT` (40%) of the time |
+| Dealt, not drawn | all type-leaning slots share one deal of the own-type pool — no slot repeats another's move, and once the pool is spent the rest of the learnset is plain randomized |
 | Duplicates | re-rolled, so a collision no longer silently wastes the slot |
 
 **The two guaranteed slots did not actually deliver.** Both were implemented as rejection sampling:
@@ -705,6 +706,8 @@ sampling, which is fine — they express preferences, not guarantees.
 | First slot is a same-type attack | 38.5% → **100%** (20,460 cases) |
 | A same-type attack exists above level 35 | 25.0% → **100%** (18,660 cases) |
 | Ordinary damaging slot is same-type | 10.5% → **46.3%** (65,218 cases) |
+| Repeated same-type moves within one learnset | 20.1% → **2.8%** (45,811 dealt moves) |
+| Duplicates originating in the deal itself | **0** |
 | Of the 4 moves known at Lv50, mean matching type | 0.25 → **1.25** |
 | Pokemon with *zero* type-matching moves at Lv50 | 77.7% → **17.0%** |
 | All five sites agree for the same (move, species, level) | ✅ |
@@ -746,6 +749,16 @@ These test the design in the plan.
       For the 8 species whose late entries are all status, one is converted — that is intended.
 - [ ] **T8b.5c — Species with no late entry.** 62 of 461 species end their learnset at or below level 35.
       They get no late guarantee and must behave exactly as before. Confirm no crash and no empty slot.
+- [ ] **T8b.5h — Narrow types exhaust instead of repeating.** Fairy has **2** damaging moves in this
+      ROM, Dragon 5, Ghost and Steel 6. A mono-Fairy (Sylveon is the only one) must learn Moonblast
+      and Play Rough **once each**, and every later type slot falls through to the general tiered
+      pool. Before dealing, a Sylveon could roll Moonblast four times in one learnset.
+- [ ] **T8b.5i — Dual types continue on the other type.** The pool is the union, so a Fairy/Flying mon
+      keeps drawing Flying moves after the two Fairy ones are spent. No separate fallback to code.
+- [ ] **T8b.5j — Deal is consistent across all five call sites.** The deal is a forward walk keyed on
+      species, so truncating the learnset at a mon's current level cannot change what earlier slots
+      got. Check the move relearner, the summary-screen level-up list, and an actual level-up all
+      show the same move for the same entry.
 - [ ] **T8b.5e — Type bias, not type lock.** Ordinary damaging slots match the species' type about
       **46%** of the time, up from 10.5%. Off-type attacks must still be common — if a mon's damaging
       moves are *all* same-type, the bias is mis-set. Check several mons, not one: at 40% a six-slot
