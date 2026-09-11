@@ -116,6 +116,7 @@ bool8 AreFeaturesActivated(void);
 bool8 IsNuzlockeActive(void);
 bool8 IsNuzlockeNicknamingActive(void);
 bool8 IsPokecenterChallengeActivated(void);
+bool8 IsLevelCapActive(void);
 bool8 IsRandomItemsActivated(void);
 bool8 HMsOverwriteOptionActive(void);
 

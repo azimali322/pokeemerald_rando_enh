@@ -1,4 +1,7 @@
 #include "global.h"
+#include "random.h"
+#include "constants/abilities.h"
+#include "tx_randomizer_and_challenges.h"
 #include "ui_stat_editor.h"
 #include "strings.h"
 #include "bg.h"
@@ -810,6 +813,48 @@ static void ReloadNewPokemon(u8 taskId)
     gTasks[taskId].data[11] = 0;
 }
 
+//tx_randomizer_and_challenges
+// Reroll cheat: SELECT rerolls nature, START rerolls the ability slot.
+//
+// Nature goes through MON_DATA_HIDDEN_NATURE (the Mint field), NOT the personality value.
+// Personality also determines gender, shininess, Unown letter, Wurmple's evolution branch and
+// Spinda's spots -- rerolling it would silently change all of them.
+static void RerollMonNature(void)
+{
+    struct Pokemon *mon = ReturnPartyMon();
+    u8 current = GetNature(mon, TRUE);
+    u8 next;
+
+    do
+    {
+        next = Random() % NUM_NATURES;
+    } while (next == current);   // always a visible change
+
+    SetMonData(mon, MON_DATA_HIDDEN_NATURE, &next);
+    CalculateMonStats(mon);
+}
+
+static bool8 RerollMonAbility(void)
+{
+    struct Pokemon *mon = ReturnPartyMon();
+    u16 species = GetMonData(mon, MON_DATA_SPECIES);
+    u8 abilityNum;
+
+    // With either ability randomizer on, GetAbilityBySpecies ignores the stored abilityNum, so
+    // flipping it would change nothing visible. Refuse rather than look broken.
+    if (gSaveBlock1Ptr->tx_Random_Abilities || gSaveBlock1Ptr->tx_Random_AbilitiesVGC != TX_VGC_OFF)
+        return FALSE;
+
+    // abilities[] is only 2 wide in this codebase, and plenty of species leave slot 1 empty.
+    // Writing ABILITY_NONE would blank the summary screen, so refuse instead.
+    if (gSpeciesInfo[species].abilities[1] == ABILITY_NONE)
+        return FALSE;
+
+    abilityNum = GetMonData(mon, MON_DATA_ABILITY_NUM) ? 0 : 1;
+    SetMonData(mon, MON_DATA_ABILITY_NUM, &abilityNum);
+    return TRUE;
+}
+
 static void Task_StatEditorMain(u8 taskId) // input control when first loaded into menu
 {
     if (JOY_NEW(A_BUTTON))
@@ -826,6 +871,23 @@ static void Task_StatEditorMain(u8 taskId) // input control when first loaded in
             StartSpriteAnim(&gSprites[sStatEditorDataPtr->selectorSpriteId], 2);
         if((sStatEditorDataPtr->editingStat == 31) && (sStatEditorDataPtr->selector_x == 1))
             StartSpriteAnim(&gSprites[sStatEditorDataPtr->selectorSpriteId], 2);
+        return;
+    }
+    //tx_randomizer_and_challenges
+    if (JOY_NEW(SELECT_BUTTON) && gSaveBlock1Ptr->tx_Features_RerollCheat)
+    {
+        RerollMonNature();
+        PlaySE(SE_SELECT);
+        PrintMonStats();
+        return;
+    }
+    if (JOY_NEW(START_BUTTON) && gSaveBlock1Ptr->tx_Features_RerollCheat)
+    {
+        if (RerollMonAbility())
+            PlaySE(SE_SELECT);
+        else
+            PlaySE(SE_FAILURE);     // species has only one ability
+        PrintMonStats();
         return;
     }
     if (JOY_NEW(L_BUTTON))

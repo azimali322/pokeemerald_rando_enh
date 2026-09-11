@@ -62,10 +62,17 @@ OldaleTown_EventScript_InfiniteItems4::
 	giveitem ITEM_INFINITE_REPEL
 	giveitem ITEM_INFINITE_RARE_CANDIES
 	giveitem ITEM_HEALING_HEART
+@ tx_randomizer_and_challenges: the Cap Candy only makes sense with a level cap set
+	specialvar VAR_RESULT, IsLevelCapActive
+	call_if_eq VAR_RESULT, TRUE, OldaleTown_EventScript_GiveCapCandy
 	msgbox OldaleTown_Text_InfiniteItems4, MSGBOX_NPC
 	setflag FLAG_INFINITE_STUFF
 	fadedefaultbgm
 	end
+
+OldaleTown_EventScript_GiveCapCandy::
+	giveitem ITEM_LEVEL_CAP_CANDY
+	return
 
 OldaleTown_EventScript_InfiniteItems5::
 	msgbox OldaleTown_Text_InfiniteItems4, MSGBOX_NPC

@@ -420,6 +420,8 @@ static void Task_TryLearningNextMoveAfterText(u8);
 static void BufferMonStatsToTaskData(struct Pokemon *, s16 *);
 static void UpdateMonDisplayInfoAfterRareCandy(u8, struct Pokemon *);
 static void Task_RareCandyEvoAtCap(u8);
+static bool8 ShouldCapCandyContinue(void); //tx_randomizer_and_challenges
+static void CapCandyStepOrFinish(u8, TaskFunc);
 static void Task_DisplayLevelUpStatsPg1(u8);
 static void DisplayLevelUpStatsPg1(u8);
 static void Task_DisplayLevelUpStatsPg2(u8);
@@ -5275,6 +5277,13 @@ static void Task_LearnNextMoveOrClosePartyMenu(u8 taskId)
         {
             if (gPartyMenu.learnMoveState == 2) // never occurs
                 gSpecialVar_Result = TRUE;
+
+            //tx_randomizer_and_challenges
+            if (ShouldCapCandyContinue())
+            {
+                CapCandyStepOrFinish(taskId, Task_ReturnToChooseMonAfterText);
+                return;
+            }
             Task_ClosePartyMenu(taskId);
         }
     }
@@ -5437,8 +5446,12 @@ void ItemUseCB_RareCandy(u8 taskId, TaskFunc task)
 
     if (GetMonData(mon, MON_DATA_LEVEL) < GetCurrentPartyLevelCap())
     {
+        //tx_randomizer_and_challenges: the Cap Candy has no effect-table entry of its own,
+        // so it borrows the Rare Candy's -- it is the same one-level effect, just repeated.
+        u16 effectItem = (*itemPtr == ITEM_LEVEL_CAP_CANDY) ? ITEM_RARE_CANDY : *itemPtr;
+
         BufferMonStatsToTaskData(mon, arrayPtr);
-        cannotUseEffect = ExecuteTableBasedItemEffect_(gPartyMenu.slotId, *itemPtr, 0);
+        cannotUseEffect = ExecuteTableBasedItemEffect_(gPartyMenu.slotId, effectItem, 0);
         BufferMonStatsToTaskData(mon, &ptr->data[NUM_STATS]);
     }
     else
@@ -5455,7 +5468,8 @@ void ItemUseCB_RareCandy(u8 taskId, TaskFunc task)
             PlaySE(SE_SELECT);
             gPartyMenuUseExitCallback = TRUE;
             PlayFanfareByFanfareNum(FANFARE_LEVEL_UP);
-            RemoveBagItem(gSpecialVar_ItemId, 1);
+            if (gSpecialVar_ItemId != ITEM_LEVEL_CAP_CANDY)   //tx: key item, never consumed
+                RemoveBagItem(gSpecialVar_ItemId, 1);
             GetMonNickname(mon, gStringVar1);
             StringExpandPlaceholders(gStringVar4, gText_RareCandyUsedNoLevelUp);
             DisplayPartyMenuMessage(gStringVar4, TRUE);
@@ -5478,7 +5492,8 @@ void ItemUseCB_RareCandy(u8 taskId, TaskFunc task)
         gPartyMenuUseExitCallback = TRUE;
         PlayFanfareByFanfareNum(FANFARE_LEVEL_UP);
         UpdateMonDisplayInfoAfterRareCandy(gPartyMenu.slotId, mon);
-        RemoveBagItem(gSpecialVar_ItemId, 1);
+        if (gSpecialVar_ItemId != ITEM_LEVEL_CAP_CANDY)       //tx: key item, never consumed
+            RemoveBagItem(gSpecialVar_ItemId, 1);
         GetMonNickname(mon, gStringVar1);
         ConvertIntToDecimalStringN(gStringVar2, GetMonData(mon, MON_DATA_LEVEL), STR_CONV_MODE_LEFT_ALIGN, 3);
         StringExpandPlaceholders(gStringVar4, gText_PkmnElevatedToLvVar2);
@@ -5486,6 +5501,34 @@ void ItemUseCB_RareCandy(u8 taskId, TaskFunc task)
         ScheduleBgCopyTilemapToVram(2);
         gTasks[taskId].func = Task_DisplayLevelUpStatsPg1;
     }
+}
+
+//tx_randomizer_and_challenges
+// The Cap Candy is the normal Rare Candy applied repeatedly until the level cap. Doing it one level
+// at a time is what preserves the per-level prompts -- the player still chooses whether to learn each
+// move and still sees each evolution, exactly as if they had spammed Rare Candies by hand.
+static bool8 ShouldCapCandyContinue(void)
+{
+    if (gSpecialVar_ItemId != ITEM_LEVEL_CAP_CANDY)
+        return FALSE;
+    if (gPartyMenu.menuType != PARTY_MENU_TYPE_FIELD)
+        return FALSE;
+    if (gPartyMenu.slotId >= PARTY_SIZE)
+        return FALSE;
+
+    return (GetMonData(&gPlayerParty[gPartyMenu.slotId], MON_DATA_LEVEL) < GetCurrentPartyLevelCap());
+}
+
+// Re-enters the candy for the next level, or hands back to `whenDone` once the cap is reached.
+static void CapCandyStepOrFinish(u8 taskId, TaskFunc whenDone)
+{
+    if (ShouldCapCandyContinue())
+    {
+        gPartyMenu.learnMoveState = 0;
+        ItemUseCB_RareCandy(taskId, Task_ReturnToChooseMonAfterText);
+        return;
+    }
+    gTasks[taskId].func = whenDone;
 }
 
 static void Task_RareCandyEvoAtCap(u8 taskId)
@@ -5614,7 +5657,8 @@ static void PartyMenuTryEvolution(u8 taskId)
     if (targetSpecies != SPECIES_NONE)
     {
         FreePartyPointers();
-        if (gSpecialVar_ItemId == ITEM_RARE_CANDY && gPartyMenu.menuType == PARTY_MENU_TYPE_FIELD && CheckBagHasItem(gSpecialVar_ItemId, 1))
+        if ((gSpecialVar_ItemId == ITEM_RARE_CANDY || gSpecialVar_ItemId == ITEM_LEVEL_CAP_CANDY)
+            && gPartyMenu.menuType == PARTY_MENU_TYPE_FIELD && CheckBagHasItem(gSpecialVar_ItemId, 1))
             gCB2_AfterEvolution = CB2_ReturnToPartyMenuUsingRareCandy;
         else
             gCB2_AfterEvolution = gPartyMenu.exitCallback;
@@ -5623,6 +5667,13 @@ static void PartyMenuTryEvolution(u8 taskId)
     }
     else
     {
+        //tx_randomizer_and_challenges: keep climbing toward the cap rather than stopping here
+        if (ShouldCapCandyContinue())
+        {
+            CapCandyStepOrFinish(taskId, Task_ReturnToChooseMonAfterText);
+            return;
+        }
+
         if (gPartyMenu.menuType == PARTY_MENU_TYPE_FIELD && CheckBagHasItem(gSpecialVar_ItemId, 1))
             gTasks[taskId].func = Task_ReturnToChooseMonAfterText;
         else

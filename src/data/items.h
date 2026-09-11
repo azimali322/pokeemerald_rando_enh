@@ -2829,15 +2829,16 @@ const struct Item gItems[] =
         .fieldUseFunc = ItemUseOutOfBattle_InfiniteRareCandies,
     },
 
-    [ITEM_0E4] =
+    [ITEM_LEVEL_CAP_CANDY] = //tx_randomizer_and_challenges
     {
-        .name = _("????????"),
-        .itemId = ITEM_NONE,
+        .name = _("Cap Candy"),
+        .itemId = ITEM_LEVEL_CAP_CANDY,
         .price = 0,
-        .description = sDummyDesc,
-        .pocket = POCKET_ITEMS,
-        .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .description = sLevelCapCandyDesc,
+        .importance = 1,                    // key item: never consumed
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_PARTY_MENU,        // must target a specific Pokemon
+        .fieldUseFunc = ItemUseOutOfBattle_RareCandy,
     },
 
     [ITEM_0E5] =
@@ -7684,15 +7685,16 @@ const struct Item gItems2[] =
         .fieldUseFunc = ItemUseOutOfBattle_InfiniteRareCandies,
     },
 
-    [ITEM_0E4] =
+    [ITEM_LEVEL_CAP_CANDY] = //tx_randomizer_and_challenges
     {
-        .name = _("????????"),
-        .itemId = ITEM_NONE,
+        .name = _("Cap Candy"),
+        .itemId = ITEM_LEVEL_CAP_CANDY,
         .price = 0,
-        .description = sDummyDesc,
-        .pocket = POCKET_ITEMS,
-        .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .description = sLevelCapCandyDesc,
+        .importance = 1,                    // key item: never consumed
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_PARTY_MENU,        // must target a specific Pokemon
+        .fieldUseFunc = ItemUseOutOfBattle_RareCandy,
     },
 
     [ITEM_0E5] =
