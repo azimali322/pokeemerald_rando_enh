@@ -143,19 +143,29 @@ if (gSaveBlock1Ptr->tx_Random_Moves)
     species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_MOVES, 0);
 ```
 
-So with **`MOVES` on, a Pokemon does not use its own TM compatibility list at all** — it borrows the list
-of a different, seeded species. The substitute is fixed per species, so it is stable across a save, but it
-has nothing to do with what the Pokemon can canonically learn. This is stock upstream behaviour, not
-something this fork added, and it applies in both Modern Moves branches.
+With `MOVES` on, most Pokemon therefore read a **different species'** compatibility list. It is stable per
+species across a save, but unrelated to what the Pokemon can canonically learn. This is stock upstream
+behaviour, not something this fork added.
 
-**Worked example.** Articuno can learn 23 TM slots in vanilla and **cannot** learn TM01. Ice Punch is not a
-TM in Emerald at all — it is a Move Tutor move. With `MOVES` + `RANDOM TM MOVES` on, Ice Punch may land on
-some TM slot, and whether Articuno can use it depends only on whether *Articuno's substituted species* has
-that slot flagged. Canon compatibility does not enter into it in either direction: Articuno can end up able
-to learn moves it never could, and unable to learn Blizzard.
+It does **not** apply to everything. `GetSpeciesRandomSeeded` returns the species unchanged when its
+`gSpeciesMapping` slot is `EVO_TYPE_SELF`, or when it is a legendary and *Include Legendaries* is off:
 
-**What that means for type coverage.** Modelling the substitution, a species has on average **0.92**
-same-type damaging TMs it can actually learn, and **40.8%** have none at all. So TMs are a thin safety net
+| mapping slot | species | TM list used |
+|---|---|---|
+| `EVO_TYPE_0 / 1 / 2` | **395** | a substituted species' list |
+| `EVO_TYPE_SELF` | 27 | its own, vanilla |
+| `EVO_TYPE_LEGENDARY` | 28 | another legendary's if *Random Legendaries* is on; its own if *Include Legendaries* is off; otherwise substituted |
+
+So **88% of species** do not use their own TM compatibility once `MOVES` is on.
+
+**Worked example.** Articuno can learn 23 TM slots in vanilla and cannot learn TM01. Ice Punch is not a TM
+in Emerald at all — it is a Move Tutor move. With `MOVES` + `RANDOM TM MOVES` on, Ice Punch can land on a
+TM slot, and because Articuno is `EVO_TYPE_LEGENDARY`, whether it can use that TM depends on the settings:
+with *Random Legendaries* on it reads another legendary's list; with *Include Legendaries* off it reads its
+own. Either way canon "can Articuno learn Ice Punch" never enters into it.
+
+**What that means for type coverage.** Modelling the substitution (and the species that escape it), a species has on average **0.96**
+same-type damaging TMs it can actually learn, and **39.4%** have none at all. So TMs are a thin safety net
 for a Pokemon with no same-type move — thinner than the stock TM set, where the spread across types is
 deliberate.
 
