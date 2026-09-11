@@ -450,6 +450,13 @@ summary screens by hand.
 paths), static/gift (`ScriptGiveMon`), scripted wild (`CreateScriptedWildMon`), and both trainer party
 builders. Gated on *Guarantee STAB* **and** *Random Moves*.
 
+**Level cap added after the fact.** The first implementation ignored the mon's level entirely, so a Lv5
+special Fire-type had an **89.7%** chance of an injected move over 60 power (Eruption at 27.9%). That
+contradicted Phase 8b, which caps levels 1–15 at 60 power and 16–35 at 100. `EnsureStabMove` now reads
+`MON_DATA_LEVEL` and shares Phase 8b's bands via `GetStabPowerCapForLevel()`. Swept offline across
+5,700 type × category × level combinations: **0 cap violations**, one legitimate relaxation (Fairy, see
+T6.17).
+
 **The trainer-species trap was avoided by design.** The plan warned that `src/battle_main.c` seeds moves on
 `partyData[i].species` (pre-randomization). It's worse than that — the local `species` is only assigned
 *inside* the Random-Trainer branch, so it's stale otherwise. `EnsureStabMove` therefore reads the species
@@ -517,6 +524,17 @@ preserved where possible, and the function refuses outright rather than overwrit
       the *variant* typing — confirms `GetTypeBySpecies` was used, not `gSpeciesInfo[].types`.
 - [ ] **T6.15 — Type randomizer.** With `tx_Random_Type` On, STAB matches the *randomized* type.
 - [ ] **T6.16 — Determinism.** Same mon → same injected move across save/reload.
+- [ ] **T6.17 — Level-appropriate power.** A Lv2–15 catch never receives a >60-power injected move, and a
+      Lv16–35 one never receives >100. Watch for Eruption / Blast Burn / Hydro Cannon on early catches —
+      those were the worst offenders before the cap existed. The **one** legitimate exception is a
+      mono-**Fairy** mon below Lv16 (`tx_Mode_Fairy_Types` on): Fairy's weakest damaging move in this ROM is
+      Play Rough at 90, so the cap is lifted rather than leaving the mon without STAB.
+- [ ] **T6.18 — Cap relaxes before failing, not before category.** A mon whose type has no move of its
+      preferred category under the cap gets a level-appropriate move of the *other* category, not an
+      over-powered one of the right category. Order is: category first, power cap last.
+- [ ] **T6.19 — Existing moves are untouched.** The guarantee is one *added* move, not a whole moveset. A
+      low-level mon's other one or two moves may still be off-type or the wrong category — that is Phase 8b's
+      job, not Phase 6's. Confirm the two features together (T8b.12).
 
 ---
 

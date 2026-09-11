@@ -12666,6 +12666,24 @@ static u8 GetPreferredMoveCategory(struct Pokemon *mon)
     return (atk > spAtk) ? MOVE_CATEGORY_PHYSICAL : MOVE_CATEGORY_SPECIAL;
 }
 
+// maxPower caps how strong the injected move may be, so a level 5 Pokemon is not handed Eruption.
+// Shared with the learnset pass below so both use one set of bands; STAB_POWER_ANY = no cap.
+#define LEARNSET_EARLY_LEVEL    15
+#define LEARNSET_MID_LEVEL      35
+#define LEARNSET_EARLY_MAX_POW  60
+#define LEARNSET_MID_MAX_POW   100
+#define STAB_POWER_ANY      0xFFFF
+
+static u16 GetStabPowerCapForLevel(u8 level)
+{
+    if (level <= LEARNSET_EARLY_LEVEL)
+        return LEARNSET_EARLY_MAX_POW;
+    if (level <= LEARNSET_MID_LEVEL)
+        return LEARNSET_MID_MAX_POW;
+
+    return STAB_POWER_ANY;
+}
+
 static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
 {
     if (move == MOVE_NONE || move >= MOVES_COUNT)
@@ -12678,28 +12696,36 @@ static bool8 IsStabCandidate(u16 move, u8 type1, u8 type2)
     return (gBattleMoves[move].type == type1 || gBattleMoves[move].type == type2);
 }
 
+static bool8 IsStabCandidateAt(u16 move, u8 type1, u8 type2, u8 category, u16 maxPower)
+{
+    if (!IsStabCandidate(move, type1, type2))
+        return FALSE;
+    if (gBattleMoves[move].power > maxPower)
+        return FALSE;
+
+    return (category == STAB_CAT_ANY || gBattleMoves[move].category == category);
+}
+
 // Counts, then picks, the nth matching move -- two passes so no 367-entry buffer hits the stack.
-static u16 CountStabInTier(const u16 *tierTable, u16 tierCount, u8 type1, u8 type2, u8 category)
+static u16 CountStabInTier(const u16 *tierTable, u16 tierCount, u8 type1, u8 type2, u8 category, u16 maxPower)
 {
     u16 i, n = 0;
 
     for (i = 0; i < tierCount; i++)
     {
-        if (IsStabCandidate(tierTable[i], type1, type2)
-            && (category == STAB_CAT_ANY || gBattleMoves[tierTable[i]].category == category))
+        if (IsStabCandidateAt(tierTable[i], type1, type2, category, maxPower))
             n++;
     }
     return n;
 }
 
-static u16 PickStabInTier(const u16 *tierTable, u16 tierCount, u8 type1, u8 type2, u8 category, u16 index)
+static u16 PickStabInTier(const u16 *tierTable, u16 tierCount, u8 type1, u8 type2, u8 category, u16 maxPower, u16 index)
 {
     u16 i, n = 0;
 
     for (i = 0; i < tierCount; i++)
     {
-        if (IsStabCandidate(tierTable[i], type1, type2)
-            && (category == STAB_CAT_ANY || gBattleMoves[tierTable[i]].category == category))
+        if (IsStabCandidateAt(tierTable[i], type1, type2, category, maxPower))
         {
             if (n == index)
                 return tierTable[i];
@@ -12720,7 +12746,7 @@ static u16 PickStabInTier(const u16 *tierTable, u16 tierCount, u8 type1, u8 type
 // than a better move in a tier that holds many -- Ember would out-roll Flamethrower. Scaling by the
 // global tier size makes each move's odds proportional to its own tier's per-move rate, so a better
 // move is always likelier than a worse one whatever the type's distribution looks like.
-static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category)
+static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower)
 {
     const u16 *tables[6] = { sMoveTier1, sMoveTier2, sMoveTier3, sMoveTier4, sMoveTier5, sMoveTier6 };
     const u16 counts[6] = { ARRAY_COUNT(sMoveTier1), ARRAY_COUNT(sMoveTier2), ARRAY_COUNT(sMoveTier3),
@@ -12737,7 +12763,7 @@ static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category)
         // per-move rate for this tier, scaled by 1000 to stay in integers
         u16 perMove = (weights[t] * 1000) / counts[t];
 
-        n[t] = CountStabInTier(tables[t], counts[t], type1, type2, category);
+        n[t] = CountStabInTier(tables[t], counts[t], type1, type2, category, maxPower);
         share[t] = n[t] * perMove;
         total += share[t];
     }
@@ -12754,21 +12780,20 @@ static u16 PickStabFromTiers(u16 species, u8 type1, u8 type2, u8 category)
 
         acc += share[t];
         if (roll < acc)
-            return PickStabInTier(tables[t], counts[t], type1, type2, category,
+            return PickStabInTier(tables[t], counts[t], type1, type2, category, maxPower,
                                   RandomSeededModulo(species * 11 + t * 17 + 0x3C29, n[t]));
     }
 
     return MOVE_NONE;
 }
 
-static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 fallbackCount)
+static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower)
 {
     u16 move, n = 0, seen = 0, pick;
 
     for (move = 1; move < MOVES_COUNT; move++)
     {
-        if (IsStabCandidate(move, type1, type2)
-            && (category == STAB_CAT_ANY || gBattleMoves[move].category == category))
+        if (IsStabCandidateAt(move, type1, type2, category, maxPower))
             n++;
     }
     if (n == 0)
@@ -12777,8 +12802,7 @@ static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 fal
     pick = RandomSeededModulo(species + 0x5AB3, n);
     for (move = 1; move < MOVES_COUNT; move++)
     {
-        if (IsStabCandidate(move, type1, type2)
-            && (category == STAB_CAT_ANY || gBattleMoves[move].category == category))
+        if (IsStabCandidateAt(move, type1, type2, category, maxPower))
         {
             if (seen == pick)
                 return move;
@@ -12789,32 +12813,57 @@ static u16 PickStabUniform(u16 species, u8 type1, u8 type2, u8 category, u16 fal
 }
 
 // Relaxes in order: matching category + tiers -> any category + tiers -> matching category, uniform
-// -> any category, uniform. Every step still guarantees same-type coverage.
-static u16 PickStabMove(u16 species, u8 type1, u8 type2, u8 category, u16 fallbackCount)
+// -> any category, uniform; then the whole ladder again with the level cap lifted. The cap is
+// relaxed last on purpose -- a level-appropriate move of the wrong category still beats handing a
+// level 5 Pokemon a 150-power move. Every step still guarantees same-type coverage.
+static u16 PickStabMove(u16 species, u8 type1, u8 type2, u8 category, u16 maxPower)
 {
     u16 chosen = MOVE_NONE;
+    u8 pass;
 
-    if (gSaveBlock1Ptr->tx_Random_MovesVGC != TX_VGC_OFF)
+    for (pass = 0; pass < 2; pass++)
     {
-        chosen = PickStabFromTiers(species, type1, type2, category);
+        u16 cap = (pass == 0) ? maxPower : STAB_POWER_ANY;
+
+        if (gSaveBlock1Ptr->tx_Random_MovesVGC != TX_VGC_OFF)
+        {
+            chosen = PickStabFromTiers(species, type1, type2, category, cap);
+            if (chosen == MOVE_NONE && category != STAB_CAT_ANY)
+                chosen = PickStabFromTiers(species, type1, type2, STAB_CAT_ANY, cap);
+            if (chosen != MOVE_NONE)
+                return chosen;
+        }
+
+        chosen = PickStabUniform(species, type1, type2, category, cap);
         if (chosen == MOVE_NONE && category != STAB_CAT_ANY)
-            chosen = PickStabFromTiers(species, type1, type2, STAB_CAT_ANY);
+            chosen = PickStabUniform(species, type1, type2, STAB_CAT_ANY, cap);
         if (chosen != MOVE_NONE)
             return chosen;
+
+        if (cap == STAB_POWER_ANY)
+            break;      // the cap was already off; a second pass would repeat the same search
     }
 
-    chosen = PickStabUniform(species, type1, type2, category, fallbackCount);
-    if (chosen == MOVE_NONE && category != STAB_CAT_ANY)
-        chosen = PickStabUniform(species, type1, type2, STAB_CAT_ANY, fallbackCount);
+    return MOVE_NONE;
+}
 
-    return chosen;
+static u16 CountStabCandidates(u8 type1, u8 type2, u16 maxPower)
+{
+    u16 move, n = 0;
+
+    for (move = 1; move < MOVES_COUNT; move++)
+    {
+        if (IsStabCandidateAt(move, type1, type2, STAB_CAT_ANY, maxPower))
+            n++;
+    }
+    return n;
 }
 
 void EnsureStabMove(struct Pokemon *mon)
 {
     u16 species, move, chosen = MOVE_NONE;
-    u16 candidateCount = 0, pick, seen = 0;
-    u8 type1, type2, searchType1, searchType2, i, slot;
+    u16 candidateCount = 0, maxPower;
+    u8 type1, type2, searchType1, searchType2, i, slot, level;
     u8 emptySlot = MAX_MON_MOVES, weakestSlot = MAX_MON_MOVES;
     u16 weakestPower = 0xFFFF;
 
@@ -12831,6 +12880,11 @@ void EnsureStabMove(struct Pokemon *mon)
     // type modes and the type randomizer.
     type1 = GetTypeBySpecies(species, 1);
     type2 = GetTypeBySpecies(species, 2);
+
+    // Hold the injected move to the same power bands the learnset pass uses, so a level 5
+    // catch cannot arrive knowing Eruption just because its guaranteed move was free of them.
+    level = GetMonData(mon, MON_DATA_LEVEL, NULL);
+    maxPower = GetStabPowerCapForLevel(level);
 
     for (i = 0; i < MAX_MON_MOVES; i++)
     {
@@ -12856,13 +12910,12 @@ void EnsureStabMove(struct Pokemon *mon)
         }
     }
 
-    // Scan for same-type damaging moves. Counted first, then re-scanned to pick, so no
-    // 367-entry buffer ends up on the stack.
-    for (move = 1; move < MOVES_COUNT; move++)
-    {
-        if (IsStabCandidate(move, type1, type2))
-            candidateCount++;
-    }
+    // Count same-type damaging moves. Counted first, then re-scanned to pick, so no 367-entry
+    // buffer ends up on the stack. The count drives the narrow-pool blend below, so it uses the
+    // level cap -- what matters there is how much variety is actually reachable at this level.
+    candidateCount = CountStabCandidates(type1, type2, maxPower);
+    if (candidateCount == 0)
+        candidateCount = CountStabCandidates(type1, type2, STAB_POWER_ANY);
 
     if (candidateCount == 0)
         return;     // nothing of this type exists; better to leave the moveset than write junk
@@ -12875,13 +12928,7 @@ void EnsureStabMove(struct Pokemon *mon)
     if (candidateCount < STAB_NARROW_POOL
         && RandomSeededModulo(species + 0x2C7D, 100) >= STAB_NARROW_OWN_PCT)
     {
-        u16 normalCount = 0;
-
-        for (move = 1; move < MOVES_COUNT; move++)
-        {
-            if (IsStabCandidate(move, TYPE_NORMAL, TYPE_NORMAL))
-                normalCount++;
-        }
+        u16 normalCount = CountStabCandidates(TYPE_NORMAL, TYPE_NORMAL, maxPower);
 
         if (normalCount > 0)    // keep own-type if Normal somehow has nothing
         {
@@ -12894,7 +12941,7 @@ void EnsureStabMove(struct Pokemon *mon)
     // Prefer the category the Pokemon can actually use, and -- when the weighted move pool is on --
     // prefer better moves within that. Both are preferences, not requirements: the pass below
     // relaxes category first, then tier, so a Pokemon always ends up with same-type coverage.
-    chosen = PickStabMove(species, searchType1, searchType2, GetPreferredMoveCategory(mon), candidateCount);
+    chosen = PickStabMove(species, searchType1, searchType2, GetPreferredMoveCategory(mon), maxPower);
 
     if (chosen == MOVE_NONE)
         return;
@@ -12913,8 +12960,9 @@ void EnsureStabMove(struct Pokemon *mon)
     SetMonData(mon, MON_DATA_PP1 + slot, &gBattleMoves[chosen].pp);
 
     #ifndef NDEBUG
-        MgbaPrintf(MGBA_LOG_DEBUG, "TX STAB GUARANTEE  : %d=%S slot=%d -> %d=%S (%d candidates, type %d)",
-                   species, gSpeciesNames[species], slot, chosen, gMoveNames[chosen], candidateCount, searchType1);
+        MgbaPrintf(MGBA_LOG_DEBUG, "TX STAB GUARANTEE  : %d=%S Lv%d slot=%d -> %d=%S (%d pow, %d candidates <= %d pow, type %d)",
+                   species, gSpeciesNames[species], level, slot, chosen, gMoveNames[chosen],
+                   gBattleMoves[chosen].power, candidateCount, maxPower, searchType1);
     #endif
 }
 
@@ -12982,10 +13030,6 @@ u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
 // re-roll chain is a pure function of the original move, the species and the learn level, so every
 // caller that maps the same entry lands on the same move -- which matters, because the move
 // relearner and the level-up-moves list must agree with what the Pokemon actually learns.
-#define LEARNSET_EARLY_LEVEL    15
-#define LEARNSET_MID_LEVEL      35
-#define LEARNSET_EARLY_MAX_POW  60
-#define LEARNSET_MID_MAX_POW   100
 #define LEARNSET_MAX_REROLLS    24
 
 static bool8 IsLearnsetMoveAllowed(u16 move, u16 species, u8 learnLevel, bool8 wantDamaging, bool8 wantStab)
