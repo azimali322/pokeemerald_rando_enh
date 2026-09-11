@@ -4,6 +4,186 @@ This is a decompilation of Pokémon Emerald, edited to be "Pokémon Modern Emera
 You can get more information about Modern Emerald at [Pokecommunity](https://www.pokecommunity.com/showthread.php?t=494005)
 
 
+---
+
+# 🎲 ENHANCED RANDOMIZER (this fork)
+
+> **This is a fork of [resetes12/pokeemerald](https://github.com/resetes12/pokeemerald) (Pokémon Modern
+> Emerald)** that extends the built-in randomizer. Everything below is **additional** to Modern Emerald;
+> the rest of this README describes the base hack and still applies.
+
+Modern Emerald already ships a capable randomizer. This fork targets the places where a randomized run stops
+being fun: a level-4 Salamence on Route 102, a Pokémon whose four moves are all status, an opponent whose
+typing you have to memorise, and "balanced" mode putting Sunkern and Lapras in the same swap pool.
+
+**Status: 15 of 17 planned phases implemented.** Everything is behind a toggle and defaults to off — with all
+options off, the game plays exactly like stock Modern Emerald.
+
+## What's been added
+
+### Smarter species selection
+
+| Feature | What it does |
+|---|---|
+| **Level-scaled wilds** | A randomized wild Pokémon is walked back down its evolution chain until it suits the level it appeared at. Route 102 grass gives Bagon, not Salamence — and because every rod has its own level table, a Super Rod on the same route can give Shelgon. Applies to grass, surfing, all four rods, Feebas and mass outbreaks. |
+| **"Improved" balancing** | A third mode for the existing `BALANCING` option that matches by **base stat total** (±10.24%) instead of evolution stage. Stage is a poor proxy for power — the stage-0 bucket runs from Sunkern (BST 180) to Lapras (BST 535), so the option meant to keep things fair spanned a 3× gap. |
+| **Random legendaries** | A legendary encounter yields a *different legendary* rather than an ordinary Pokémon, as a bijection so no two legendaries collide. Covers battle, gift, wild, roaming and trainer-owned legendaries. |
+
+### Smarter move selection
+
+| Feature | What it does |
+|---|---|
+| **Weighted move pool** | All 367 randomizable moves ranked against a community tier list and weighted, so good moves come up more often without eliminating variety. |
+| **Guarantee STAB** | Every randomized Pokémon gets at least one damaging move matching its own type. Dual-types draw from both; the few mono-types with very shallow movepools (Fairy has 2 damaging moves) blend in Normal moves so they don't all get the same one. |
+| **Smart learnsets** | Fixes three problems with per-entry randomization: Hyper Beam at level 5 (power now scales with the learn level), movesets with no attacks (a damaging slot stays damaging), and duplicate rolls silently wasting a learnset slot. |
+| **Random TM moves** | Reassigns what each TM teaches, drawn from the weighted pool, no duplicates. **HMs are never touched** — randomizing Surf or Strength would soft-lock a run. |
+| **Weighted TM drops** | Which TM appears in an item ball is weighted by the tier of the move it teaches. |
+
+### Smarter abilities and items
+
+| Feature | What it does |
+|---|---|
+| **Weighted ability pool** | Abilities drawn from community tiers rather than uniformly. Replaces the stock randomizer's approach of borrowing a random *species'* ability. |
+| **Weighted item pool** | The 188-item pool ranked and weighted. Mail and battle-only items are removed from the pool entirely. |
+
+### Quality of life
+
+| Feature | What it does |
+|---|---|
+| **Opponent type display** | The opposing Pokémon's type icon(s) shown during move selection, so you can read a matchup without leaving the battle. Follows your target in double battles. |
+| **Cheap shop** | Ultra Balls at ₽1, plus every evolution stone and trade-evolution held item stocked at Lilycove Dept. Store 3F for ₽1. The Self-trader one floor below drops from ₽10,000 to ₽1, which makes every trade evolution reachable without a link cable. |
+| **Level Cap Candy** | A key item that raises a Pokémon to the current level cap, **stopping at each level-up move and each evolution** so you keep every choice. Only given when a level cap is set. |
+| **Reroll cheat** | In the stat editor, reroll a Pokémon's nature and ability slot. |
+
+## Still in progress
+
+| Item | Notes |
+|---|---|
+| **Level Cap Candy in the PC** | Party-menu use works; box use is deferred. Box Pokémon have no level or current-HP field, so the round-trip needs care. |
+| **Per-type STAB tiering** | Guarantee STAB currently picks uniformly from the matching-type moves. Tiering those would bias toward better options. |
+
+---
+
+## How to turn it on
+
+All randomizer settings live in the **New Game options menu**, chosen at the start of a run and stored in
+the save. **They cannot be changed mid-playthrough.**
+
+**`RANDOMIZER` is the master switch — nothing below works without it.**
+
+Most new options are *sub-options*: they grey out until the feature they modify is on, and sit directly
+beneath it in the menu.
+
+### Randomizer page
+
+| Setting | Values | Requires |
+|---|---|---|
+| `BALANCING` | Off / Balanced / **Improved** | a species option on |
+| `LEVEL-SCALED WILDS` | Off / On | **Wild Pkmn** |
+| `RANDOM LEGENDARIES` | Off / On | — |
+| `VGC MOVE POOL` | Off / Weighted / Strict | **Moves** |
+| `GUARANTEE STAB` | Off / On | **Moves** |
+| `SMART LEARNSETS` | Off / On | **Moves** |
+| `VGC ABILITY POOL` | Off / Weighted / Strict | **Abilities** |
+| `VGC ITEM POOL` | Off / Weighted / Strict | **Items** |
+| `VGC TM POOL` | Off / Weighted / Strict | **Items** |
+| `RANDOM TM MOVES` | Off / On | — |
+
+### Features page
+
+| Setting | Values |
+|---|---|
+| `CHEAP SHOP` | Off / On |
+| `REROLL CHEAT` | Off / On |
+
+### Three features live elsewhere
+
+| Feature | Enabled by |
+|---|---|
+| **Opponent type display** | The existing battle-hints option (`optionTypeEffective`) in the Options menu — the same one that controls effectiveness and STAB indicators |
+| **Level Cap Candy** | Setting `LEVEL CAP` to Normal or Hard on the Difficulty page. The Oldale cheat lady only hands the item over if a cap is set |
+| **Cheap trade evolutions** | `CHEAP SHOP`. The Self-trader itself is always available |
+
+---
+
+## How the settings work
+
+### Weighted vs Strict
+
+The four **VGC pool** options are three-state:
+
+- **Off** — every entry equally likely, the stock behaviour
+- **Weighted** — good entries come up more often, but *anything* can still appear. This is the intended
+  setting for a normal run
+- **Strict** — draws only from the top tiers. Expect heavy repetition; a six-Pokémon party will duplicate
+
+### How the weighting actually works
+
+Each pool is split into tiers, and each tier gets a share of the roll. The number that matters is not the
+tier's weight but the **weight divided by how many entries are in it** — a tier holding 3 moves and a tier
+holding 157 behave very differently at the same weight.
+
+The tiers are sized so that per-entry odds always *fall* going down. Ability weights (40/30/22/6/2) differ
+from move weights (4/24/38/27/6/1) for exactly this reason: the pools are shaped differently, and copying
+one onto the other would put a single move on half the Pokémon in the game.
+
+Full tables, tier assignments and measured probabilities are in
+[`docs/RANDOMIZER_ENHANCEMENTS_PLAN.md`](docs/RANDOMIZER_ENHANCEMENTS_PLAN.md).
+
+### Everything is seeded
+
+Randomization is derived from your **trainer ID**, not from a live RNG. The same save always produces the
+same results: the same route gives the same species, the same Pokémon gets the same ability every time you
+check. Different saves randomize differently.
+
+This is deliberate — it keeps a run coherent, and it means reloading a save state repeats a roll exactly.
+
+### Tuned for nuzlocke play
+
+Two defaults assume a nuzlocke run, since that's what this fork was built for:
+
+- **Self-KO moves are pushed to the bottom tier** — Self-Destruct, Explosion, Memento, Perish Song and
+  Curse. In a nuzlocke a self-KO is a permanently lost Pokémon, not a bad turn. Recoil moves are demoted one
+  tier for the same reason.
+- **The item pool assumes you don't use consumables** — healing, battle items and vitamins sit at the
+  bottom; battle hold items sit at the top.
+
+Both are tier-table edits if you'd rather they weren't.
+
+---
+
+## Building this fork
+
+```bash
+make MODERN=1 -j$(sysctl -n hw.ncpu)
+```
+
+**`MODERN=1` is required** — this fork is built with devkitARM rather than agbcc. The output is
+`pokeemerald_modern.gba`, which will not match `rom.sha1`; that hash is for a byte-matching vanilla build
+and does not apply.
+
+See [INSTALL.md](INSTALL.md) for toolchain setup, and
+[`docs/SETTINGS_AND_TESTING_SETUP.md`](docs/SETTINGS_AND_TESTING_SETUP.md) for a full option reference and
+testing guide.
+
+> ⚠️ **The save format changed.** Saves from stock Modern Emerald are not compatible — start a new game.
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [`docs/SETTINGS_AND_TESTING_SETUP.md`](docs/SETTINGS_AND_TESTING_SETUP.md) | Every option, a recommended configuration, and how to set up for testing |
+| [`docs/RANDOMIZER_ENHANCEMENTS_PLAN.md`](docs/RANDOMIZER_ENHANCEMENTS_PLAN.md) | Design rationale, tier tables and measured probabilities |
+| [`docs/RANDOMIZER_ENHANCEMENTS_TESTING.md`](docs/RANDOMIZER_ENHANCEMENTS_TESTING.md) | Per-phase test checklists |
+| [`docs/tiering/`](docs/tiering/) | The editable tier worksheets each pool is generated from |
+
+> **Note on testing:** the randomization logic has been verified offline — algorithms reproduced against the
+> ROM's own data and measured over tens of thousands of rolls. **It has not yet been play-tested in an
+> emulator.** Expect rough edges in menus and prompts, particularly around the Level Cap Candy.
+
+---
+
+
 # 🦀MODERN EMERALD EXPANDS!
 
 Official releases:
