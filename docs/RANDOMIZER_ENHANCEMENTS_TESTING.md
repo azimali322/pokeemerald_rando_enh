@@ -807,9 +807,24 @@ confirms it *looks* right.
 
 ---
 
-## Phase 10 — Level Cap Rare Candy *(optional)*
+## Phase 10 — Level Cap Rare Candy
 
-**Status:** Not implemented
+**Status:** ✅ Implemented (party menu) — **needs in-game verification**
+
+`ITEM_LEVEL_CAP_CANDY` (slot 228, was the `ITEM_0E4` dummy), a **key item** that is never consumed.
+Given by the Oldale cheat lady **only when `tx_Challenges_LevelCap` is set**, via a new `IsLevelCapActive`
+special.
+
+Implemented as the normal Rare Candy applied repeatedly rather than one jump, which is what preserves the
+per-level prompts. Three re-entry points carry the loop: after a level with nothing to learn, after the
+move-learning chain, and after an evolution.
+
+⚠️ **This is the least-verified phase in the project.** The loop threads through a multi-frame async chain
+with several exit points, and none of it has been run. Build is clean and the logic is reasoned, but
+**T10.25 (soft-reset mid-climb) and T10.10-T10.16 (the prompts) genuinely need the emulator.**
+
+**PC storage use (T10.26-T10.34) is NOT implemented** — deliberately deferred, as the plan advised shipping
+it separately.
 
 ### Gating (your requirement)
 
@@ -881,9 +896,20 @@ Back up your `.sav` before this section.
 
 ---
 
-## Phase 11 — Ability / nature reroll cheat *(optional)*
+## Phase 11 — Ability / nature reroll cheat
 
-**Status:** Not implemented
+**Status:** ✅ Implemented — **needs in-game verification**
+
+In the stat editor, gated on *Reroll Cheat*: **SELECT** rerolls nature, **START** rerolls the ability slot.
+L/R/A/B/D-pad were all already bound.
+
+Nature goes through `MON_DATA_HIDDEN_NATURE` (the Mint field), **not** the personality value — personality
+also decides gender, shininess, Unown letter, Wurmple's branch and Spinda's spots.
+
+Two refusals, both playing `SE_FAILURE` rather than silently doing nothing:
+- species whose `abilities[1]` is `ABILITY_NONE` (writing it would blank the summary)
+- **either ability randomizer being on** — `GetAbilityBySpecies` ignores the stored `abilityNum` in that
+  case, so the button would appear broken. This was `T11.10`.
 
 - [ ] **T11.1 — Gated.** `tx_Features_RerollCheat` Off → no reroll UI.
 - [ ] **T11.2 — Visible when on** and discoverable.

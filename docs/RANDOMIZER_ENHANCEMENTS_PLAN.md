@@ -1249,7 +1249,7 @@ today. The new work is only the **opponent's type box**.
 
 ---
 
-## Phase 10 — Level Cap Rare Candy (Req 4) — **OPTIONAL**
+## Phase 10 — Level Cap Rare Candy (Req 4) — ✅ **IMPLEMENTED**
 
 Deprioritized at your request. Build after the core randomizer work lands.
 
@@ -1310,7 +1310,7 @@ both until withdrawn. Ship this as its own commit after the party-menu version w
 
 ---
 
-## Phase 11 — Ability / nature reroll cheat (Req 8) — **OPTIONAL**
+## Phase 11 — Ability / nature reroll cheat (Req 8) — ✅ **IMPLEMENTED**
 
 ### Implementation
 
@@ -1344,7 +1344,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 12 of 17 phases implemented** (all building clean; merged to `master` via PRs #1-#4).
+**Progress: 14 of 17 phases implemented** (all building clean; merged to `master` via PRs #1-#4).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
@@ -1362,8 +1362,8 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | ✅ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
 | ✅ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c`, `pokemon.c` |
 | ✅ | 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
-| ☐ | 10 | Level Cap Candy *(optional)* | **L** | **High** | `items.h`, `party_menu.c`, `pokemon_storage_system.c` |
-| ☐ | 11 | Reroll cheat *(optional)* | M | Med | `ui_stat_editor.c` |
+| ✅ | 10 | Level Cap Candy | **L** | **High** | `items.h`, `party_menu.c` — *PC use not built* |
+| ✅ | 11 | Reroll cheat | M | Med | `ui_stat_editor.c` |
 
 **Blocked on your input: only Phase 8**, which needs item tiers in
 [`tiering/ITEMS.md`](tiering/ITEMS.md). Everything else outstanding is optional (Phases 10 and 11) or an
