@@ -12675,7 +12675,7 @@ static u8 GetPreferredMoveCategory(struct Pokemon *mon)
 // maxPower caps how strong the injected move may be, so a level 5 Pokemon is not handed Eruption.
 // Shared with the learnset pass below so both use one set of bands; STAB_POWER_ANY = no cap.
 #define LEARNSET_EARLY_LEVEL    15
-#define LEARNSET_MID_LEVEL      35
+#define LEARNSET_MID_LEVEL      30
 #define LEARNSET_EARLY_MAX_POW  60
 #define LEARNSET_MID_MAX_POW   100
 #define STAB_POWER_ANY      0xFFFF
@@ -13092,7 +13092,7 @@ static bool8 IsLearnsetMoveAllowed(u16 move, u16 species, u8 learnLevel, bool8 w
 // forced to same-type, giving every Pokemon one full-power STAB move it grows into.
 //
 // Returns the learn level of the chosen entry, or 0 when the species has no entry that late
-// (62 of 461 species end their learnset at or below LEARNSET_MID_LEVEL; nothing to promote).
+// (59 of 461 species end their learnset at or below LEARNSET_MID_LEVEL; nothing to promote).
 //
 // Pure function of the species, so every caller -- the move relearner, the level-up list, and the
 // actual level-up -- agrees on which entry is the promoted one.

@@ -1089,8 +1089,8 @@ Applied in order:
    | Learn level | Pool |
    |---|---|
    | 1-15 | Tier 2 + tail, and cap `power <= 60` |
-   | 16-35 | Tier 2 weighted, tier 1 allowed |
-   | 36+ | Tier 1 weighted |
+   | 16-30 | Tier 2 weighted, tier 1 allowed |
+   | 31+ | Tier 1 weighted |
 
    This is the same idea as Phase 3, applied to moves: what you get should suit when you get it.
 
