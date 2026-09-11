@@ -9,7 +9,8 @@ Companions: [`RANDOMIZER_ENHANCEMENTS_PLAN.md`](RANDOMIZER_ENHANCEMENTS_PLAN.md)
 
 ## 1. Inventory — what's done
 
-**15 of 17 phases implemented**, all merged to `master` via PRs #1-#8.
+**17 of 17 phases implemented.** Phases 0-11 are merged to `master` via PRs #1-#8; the refinements in
+rows 12-13 are on PR **#13** and are *not on `master` until that is merged*.
 
 | Phase | Feature | Status | PR |
 |---|---|:-:|---|
@@ -29,6 +30,8 @@ Companions: [`RANDOMIZER_ENHANCEMENTS_PLAN.md`](RANDOMIZER_ENHANCEMENTS_PLAN.md)
 | 9 | Opponent type display in battle | ✅ | #2 |
 | 10 | Level Cap Candy (party menu) | ✅ | #7 |
 | 11 | Nature / ability reroll cheat | ✅ | #7 |
+| 12 | Per-type STAB tiering + physical/special split | ✅ | #12 |
+| 13 | STAB/learnset refinements — level-capped STAB injection, guaranteed uncapped same-type move above Lv35, 40% same-type bias on ordinary slots, own-type pool dealt without replacement | ✅ | **#13 (open)** |
 
 ### What's left
 
@@ -37,7 +40,7 @@ Both optional — nothing is blocked:
 | Item | Size | Why it was deferred |
 |---|---|---|
 | **Phase 10 — PC storage use** | M | Box Pokémon are `struct BoxPokemon` with no level or current-HP field; a bad round-trip corrupts them. Worth its own change. |
-| ~~Per-type STAB tiering~~ | — | **Done.** Reuses the Phase 5 tiers — no separate ranking was needed, since all 8 types with 10+ STAB moves already spread across 3-4 tiers. Added a physical/special split at the same time. |
+| ~~Per-type STAB tiering~~ | — | **Done** (#12). Reuses the Phase 5 tiers — no separate ranking was needed, since all 8 types with 10+ STAB moves already spread across 3-4 tiers. Added a physical/special split at the same time. |
 
 ### Ideas considered and not built
 
@@ -45,6 +48,16 @@ Both optional — nothing is blocked:
 - **Trainer moveset de-duplication** — 47% of explicit-moveset trainer entries currently share movesets
   (see Appendix B). One-line fix, but it changes every trainer, so it wants a deliberate decision.
 - **Tertu's dynamic species tables** — ruled out; EWRAM is at 99.6%. See Appendix G.
+- **Reserving a pool move for the guaranteed late slot** — evaluated and **declined**. For a 2-move type
+  (Fairy) the earlier slots can use the pool up before the promoted post-Lv35 slot is reached, so that
+  slot falls through to the general pool 0.9% of the time overall. Letting guaranteed slots draw first
+  would fix it but reshuffles 69.5% of all learnsets; a narrower "don't take the last move" rule fixes it
+  for 0.9%. Neither was taken: the mon still learns its same-type moves, just earlier, which is the
+  intended behaviour for an exhausted pool.
+- **General-pool slots repeating each other** — 7.3% of non-type-leaning slots duplicate another slot in
+  the same learnset, because the re-roll chain feeds its own result back and different slots can converge.
+  Pre-existing. Mon creation retries on duplicates; a level-up does not, so that level-up silently does
+  nothing. Not investigated further.
 
 ---
 

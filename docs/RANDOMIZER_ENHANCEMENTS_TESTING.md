@@ -450,6 +450,13 @@ summary screens by hand.
 paths), static/gift (`ScriptGiveMon`), scripted wild (`CreateScriptedWildMon`), and both trainer party
 builders. Gated on *Guarantee STAB* **and** *Random Moves*.
 
+**Level cap added after the fact.** The first implementation ignored the mon's level entirely, so a Lv5
+special Fire-type had an **89.7%** chance of an injected move over 60 power (Eruption at 27.9%). That
+contradicted Phase 8b, which caps levels 1–15 at 60 power and 16–35 at 100. `EnsureStabMove` now reads
+`MON_DATA_LEVEL` and shares Phase 8b's bands via `GetStabPowerCapForLevel()`. Swept offline across
+5,700 type × category × level combinations: **0 cap violations**, one legitimate relaxation (Fairy, see
+T6.17).
+
 **The trainer-species trap was avoided by design.** The plan warned that `src/battle_main.c` seeds moves on
 `partyData[i].species` (pre-randomization). It's worse than that — the local `species` is only assigned
 *inside* the Random-Trainer branch, so it's stale otherwise. `EnsureStabMove` therefore reads the species
@@ -517,6 +524,19 @@ preserved where possible, and the function refuses outright rather than overwrit
       the *variant* typing — confirms `GetTypeBySpecies` was used, not `gSpeciesInfo[].types`.
 - [ ] **T6.15 — Type randomizer.** With `tx_Random_Type` On, STAB matches the *randomized* type.
 - [ ] **T6.16 — Determinism.** Same mon → same injected move across save/reload.
+- [ ] **T6.17 — Level-appropriate power.** A Lv2–15 catch never receives a >60-power injected move, and a
+      Lv16–35 one never receives >100. Watch for Eruption / Blast Burn / Hydro Cannon on early catches —
+      those were the worst offenders before the cap existed. The **one** legitimate exception is a
+      mono-**Fairy** mon below Lv16 (`tx_Mode_Fairy_Types` on): Fairy's weakest damaging move in this ROM is
+      Play Rough at 90, so the cap is lifted rather than leaving the mon without STAB.
+- [ ] **T6.18 — Cap relaxes before failing, not before category.** A mon whose type has no move of its
+      preferred category under the cap gets a level-appropriate move of the *other* category, not an
+      over-powered one of the right category. Order is: category first, power cap last.
+- [ ] **T6.19 — Existing moves are untouched.** The guarantee is one *added* move, not a whole moveset. A
+      low-level mon's other one or two moves may still be off-type or the wrong category.
+      **Decided, not a gap:** a special attacker that rolls three physical moves is a bad randomizer roll and
+      stays one. The STAB pass guarantees coverage, it does not launder the rest of the moveset. Do not
+      "fix" this. Confirm the two features coexist (T8b.12).
 
 ---
 
@@ -666,12 +686,30 @@ What it does, given the slot it is filling:
 | Level-appropriate power | ≤ 60 at levels 1-15, ≤ 100 at 16-35, unbounded at 36+ |
 | Shape preserved | a damaging slot stays damaging, a status slot stays status |
 | First move | always a same-type **attack** — previously the starter only |
+| One late move | one entry above level 35 is also a same-type attack, drawn with **no power cap** |
+| Type bias | every *other* damaging slot leans same-type `LEARNSET_STAB_BIAS_PCT` (40%) of the time |
+| Dealt, not drawn | all type-leaning slots share one deal of the own-type pool — no slot repeats another's move, and once the pool is spent the rest of the learnset is plain randomized |
 | Duplicates | re-rolled, so a collision no longer silently wastes the slot |
 
-**Verified offline** by reproducing the RNG maths over 4,000 rolls:
+**The two guaranteed slots did not actually deliver.** Both were implemented as rejection sampling:
+re-roll up to `LEARNSET_MAX_REROLLS` (24) times and accept the first roll that happens to match. A
+same-type move under the level's power cap is a thin slice of 367, so 24 draws usually missed it. The
+"guaranteed" first move was same-type only **38.5%** of the time overall — and **5.2%** for Psychic,
+**5.4%** for Electric. Both guaranteed slots now call `PickStabMove()`, which enumerates the candidate
+pool instead of re-rolling into it, so the slot always fills. Non-guaranteed slots still use rejection
+sampling, which is fine — they express preferences, not guarantees.
+
+**Verified offline** by reproducing the RNG maths:
 
 | Check | Result |
 |---|---|
+| First slot is a same-type attack | 38.5% → **100%** (20,460 cases) |
+| A same-type attack exists above level 35 | 25.0% → **100%** (18,660 cases) |
+| Ordinary damaging slot is same-type | 10.5% → **46.3%** (65,218 cases) |
+| Repeated same-type moves within one learnset | 20.1% → **2.8%** (45,811 dealt moves) |
+| Duplicates originating in the deal itself | **0** |
+| Of the 4 moves known at Lv50, mean matching type | 0.25 → **1.25** |
+| Pokemon with *zero* type-matching moves at Lv50 | 77.7% → **17.0%** |
 | All five sites agree for the same (move, species, level) | ✅ |
 | Level-cap violations | **0** |
 | Max power at levels 1-15 / 16-35 / 36+ | 60 / 100 / 250 |
@@ -699,7 +737,44 @@ These test the design in the plan.
       moves the Pokémon actually learns on level-up, and against the summary's level-up move list. **All three
       must match.** They are computed independently and only agree because the roll is deterministic — a
       mismatch means one site is passing a different learn level.
-- [ ] **T8b.5 — Early STAB guaranteed.** The first entry matches one of the species' types.
+- [ ] **T8b.5 — Early STAB guaranteed.** The first entry matches one of the species' types. This used
+      to be a claim rather than a guarantee — see the note below — so check it on a narrow type
+      (Psychic, Electric, Dragon) rather than on a Normal-type where it almost always held anyway.
+- [ ] **T8b.5a — Late STAB guaranteed.** One entry learned above level 35 is a same-type attack with
+      **no power cap**. Level a mon past 35 and confirm it learns a full-power same-type move. Which
+      entry gets promoted is fixed per species, so it is the same slot on every playthrough with the
+      same trainer ID.
+- [ ] **T8b.5b — Promoted slot keeps its shape.** The promoted entry is chosen from the species' late
+      *damaging* entries where any exist (391 of 399 species), so a status slot is normally not eaten.
+      For the 8 species whose late entries are all status, one is converted — that is intended.
+- [ ] **T8b.5c — Species with no late entry.** 62 of 461 species end their learnset at or below level 35.
+      They get no late guarantee and must behave exactly as before. Confirm no crash and no empty slot.
+- [ ] **T8b.5h — Narrow types exhaust instead of repeating.** Fairy has **2** damaging moves in this
+      ROM, Dragon 5, Ghost and Steel 6. A mono-Fairy (Sylveon is the only one) must learn Moonblast
+      and Play Rough **once each**, and every later type slot falls through to the general tiered
+      pool. Before dealing, a Sylveon could roll Moonblast four times in one learnset.
+- [ ] **T8b.5i — Dual types continue on the other type.** The pool is the union, so a Fairy/Flying mon
+      keeps drawing Flying moves after the two Fairy ones are spent. No separate fallback to code.
+- [ ] **T8b.5j — Deal is consistent across all five call sites.** The deal is a forward walk keyed on
+      species, so truncating the learnset at a mon's current level cannot change what earlier slots
+      got. Check the move relearner, the summary-screen level-up list, and an actual level-up all
+      show the same move for the same entry.
+- [ ] **T8b.5e — Type bias, not type lock.** Ordinary damaging slots match the species' type about
+      **46%** of the time, up from 10.5%. Off-type attacks must still be common — if a mon's damaging
+      moves are *all* same-type, the bias is mis-set. Check several mons, not one: at 40% a six-slot
+      learnset rolls zero same-type hits about 8% of the time, which is variance, not a bug.
+      (Kadabra on trainer ID `0x7F3C` is a real example of that unlucky case.)
+- [ ] **T8b.5f — Biased picks are tier-weighted.** A same-type move handed out by the bias should skew
+      good: tier 2 runs ~17% against ~6% for an untiered draw from the same pool, tier 5 ~8% against
+      ~18%. Watch for a mon whose same-type moves are all junk — that would mean the tier tables are
+      being bypassed.
+- [ ] **T8b.5g — Category stays mixed.** The bias deliberately does *not* force the mon's attacking
+      stat, only the two guaranteed slots do. A special attacker should still pick up the odd physical
+      same-type move.
+- [ ] **T8b.5d — Not a duplicate of the catch-time move.** The Phase 6 injected move and the promoted
+      learnset move are drawn with different seed salts. They can still coincide for a narrow type
+      (~37% when the species has only 3-5 eligible moves, ~9% at 11+); when they do, the level-up is
+      simply a no-op and the mon keeps the move. Confirm this does not read as a lost level-up.
 - [ ] **T8b.6 — Starter unaffected in a bad way.** The existing starter damaging-move guard
       (`src/pokemon.c:6176`) still works, or is cleanly superseded. No double-application, no regression.
 - [ ] **T8b.7 — Learnsets are not corrupted.** `gLevelUpLearnsets` is `const` ROM data. Confirm the post-pass

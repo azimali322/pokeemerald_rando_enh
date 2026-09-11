@@ -1827,6 +1827,49 @@ appear, just rarely.
 
 ---
 
+## Appendix D2 — Tuning the move tier weights during play-testing
+
+If good moves turn up too often in a real playthrough, this is the knob. One place, five numbers:
+**`src/pokemon.c:2942`**.
+
+```c
+#define MOVE_W_T1  4    // tier 1 is picked 4% of the time
+#define MOVE_W_T2 24
+#define MOVE_W_T3 38
+#define MOVE_W_T4 27
+#define MOVE_W_T5  6
+                        // tier 6 is the remainder: 100 - the five above = 1
+```
+
+These feed every move-randomization path — wild, trainer, learnsets, the guaranteed STAB slots, the
+type bias, and TM moves — so one edit moves all of them together. Tier 6 is not a define; it is
+whatever is left over, so the five must total **99 or less** or tier 6 goes negative.
+
+**Read them per move, never per tier.** A tier's weight divided by how many moves are in it is the
+number that decides how often any *particular* move shows up, and that is what a player notices.
+
+| tier | weight | moves | per move | example |
+|---|---|---|---|---|
+| 1 | 4% | 3 | **1.333%** | Spore |
+| 2 | 24% | 26 | **0.923%** | Thunderbolt |
+| 3 | 38% | 93 | **0.409%** | Flamethrower |
+| 4 | 27% | 158 | **0.171%** | Ember |
+| 5 | 6% | 72 | **0.083%** | Splash |
+| 6 | 1% | 15 | **0.067%** | (excluded) |
+
+**The per-move column must never increase going down.** Tier 3 carries the largest weight (38%) yet
+every move in it is *less* likely than one in tier 2, because it holds 93 moves against 26. Raising a
+weight without checking its tier size is how tier D once ended up more likely per ability than tier C.
+After any edit, recompute `weight / count` down the column and confirm it still falls.
+
+**To see good moves less often**, move weight from tiers 1-2 into tier 4. Dropping T2 from 24 to 16 and
+adding those 8 to T4 takes Thunderbolt-class moves from 0.923% to 0.615% per move — a third less often —
+while barely moving tier 4, which is large enough to absorb it. Avoid inflating tier 5: it is the junk
+tier, and pushing weight there makes movesets bad rather than merely less strong.
+
+**Rebuild with `make MODERN=1` and start a new game or re-randomize** — existing mons keep the moves
+they were already given.
+
 ## Appendix E — TM tiers
 
 > **Status: pending re-tiering**, same as B and C. Worksheet: [`tiering/TM_MOVES.md`](tiering/TM_MOVES.md) —
