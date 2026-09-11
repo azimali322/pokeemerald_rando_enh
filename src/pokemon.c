@@ -13052,6 +13052,10 @@ u16 GetSpeciesRandomSeeded(u16 species, u8 type, u16 additionalOffset)
 // relearner and the level-up-moves list must agree with what the Pokemon actually learns.
 #define LEARNSET_MAX_REROLLS    24
 
+// How often an ordinary damaging learnset slot leans toward the species' own type. Not a
+// guarantee -- the remainder still rolls the full pool, so movesets stay genuinely randomized.
+#define LEARNSET_STAB_BIAS_PCT  40
+
 static bool8 IsLearnsetMoveAllowed(u16 move, u16 species, u8 learnLevel, bool8 wantDamaging, bool8 wantStab)
 {
     u16 power;
@@ -13193,6 +13197,28 @@ u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wa
     wantDamaging = (gBattleMoves[originalMove].power > 1);
     if (wantStab)
         wantDamaging = TRUE;    // a guaranteed same-type move is always an attack
+
+    // An ordinary damaging slot leans toward the species' own type without committing to it.
+    // Left to chance, a mon's own type is roughly 1 in 17 of the pool, so only 10.5% of its
+    // randomized attacks matched it and movesets read as type-less. The biased draw goes through
+    // the same tier tables, so it is a *good* move of the right type, not merely one of the right
+    // type. Category is deliberately left open here -- the two guaranteed slots already match the
+    // mon's attacking stat, and forcing it everywhere would flatten the moveset.
+    //
+    // The bias roll and the move pick use different linear combinations of the same inputs. A
+    // shared value with a constant offset would lock each slot to one move; that mistake cost 66
+    // of 367 moves their reachability once already.
+    if (!wantStab && wantDamaging
+        && RandomSeededModulo(originalMove * 17 + species * 3 + learnLevel * 11 + 0x58C7, 100)
+               < LEARNSET_STAB_BIAS_PCT)
+    {
+        u16 biased = PickStabMove(species, GetTypeBySpecies(species, 1), GetTypeBySpecies(species, 2),
+                                  STAB_CAT_ANY, GetStabPowerCapForLevel(learnLevel),
+                                  originalMove * 31 + learnLevel * 7 + 0x6A13);
+
+        if (biased != MOVE_NONE)
+            return biased;
+    }
 
     for (i = 0; i < LEARNSET_MAX_REROLLS; i++)
     {

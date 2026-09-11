@@ -687,6 +687,7 @@ What it does, given the slot it is filling:
 | Shape preserved | a damaging slot stays damaging, a status slot stays status |
 | First move | always a same-type **attack** — previously the starter only |
 | One late move | one entry above level 35 is also a same-type attack, drawn with **no power cap** |
+| Type bias | every *other* damaging slot leans same-type `LEARNSET_STAB_BIAS_PCT` (40%) of the time |
 | Duplicates | re-rolled, so a collision no longer silently wastes the slot |
 
 **The two guaranteed slots did not actually deliver.** Both were implemented as rejection sampling:
@@ -703,6 +704,9 @@ sampling, which is fine — they express preferences, not guarantees.
 |---|---|
 | First slot is a same-type attack | 38.5% → **100%** (20,460 cases) |
 | A same-type attack exists above level 35 | 25.0% → **100%** (18,660 cases) |
+| Ordinary damaging slot is same-type | 10.5% → **46.3%** (65,218 cases) |
+| Of the 4 moves known at Lv50, mean matching type | 0.25 → **1.25** |
+| Pokemon with *zero* type-matching moves at Lv50 | 77.7% → **17.0%** |
 | All five sites agree for the same (move, species, level) | ✅ |
 | Level-cap violations | **0** |
 | Max power at levels 1-15 / 16-35 / 36+ | 60 / 100 / 250 |
@@ -742,6 +746,18 @@ These test the design in the plan.
       For the 8 species whose late entries are all status, one is converted — that is intended.
 - [ ] **T8b.5c — Species with no late entry.** 62 of 461 species end their learnset at or below level 35.
       They get no late guarantee and must behave exactly as before. Confirm no crash and no empty slot.
+- [ ] **T8b.5e — Type bias, not type lock.** Ordinary damaging slots match the species' type about
+      **46%** of the time, up from 10.5%. Off-type attacks must still be common — if a mon's damaging
+      moves are *all* same-type, the bias is mis-set. Check several mons, not one: at 40% a six-slot
+      learnset rolls zero same-type hits about 8% of the time, which is variance, not a bug.
+      (Kadabra on trainer ID `0x7F3C` is a real example of that unlucky case.)
+- [ ] **T8b.5f — Biased picks are tier-weighted.** A same-type move handed out by the bias should skew
+      good: tier 2 runs ~17% against ~6% for an untiered draw from the same pool, tier 5 ~8% against
+      ~18%. Watch for a mon whose same-type moves are all junk — that would mean the tier tables are
+      being bypassed.
+- [ ] **T8b.5g — Category stays mixed.** The bias deliberately does *not* force the mon's attacking
+      stat, only the two guaranteed slots do. A special attacker should still pick up the odd physical
+      same-type move.
 - [ ] **T8b.5d — Not a duplicate of the catch-time move.** The Phase 6 injected move and the promoted
       learnset move are drawn with different seed salts. They can still coincide for a narrow type
       (~37% when the species has only 3-5 eligible moves, ~9% at 11+); when they do, the level-up is
