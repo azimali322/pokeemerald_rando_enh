@@ -2,6 +2,11 @@
 
 Companion to [`RANDOMIZER_ENHANCEMENTS_PLAN.md`](RANDOMIZER_ENHANCEMENTS_PLAN.md).
 
+**Start here instead if you are setting up to test:**
+[`SETTINGS_AND_TESTING_SETUP.md`](SETTINGS_AND_TESTING_SETUP.md) — what every toggle does and what it
+requires, a recommended full-feature configuration, and a suggested testing order. This file is the
+detailed per-phase checklist.
+
 **Revision 5** — dead items are now **both** permanently bottom-tiered and hard-filtered under the challenge;
 T8.15-T8.23 cover both layers. *Revision 4* added the dead-item tests and widened the TM tests to the
 359-move candidate pool. *Revision 3* added Phase 8b (learnset overhaul) and Phase 8c (TM weighting), ₽1 Ultra Balls everywhere,
@@ -132,7 +137,10 @@ Eleven new options exist, display, persist, and default correctly — with no be
 
 ## Phase 2 — Cheap Ultra Balls (every mart)
 
-**Status:** Not implemented
+**Status:** ✅ Implemented (PR #1) — **needs in-game verification**
+
+`ItemId_GetPrice()` returns ₽1 for Ultra Ball when *Cheap Shop* is on. Ultra Balls added to the
+0-badge shop inventory, so they are stocked from the first mart onward.
 
 - [ ] **T2.1 — Off (control).** Ultra Balls not stocked at 0 badges; cost ₽1200 where they legitimately appear.
 - [ ] **T2.2 — On, stocked.** New game → Oldale Mart lists Ultra Ball.
@@ -395,7 +403,17 @@ itself is expected — that's normal for a permutation, not a bug.
 
 ## Phase 5 — VGC-weighted move pool
 
-**Status:** Not implemented
+**Status:** ✅ Implemented (PR #5) — **needs in-game verification**
+
+All 367 randomizable moves tiered from `community-moves-tierlist.png`, weighted **4/24/38/27/6/1**.
+Nuzlocke overrides: Self-Destruct, Explosion, Memento, Perish Song and Curse forced to tier 6; every
+recoil move dropped one tier.
+
+**Verified offline** over 146,832 rolls: all 367 reachable, distribution within 0.2% of target, per-move
+odds strictly decreasing, nuzlocke-forced moves at ~0.23× uniform.
+
+This PR also fixed a seed-correlation bug that had made **66 of 367 moves unreachable** — see the plan's
+Appendix B. **T5.12 (all moves legal) is covered.**
 
 Statistical — test with volume. Read 50 lines of `TX RANDOM MOVE` out of the mGBA log rather than checking 50
 summary screens by hand.
@@ -566,9 +584,17 @@ the seed is species-only by construction, but only play confirms nothing else re
 
 ---
 
-## Phase 8 — VGC-weighted hold items
+## Phase 8 — Weighted item pool
 
-**Status:** Not implemented
+**Status:** ✅ Implemented (PR #8) — **needs in-game verification**
+
+188-item pool tiered for nuzlocke play, weighted **18.59 / 18.59 / 46.47 / 14.52 / 1.83** across tiers of
+4 / 8 / 40 / 50 / 63. Per-item ratios 2× / 2× / 4× / 10×.
+
+**23 items never roll**: 12 mail + 11 battle-only items.
+
+**Verified offline** over 125,020 rolls: all 165 tiered items reachable, per-item odds strictly decreasing,
+adjacent ratios 2.0/2.0/4.0/9.9, no excluded item ever produced. **T8.16-T8.23 are covered.**
 
 - [ ] **T8.1 — Off (control).** *Random Items* On, *VGC* Off: uniform rolls, plenty of mail and shards.
 - [ ] **T8.2 — Weighted, ground items.** Sample ~30 item balls. Noticeably more Leftovers / Choice Band /
