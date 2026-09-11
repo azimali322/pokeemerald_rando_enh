@@ -533,8 +533,10 @@ preserved where possible, and the function refuses outright rather than overwrit
       preferred category under the cap gets a level-appropriate move of the *other* category, not an
       over-powered one of the right category. Order is: category first, power cap last.
 - [ ] **T6.19 — Existing moves are untouched.** The guarantee is one *added* move, not a whole moveset. A
-      low-level mon's other one or two moves may still be off-type or the wrong category — that is Phase 8b's
-      job, not Phase 6's. Confirm the two features together (T8b.12).
+      low-level mon's other one or two moves may still be off-type or the wrong category.
+      **Decided, not a gap:** a special attacker that rolls three physical moves is a bad randomizer roll and
+      stays one. The STAB pass guarantees coverage, it does not launder the rest of the moveset. Do not
+      "fix" this. Confirm the two features coexist (T8b.12).
 
 ---
 
