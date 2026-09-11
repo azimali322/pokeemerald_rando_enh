@@ -18,6 +18,22 @@ Used by the VGC move pool (Phase 5) and TM weighting (Phase 8c).
 | 6 | Pokemon Homeless | 11 | 3.0% |
 | | **Total** | **367** | |
 
+## Weights — implemented
+
+**4 / 24 / 38 / 27 / 6 / 1.** Divided by tier size, per-move odds fall monotonically:
+
+| Tier | n | Weight | Per-move | × uniform |
+|---|---:|---:|---:|---:|
+| 1 Meta Defining | 3 | 4% | 1.400% | 5.14× |
+| 2 Staples | 26 | 24% | 0.925% | 3.39× |
+| 3 Filler | 93 | 38% | 0.408% | 1.50× |
+| 4 Niche | 157 | 27% | 0.172% | 0.63× |
+| 5 Bad | 73 | 6% | 0.080% | 0.29× |
+| 6 Homeless | 15 | 1% | 0.062% | 0.23× |
+
+Uniform baseline is 0.272% per move. *Strict* mode draws from tiers 1+2 together (29 moves) — tier 1
+alone is 3 moves, which would give every Pokémon the same moveset.
+
 ## Nuzlocke overrides — applied
 
 Moves forced to the bottom tier regardless of their community rank, because a self-KO in a nuzlocke
@@ -30,9 +46,9 @@ is a permanently lost Pokémon:
 | MEMENTO | 5 (Bad) | **6** | guaranteed self-KO |
 
 
-## Other nuzlocke-hostile moves — your call
+## Nuzlocke-hostile moves — all resolved
 
-You asked me to flag these. None are forced yet; say which you want in tier 6.
+Everything below has been applied.
 
 **Guaranteed self-KO** — the same category as Self-Destruct. Strongest case for forcing:
 

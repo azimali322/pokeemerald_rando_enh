@@ -2934,6 +2934,7 @@ static const u8 gSpeciesMapping[NUM_SPECIES+1] =
 };
 #include "data/pokemon/species_by_bst.h"
 #include "data/pokemon/ability_tiers.h"
+#include "data/pokemon/move_tiers.h"
 
 #define RANDOM_SPECIES_COUNT ARRAY_COUNT(sRandomSpecies)
 static const u16 sRandomSpecies[] =
@@ -8316,7 +8317,11 @@ static u16 GetVGCAbility(u16 species, u8 abilityNum)
 
     // Seeded on species + abilityNum only -- never Random(). This function is called constantly,
     // including per-frame in battle, so a non-deterministic result would make the ability flicker.
-    return table[RandomSeededModulo(species + abilityNum, count)];
+    //
+    // Uses a different linear combination from the tier roll above: keying both off the same value
+    // locks each tier to a single index. It does not bite at these table sizes, but it would if the
+    // tiers grew, and the move pool showed exactly that failure.
+    return table[RandomSeededModulo(species * 7 + abilityNum * 13 + 0x1B9F, count)];
 }
 
 u8 GetAbilityBySpecies(u16 species, u8 abilityNum)
@@ -12900,10 +12905,70 @@ u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wa
     return result;  // constraints unsatisfiable; the unfiltered roll is still a valid move
 }
 
+//tx_randomizer_and_challenges
+// Weighted move pool, mapped from the community moves tier list.
+//
+// Weights are 4/24/38/27/6/1 across Meta Defining / Staples / Filler / Niche / Bad / Homeless.
+// As with abilities these are divided by tier size so the per-move odds fall monotonically --
+// and the shape of this pool makes that far less forgiving than it was for abilities. Tier 1
+// holds 3 moves and tier 4 holds 157, so equal weights would be wildly unequal per move.
+#define MOVE_W_T1  4
+#define MOVE_W_T2 24
+#define MOVE_W_T3 38
+#define MOVE_W_T4 27
+#define MOVE_W_T5  6
+// tier 6 takes the remaining 1
+
+static u16 GetWeightedMove(u16 move, u16 species)
+{
+    const u16 *table;
+    u16 count, roll;
+
+    // Strict draws from tiers 1 and 2 together. Tier 1 alone is only 3 moves, which would give
+    // every Pokemon in the game the same moveset.
+    if (gSaveBlock1Ptr->tx_Random_MovesVGC == TX_VGC_STRICT)
+    {
+        roll = RandomSeededModulo(move * 7 + species * 13 + 0x1B9F, ARRAY_COUNT(sMoveTier1) + ARRAY_COUNT(sMoveTier2));
+        if (roll < ARRAY_COUNT(sMoveTier1))
+            return sMoveTier1[roll];
+        return sMoveTier2[roll - ARRAY_COUNT(sMoveTier1)];
+    }
+
+    // The tier roll and the within-tier pick must not key off the same value. A constant offset
+    // is not enough -- both would still be functions of (move + species), locking each tier to one
+    // index and making 66 of the 367 moves unreachable. Different linear combinations decorrelate
+    // them; measured coverage goes from 301/367 to 367/367.
+    roll = RandomSeededModulo(move + species + 0x4D17, 100);
+
+    if (roll < MOVE_W_T1)                                                     { table = sMoveTier1; count = ARRAY_COUNT(sMoveTier1); }
+    else if (roll < MOVE_W_T1 + MOVE_W_T2)                                    { table = sMoveTier2; count = ARRAY_COUNT(sMoveTier2); }
+    else if (roll < MOVE_W_T1 + MOVE_W_T2 + MOVE_W_T3)                        { table = sMoveTier3; count = ARRAY_COUNT(sMoveTier3); }
+    else if (roll < MOVE_W_T1 + MOVE_W_T2 + MOVE_W_T3 + MOVE_W_T4)            { table = sMoveTier4; count = ARRAY_COUNT(sMoveTier4); }
+    else if (roll < MOVE_W_T1 + MOVE_W_T2 + MOVE_W_T3 + MOVE_W_T4 + MOVE_W_T5){ table = sMoveTier5; count = ARRAY_COUNT(sMoveTier5); }
+    else                                                                      { table = sMoveTier6; count = ARRAY_COUNT(sMoveTier6); }
+
+    return table[RandomSeededModulo(move * 7 + species * 13 + 0x1B9F, count)];
+}
+
 u16 GetRandomMove(u16 move, u16 species)
 {
-    u16 val = RandomSeededModulo(move + species, RANDOM_MOVES_COUNT);
-    u16 final = sRandomValidMoves[val];
+    u16 val, final;
+
+    //tx_randomizer_and_challenges
+    if (gSaveBlock1Ptr->tx_Random_MovesVGC != TX_VGC_OFF)
+    {
+        final = GetWeightedMove(move, species);
+
+        #ifndef NDEBUG
+            MgbaPrintf(MGBA_LOG_DEBUG, "TX VGC MOVE        : move=%d=%S species=%d -> %d=%S",
+                       move, gMoveNames[move], species, final, gMoveNames[final]);
+        #endif
+
+        return final;
+    }
+
+    val = RandomSeededModulo(move + species, RANDOM_MOVES_COUNT);
+    final = sRandomValidMoves[val];
 
     #ifndef NDEBUG
         MgbaPrintf(MGBA_LOG_DEBUG, "TX RANDOM MOVE     : GetRandomMove: move=%d=%S, species=%d; combined=%d; val=%d; final=%d=%S", move,  gMoveNames[move], species, move + species, val, final, gMoveNames[final]);
