@@ -741,6 +741,34 @@ trainer half is correctly conditional on `tx_Random_Trainer` because `battle_mai
 
 ## Phase 6 — Guaranteed same-type move (New Req 9) — ✅ **IMPLEMENTED**
 
+### Upgrade: tiered and category-aware
+
+The guaranteed move is no longer a uniform pick from the matching-type moves. Two refinements:
+
+**Physical/special split.** The move is matched to whichever attacking stat the Pokémon actually has —
+read from its real stats, so nature, IVs and EVs count. A physical STAB move on a special attacker is close
+to a wasted slot, and this is the one move the feature promises.
+
+**Tier weighting**, reusing the Phase 5 community tiers — no separate per-type ranking was needed. All eight
+types with 10+ STAB moves already spread across 3-4 tiers, so the existing data discriminates.
+
+Relaxation order, so a Pokémon always ends up with same-type coverage:
+matching category + tiers → any category + tiers → matching category uniform → any category uniform.
+Only `MYSTERY` (the ??? placeholder type) ever needs to relax.
+
+**Two mistakes worth recording, both caught before shipping:**
+
+1. *Best-tier-first collapses the pool.* Taking the highest non-empty tier meant every physical Fire-type
+   got Blaze Kick and every special one Eruption — Fire has exactly one candidate in its best tier of each
+   category. Fixed by rolling across the tiers that have candidates.
+2. *Raw tier weights invert within a type.* Weighting a tier by its global share meant a move in a tier
+   holding few of this type beat a better move in a tier holding many — **Ember out-rolled Flamethrower**.
+   Fixed by scaling each tier's share by its global size, so a move's odds track its own tier's per-move
+   rate regardless of how the type is distributed.
+
+Measured afterwards (Fire/special): Eruption 27.9%, the five tier-3 moves ~12.3% each, Ember and Fire Spin
+5.2%. Per-move rates decrease monotonically by tier for every type checked.
+
 *"All Pokémon have at least 1 move that matches their type when captured or in the wild. Same for trainers
 with randomized Pokémon."*
 

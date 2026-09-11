@@ -37,7 +37,7 @@ Both optional — nothing is blocked:
 | Item | Size | Why it was deferred |
 |---|---|---|
 | **Phase 10 — PC storage use** | M | Box Pokémon are `struct BoxPokemon` with no level or current-HP field; a bad round-trip corrupts them. Worth its own change. |
-| **Per-type STAB tiering** | S | Would upgrade Phase 6 from a uniform pick to a tiered one. Worksheet ready at [`tiering/STAB_MOVES_BY_TYPE.md`](tiering/STAB_MOVES_BY_TYPE.md) — 8 types worth tiering, 11 left uniform. |
+| ~~Per-type STAB tiering~~ | — | **Done.** Reuses the Phase 5 tiers — no separate ranking was needed, since all 8 types with 10+ STAB moves already spread across 3-4 tiers. Added a physical/special split at the same time. |
 
 ### Ideas considered and not built
 
