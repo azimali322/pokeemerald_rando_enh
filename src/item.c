@@ -16,6 +16,9 @@
 #include "battle_pyramid_bag.h"
 #include "constants/items.h"
 #include "constants/hold_effects.h"
+#include "party_menu.h"
+#include "pokemon.h"
+#include "tx_randomizer_and_challenges.h"
 
 void ItemId_GetHoldEffectParam_Script();
 
@@ -1245,6 +1248,52 @@ static const u16 sRandomValidItems[] =
     ITEM_YELLOW_SCARF,
 };
 
+//tx_randomizer_and_challenges
+// Weight which TM turns up in an item ball by the tier of the move it teaches -- a TM is worth
+// exactly what its move is worth. Same 4/24/38/27/6/1 split the move pool uses.
+//
+// Rejection sampling rather than a weighted table: the TM->tier mapping shifts when the TM move
+// remap is on, so any precomputed table would be stale.
+#define TM_PICK_MAX_TRIES 24
+
+static u8 GetTMWeightTarget(u16 seed)
+{
+    u16 roll = RandomSeededModulo(seed + 0x6C41, 100);
+
+    if (roll <  4) return 1;
+    if (roll < 28) return 2;
+    if (roll < 66) return 3;
+    if (roll < 93) return 4;
+    if (roll < 99) return 5;
+    return 6;
+}
+
+static u16 PickWeightedTM(u16 seed)
+{
+    u8 want = GetTMWeightTarget(seed);
+    u8 i;
+
+    for (i = 0; i < TM_PICK_MAX_TRIES; i++)
+    {
+        u16 tm = RandomSeededModulo(seed + i * 31 + 0x11A7, NUM_TECHNICAL_MACHINES);
+        u8 tier = GetMoveTier(ItemIdToBattleMoveId(ITEM_TM01 + tm));
+
+        // Strict wants tier 1-2 only; weighted wants the tier the roll asked for.
+        if (gSaveBlock1Ptr->tx_Random_TMsVGC == TX_VGC_STRICT)
+        {
+            if (tier <= 2)
+                return ITEM_TM01 + tm;
+        }
+        else if (tier == want)
+        {
+            return ITEM_TM01 + tm;
+        }
+    }
+
+    // No TM of that tier exists -- fall back rather than loop forever.
+    return ITEM_TM01 + RandomSeededModulo(seed, NUM_TECHNICAL_MACHINES);
+}
+
 u16 RandomItemId(u16 itemId)
 {
     u8 mapId = NuzlockeGetCurrentRegionMapSectionId();
@@ -1260,12 +1309,21 @@ u16 RandomItemId(u16 itemId)
             && itemId != ITEM_HM08)
         {
             u8 i;
-            itemId = ITEM_TM01 + RandomSeededModulo(itemId, 50);
+            //tx_randomizer_and_challenges
+            if (gSaveBlock1Ptr->tx_Random_TMsVGC != TX_VGC_OFF)
+                itemId = PickWeightedTM(itemId);
+            else
+                itemId = ITEM_TM01 + RandomSeededModulo(itemId, NUM_TECHNICAL_MACHINES);
+
+            // Existing behaviour: don't hand out a TM already in the bag.
             for (i = 0; i < 255; i++)
             {
                 if (!CheckBagHasItem(itemId, 1))
                     break;
-                itemId = ITEM_TM01 + RandomSeededModulo(itemId, 50);
+                if (gSaveBlock1Ptr->tx_Random_TMsVGC != TX_VGC_OFF)
+                    itemId = PickWeightedTM(itemId + i + 1);
+                else
+                    itemId = ITEM_TM01 + RandomSeededModulo(itemId, NUM_TECHNICAL_MACHINES);
             }
         }
     }

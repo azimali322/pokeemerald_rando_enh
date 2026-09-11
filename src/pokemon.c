@@ -12919,7 +12919,7 @@ u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wa
 #define MOVE_W_T5  6
 // tier 6 takes the remaining 1
 
-static u16 GetWeightedMove(u16 move, u16 species)
+u16 GetTierWeightedMove(u16 move, u16 species)
 {
     const u16 *table;
     u16 count, roll;
@@ -12950,6 +12950,22 @@ static u16 GetWeightedMove(u16 move, u16 species)
     return table[RandomSeededModulo(move * 7 + species * 13 + 0x1B9F, count)];
 }
 
+//tx_randomizer_and_challenges
+// Which community tier a move sits in (1 = Meta Defining .. 6 = Pokemon Homeless).
+// Used to weight which TM you find: a TM is worth what the move it teaches is worth.
+u8 GetMoveTier(u16 move)
+{
+    u16 i;
+
+    for (i = 0; i < ARRAY_COUNT(sMoveTier1); i++) if (sMoveTier1[i] == move) return 1;
+    for (i = 0; i < ARRAY_COUNT(sMoveTier2); i++) if (sMoveTier2[i] == move) return 2;
+    for (i = 0; i < ARRAY_COUNT(sMoveTier3); i++) if (sMoveTier3[i] == move) return 3;
+    for (i = 0; i < ARRAY_COUNT(sMoveTier4); i++) if (sMoveTier4[i] == move) return 4;
+    for (i = 0; i < ARRAY_COUNT(sMoveTier5); i++) if (sMoveTier5[i] == move) return 5;
+
+    return 6;   // tier 6 or not in the pool at all
+}
+
 u16 GetRandomMove(u16 move, u16 species)
 {
     u16 val, final;
@@ -12957,7 +12973,7 @@ u16 GetRandomMove(u16 move, u16 species)
     //tx_randomizer_and_challenges
     if (gSaveBlock1Ptr->tx_Random_MovesVGC != TX_VGC_OFF)
     {
-        final = GetWeightedMove(move, species);
+        final = GetTierWeightedMove(move, species);
 
         #ifndef NDEBUG
             MgbaPrintf(MGBA_LOG_DEBUG, "TX VGC MOVE        : move=%d=%S species=%d -> %d=%S",

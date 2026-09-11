@@ -5049,9 +5049,61 @@ void ItemUseCB_PPUp(u8 taskId, TaskFunc task)
     gTasks[taskId].func = Task_HandleWhichMoveInput;
 }
 
+//tx_randomizer_and_challenges
+// Reassign what every TM teaches.
+//
+// The whole 50-slot table is rebuilt on the stack each call rather than cached: EWRAM sits at 99.6%,
+// while 100 bytes of stack is free. Building it in full is also what makes the no-duplicates guarantee
+// exact -- checking a slot against the ones before it requires those slots to exist.
+//
+// HM slots are never touched. Randomizing Cut, Surf or Strength can soft-lock a playthrough.
+#define TM_REMAP_MAX_REROLLS 16
+
+static void BuildRandomizedTMTable(u16 *out)
+{
+    u8 i, attempt, j;
+
+    for (i = 0; i < NUM_TECHNICAL_MACHINES; i++)
+    {
+        u16 move = sTMHMMoves[i];
+
+        for (attempt = 0; attempt < TM_REMAP_MAX_REROLLS; attempt++)
+        {
+            move = GetTierWeightedMove(sTMHMMoves[i] + attempt * 7, 0x2B31 + i * 101);
+
+            if (IsMoveHm(move))     // an HM move on a TM would duplicate a progression move
+                continue;
+
+            for (j = 0; j < i; j++)
+            {
+                if (out[j] == move)
+                    break;
+            }
+            if (j == i)             // nothing earlier claimed it
+                break;
+        }
+
+        out[i] = move;
+    }
+}
+
+u16 GetRandomizedTMMove(u8 tmIndex)
+{
+    u16 table[NUM_TECHNICAL_MACHINES];
+
+    BuildRandomizedTMTable(table);
+    return table[tmIndex];
+}
+
 u16 ItemIdToBattleMoveId(u16 item)
 {
     u16 tmNumber = item - ITEM_TM01;
+
+    //tx_randomizer_and_challenges: TMs only. HM slots sit past the TMs in the same array and
+    // must keep teaching their original move or progression breaks.
+    if (gSaveBlock1Ptr->tx_Random_TMs && tmNumber < NUM_TECHNICAL_MACHINES)
+        return GetRandomizedTMMove(tmNumber);
+
     return sTMHMMoves[tmNumber];
 }
 
@@ -5059,9 +5111,11 @@ u16 BattleMoveIdToItemId(u16 moveId) //tx_randomizer_and_challenges
 {
     u8 i;
 
-    for (i = 0; i < 50 + NUM_HIDDEN_MACHINES; i++)
+    // Must mirror ItemIdToBattleMoveId exactly. Scanning sTMHMMoves directly while the forward
+    // mapping is randomized would hand back the vanilla TM for a move no TM teaches any more.
+    for (i = 0; i < NUM_TECHNICAL_MACHINES + NUM_HIDDEN_MACHINES; i++)
     {
-        if (sTMHMMoves[i] == moveId)
+        if (ItemIdToBattleMoveId(ITEM_TM01 + i) == moveId)
             return ITEM_TM01 + i;
     }
     return ITEM_NONE;

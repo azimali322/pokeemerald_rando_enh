@@ -695,7 +695,25 @@ These test the design in the plan.
 
 ## Phase 8c — TM randomization weighting
 
-**Status:** Not implemented
+**Status:** ✅ Implemented — **needs in-game verification**
+
+**(a)** `PickWeightedTM()` in `src/item.c` — weights which TM drops by the tier of the move it teaches.
+**(b)** `GetRandomizedTMMove()` in `src/party_menu.c` — reassigns what each TM teaches, drawn from the
+tiered move pool. `BattleMoveIdToItemId` now routes through `ItemIdToBattleMoveId` so the forward and
+reverse mappings cannot disagree.
+
+**Verified offline** across 65 trainer IDs:
+
+| Check | Result |
+|---|---|
+| TM tables containing an HM move | **0** ✅ |
+| TM tables containing a duplicate | **0** ✅ |
+| Tier spread of assigned TM moves | 3.0 / 21.5 / 39.2 / 29.3 / 5.8 / 1.1% |
+| All six tiers present among the 50 TMs (so (a) never falls back) | ✅ |
+
+**T8c.5, T8c.8 and T8c.10 are covered by this.** T8c.11 (every caller agreeing) still needs the emulator —
+there are 13 callers of `ItemIdToBattleMoveId` and only play confirms the bag description, the teach prompt
+and the move actually learned all match.
 
 ### (a) Which TM you find
 

@@ -1089,7 +1089,7 @@ should be on. If only one ships, Phase 6 is the higher-value half.
 
 ---
 
-## Phase 8c — TM randomization weighting (New Req 12)
+## Phase 8c — TM randomization weighting (New Req 12) — ✅ **IMPLEMENTED**
 
 ### Two different things are called "TM randomization"
 
@@ -1164,8 +1164,39 @@ and expected in randomizers, but it makes compatibility effectively arbitrary. T
 compatibility from the new move) would need a legality model this ROM doesn't have. Accept it.
 
 ### Flags
-Two new bits in Phase 1: `tx_Random_TMsVGC` (2 bits: Off/Weighted/Strict) for (a), and `tx_Random_TMs`
-(1 bit) for (b). **Add them in the Phase 1 batch** — that's the whole point of doing the plumbing once.
+`tx_Random_TMsVGC` (Off/Weighted/Strict) drives (a); `tx_Random_TMs` drives (b). Both landed in Phase 1.
+
+### As built — verification
+
+**(a) which TM you find.** Rejection sampling rather than a precomputed table, because a TM's tier moves
+when (b) is on. All six tiers are represented among the 50 TMs, so the fallback never fires and the
+effective distribution is exactly 4/24/38/27/6/1:
+
+| Tier | TMs | Share | Examples |
+|---|---:|---:|---|
+| 1 | 1 | 4% | Protect |
+| 2 | 5 | 24% | Bulk Up, Giga Drain, Earthquake, Shadow Ball, Facade |
+| 3 | 19 | 38% | Dragon Claw, Toxic, Ice Beam, Taunt |
+| 4 | 15 | 27% | Focus Punch, Calm Mind, Roar, Sunny Day |
+| 5 | 9 | 6% | Water Pulse, Hail, Hidden Power, Psychic |
+| 6 | 1 | 1% | Double Team |
+
+**(b) which move a TM teaches.** Runtime remap in `ItemIdToBattleMoveId`, as planned — the EWRAM shuffle
+table was ruled out by the Phase 0 memory measurement. The 50-slot table is rebuilt on the **stack** each
+call (100 bytes), which is also what makes the no-duplicates guarantee exact: checking a slot against the
+earlier ones requires those slots to exist.
+
+Verified across 65 trainer IDs:
+
+| Check | Result |
+|---|---|
+| TM tables containing an HM move | **0** — the soft-lock risk |
+| TM tables containing a duplicate | **0** |
+| Tier spread of assigned moves | 3.0 / 21.5 / 39.2 / 29.3 / 5.8 / 1.1% |
+
+**`BattleMoveIdToItemId` had to change too.** It scanned `sTMHMMoves` directly, so with the forward mapping
+randomized it would return the vanilla TM for a move no TM teaches any more. It now goes through
+`ItemIdToBattleMoveId`, so the two directions cannot disagree.
 
 ---
 
@@ -1313,7 +1344,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 11 of 17 phases implemented** (all building clean; merged to `master` via PRs #1-#4).
+**Progress: 12 of 17 phases implemented** (all building clean; merged to `master` via PRs #1-#4).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
@@ -1329,13 +1360,15 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | ✅ | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c`, `ability_tiers.h` |
 | ☐ | 8 | VGC hold items | M | Med | `item.c` — **blocked on item tiers** |
 | ✅ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
-| ☐ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c` — **now unblocked**, reuses the move tiers |
+| ✅ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c`, `pokemon.c` |
 | ✅ | 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
 | ☐ | 10 | Level Cap Candy *(optional)* | **L** | **High** | `items.h`, `party_menu.c`, `pokemon_storage_system.c` |
 | ☐ | 11 | Reroll cheat *(optional)* | M | Med | `ui_stat_editor.c` |
 
-**Blocked on your input:** only **Phase 8** now — it needs item tiers ([`tiering/ITEMS.md`](tiering/ITEMS.md)).
-Phase 8c is unblocked: TMs can be tiered by the move they teach, reusing Appendix B.
+**Blocked on your input: only Phase 8**, which needs item tiers in
+[`tiering/ITEMS.md`](tiering/ITEMS.md). Everything else outstanding is optional (Phases 10 and 11) or an
+enhancement to something already shipped ([`tiering/STAB_MOVES_BY_TYPE.md`](tiering/STAB_MOVES_BY_TYPE.md)
+would upgrade Phase 6 from uniform to tiered).
 
 **Everything implemented so far is verified only by offline simulation and a clean build.** None of it has
 been run in an emulator — see the test plan for what still needs a human at the controls.

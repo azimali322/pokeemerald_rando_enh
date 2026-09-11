@@ -588,6 +588,8 @@ u16 ClampSpeciesToLevel(u16 species, u8 level);
 u16 GetRandomLegendary(u16 species);
 void EnsureStabMove(struct Pokemon *mon);
 u16 GetRandomLearnsetMove(u16 originalMove, u16 species, u8 learnLevel, bool8 wantStab);
+u8 GetMoveTier(u16 move);
+u16 GetTierWeightedMove(u16 move, u16 species);
 u16 GetRandomMove(u16 input_move, u16 species);
 u8 GetRandomType(void);
 u8 EvolutionBlockedByEvoLimit(u16 species);
