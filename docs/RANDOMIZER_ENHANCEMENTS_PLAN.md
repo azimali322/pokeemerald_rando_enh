@@ -1313,7 +1313,7 @@ the reroll button will appear to do nothing. Either disable it while those are a
 
 ## Phase summary
 
-**Progress: 10 of 17 phases implemented** (all building clean, `feature/randomizer-enhancements`).
+**Progress: 11 of 17 phases implemented** (all building clean; merged to `master` via PRs #1-#4).
 
 | ✔ | Phase | Requirement | Size | Risk | Key files |
 |:-:|---|---|---|---|---|
@@ -1324,20 +1324,18 @@ the reroll button will appear to do nothing. Either disable it while those are a
 | ✅ | 3 | Level-aware wild randomization | M | Med | `pokemon.c`, `wild_encounter.c` |
 | ✅ | 3b | BST similarity ("Improved") | M | Low | `pokemon.c`, `species_by_bst.h` |
 | ✅ | 4 | Random legendaries (everywhere) | S | **Med** (plot) | `pokemon.c`, `roamer.c` |
-| ☐ | 5 | VGC moves | M | Low | `pokemon.c` — **blocked on move tiers** |
+| ✅ | 5 | Weighted move pool | M | Low | `pokemon.c`, `move_tiers.h` |
 | ✅ | 6 | Guaranteed STAB move | M | Med | `pokemon.c`, `wild_encounter.c`, `battle_main.c` |
 | ✅ | 7 | VGC abilities | **L** | **Med-High** | `pokemon.c`, `ability_tiers.h` |
 | ☐ | 8 | VGC hold items | M | Med | `item.c` — **blocked on item tiers** |
 | ✅ | 8b | Learnset overhaul | **L** | Med | `pokemon.c` |
-| ☐ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c` — **blocked on TM tiers** |
+| ☐ | 8c | TM weighting + TM move remap | M | **Med-High** (HM soft-lock) | `item.c`, `party_menu.c` — **now unblocked**, reuses the move tiers |
 | ✅ | 9 | Opponent type box | M | Med | `battle_bg.c`, `battle_controller_player.c`, `battle.h` |
 | ☐ | 10 | Level Cap Candy *(optional)* | **L** | **High** | `items.h`, `party_menu.c`, `pokemon_storage_system.c` |
 | ☐ | 11 | Reroll cheat *(optional)* | M | Med | `ui_stat_editor.c` |
 
-**Blocked on your input:** Phases 5, 8 and 8c need tiers filled in
-([`tiering/MOVES.md`](tiering/MOVES.md), [`tiering/ITEMS.md`](tiering/ITEMS.md),
-[`tiering/TM_MOVES.md`](tiering/TM_MOVES.md)). Phase 7's tiers are already done in Appendix A, so it can
-proceed any time.
+**Blocked on your input:** only **Phase 8** now — it needs item tiers ([`tiering/ITEMS.md`](tiering/ITEMS.md)).
+Phase 8c is unblocked: TMs can be tiered by the move they teach, reusing Appendix B.
 
 **Everything implemented so far is verified only by offline simulation and a clean build.** None of it has
 been run in an emulator — see the test plan for what still needs a human at the controls.
@@ -1521,89 +1519,90 @@ shift real gameplay:
 
 ## Appendix B — Move tiers
 
-> **Status: pending re-tiering.** The 3-tier list below is my hand-tiering from Revision 2. You asked to redo
-> it the way we redid abilities, against a real tier list. The full editable pool —
-> **367 moves with power / accuracy / type / category / PP**, TM and HM moves flagged — is in
-> [`tiering/MOVES.md`](tiering/MOVES.md). Once you mark tiers there (or point me at a move tier list image),
-> this appendix gets regenerated with counts and the same per-move overweighting check.
->
-> **Watch the count asymmetry here especially.** With 367 moves, a small S tier gets an enormous per-move
-> boost. If S ends up with ~15 moves at 40%, that's 2.7% each versus a 0.27% uniform baseline — a 10× boost,
-> far steeper than the ~2× the ability list produces. Expect to want gentler weights for moves, or a larger
-> top tier.
+**Source: `docs/community-moves-tierlist.png`** (community rankings, 19 submitted lists). All **367**
+randomizable moves mapped; full list in [`tiering/MOVES_BY_TIER.md`](tiering/MOVES_BY_TIER.md), tables
+generated to `src/data/pokemon/move_tiers.h`.
 
-`sRandomValidMoves[]` covers all 367 usable moves. Tier 1 and 2 are listed; everything else is the tail.
+### Final weights — **4 / 24 / 38 / 27 / 6 / 1**
 
-### Tier 1 — 45% weight (~55 moves)
+| Tier | Community name | n | Weight | **Per-move** | × uniform |
+|---|---|---:|---:|---:|---:|
+| 1 | Meta Defining | 3 | 4% | **1.400%** | 5.14× |
+| 2 | Staples | 26 | 24% | **0.925%** | 3.39× |
+| 3 | Filler/Outclassed | 93 | 38% | **0.408%** | 1.50× |
+| 4 | Niche | 157 | 27% | **0.172%** | 0.63× |
+| 5 | Bad | 73 | 6% | **0.080%** | 0.29× |
+| 6 | Pokemon Homeless | 15 | 1% | **0.062%** | 0.23× |
 
-**Physical attackers**
+Uniform baseline is **0.272%** per move. Per-move odds fall monotonically across all six tiers.
+
+**Why these differ from the ability weights (40/30/22/6/2).** The two pools have very different shapes.
+Abilities are 16/22/26/9/6 — fairly even, so a 40% top tier lands at ~2× uniform. Moves are
+3/26/93/157/73/15 — tier 1 has **three** moves and tier 4 has **157**. Copying the ability weights across
+would give a tier-1 move a **~15× uniform** boost and put Protect on half the Pokémon in the game. The
+gentler 4% top weight still yields 5.14× because the tier is so small.
+
+**Strict mode draws from tiers 1 and 2 together** (29 moves). Tier 1 alone is 3 moves, which would give
+every Pokémon in the game the same moveset.
+
+### Known quirk: trainers can share movesets
+
+`src/battle_main.c` seeds trainer moves on the **original** species and move —
+`GetRandomMove(partyData[i].moves[j], partyData[i].species)` — while the species roll includes `trainerNum`.
+So the species varies per trainer but the moves do not.
+
+Consequences, measured against the real trainer data (1,985 trainer Pokémon, 529 with explicit movesets):
+
+- **251 of those 529 entries (47%)** share a (species, moveset) pair with another entry, so they receive
+  **identical randomized movesets** — even when they randomize into different species.
+- Within one trainer, two identical vanilla Pokémon get identical randomized moves.
+- Two trainers that randomize into the *same* species do **not** necessarily share moves, because the seed
+  uses the species they came *from*.
+
+The remaining ~1,456 trainer Pokémon use default learnsets and are unaffected — they go through
+`GiveBoxMonInitialMoveset` on the **randomized** species, so their moves follow the Pokémon you actually see.
+
+**Fix if wanted (one line):** include the trainer and the rolled species in the seed —
+`GetRandomMove(partyData[i].moves[j] + trainerNum, species)`. Left alone for now because it changes every
+existing trainer's moveset; worth doing before a long playthrough rather than during one.
+
+### Nuzlocke overrides
+
+A self-KO is a permanently lost Pokémon, so these override their community rank:
+
+| Move | Community tier | Forced to | Why |
+|---|---:|---:|---|
+| `SELF_DESTRUCT`, `EXPLOSION` | 4 (Niche) | **6** | guaranteed self-KO |
+| `MEMENTO` | 5 (Bad) | **6** | guaranteed self-KO |
+| `PERISH_SONG` | **2 (Staples)** | **6** | faints both sides; the sharpest mismatch on the list |
+| `CURSE` | 3 (Filler) | **6** | Ghost version costs half max HP |
+| `TAKE_DOWN`, `DOUBLE_EDGE`, `VOLT_TACKLE` | 4 | **5** | recoil — dropped one tier |
+| `JUMP_KICK`, `STRUGGLE` | 5 | **6** | recoil — dropped one tier |
+| `SUBMISSION`, `HI_JUMP_KICK` | 6 | 6 | recoil, already bottom |
+
+Each now rolls at ~0.06% (0.23× uniform) rather than 0.272%.
+
+### The seed-correlation bug this surfaced
+
+Worth recording, because the same mistake is easy to repeat.
+
+The tier roll and the within-tier pick both keyed off `(move + species)`, differing only by a **constant
+offset**. That is not enough to decorrelate them — both remain functions of the same value, so each tier was
+locked to a single index. Measured effect: **66 of 367 moves were unreachable**, including four of the five
+moves forced to tier 6, which would have *looked* like the nuzlocke overrides working when they were not.
+
+The fix is different **linear combinations**, not just different offsets:
+
+```c
+roll  = RandomSeededModulo(move + species + 0x4D17, 100);              // which tier
+index = RandomSeededModulo(move * 7 + species * 13 + 0x1B9F, count);   // which move in it
 ```
-MOVE_EARTHQUAKE      MOVE_ROCK_SLIDE      MOVE_BODY_SLAM       MOVE_DOUBLE_EDGE
-MOVE_BRICK_BREAK     MOVE_SHADOW_BALL     MOVE_CRUNCH          MOVE_AERIAL_ACE
-MOVE_DRAGON_CLAW     MOVE_IRON_TAIL       MOVE_EXTREME_SPEED   MOVE_HYDRO_PUMP
-MOVE_SHADOW_CLAW     MOVE_PSYCHO_CUT      MOVE_POISON_JAB      MOVE_PLAY_ROUGH
-MOVE_SKY_UPPERCUT    MOVE_MEGAHORN        MOVE_CROSS_CHOP      MOVE_ROCK_TOMB
-```
 
-**Special attackers**
-```
-MOVE_ICE_BEAM        MOVE_THUNDERBOLT     MOVE_FLAMETHROWER    MOVE_SURF
-MOVE_PSYCHIC         MOVE_GIGA_DRAIN      MOVE_SLUDGE_BOMB     MOVE_FIRE_BLAST
-MOVE_THUNDER         MOVE_BLIZZARD        MOVE_DARK_PULSE      MOVE_FOCUS_BLAST
-MOVE_POWER_GEM       MOVE_FLASH_CANNON    MOVE_AIR_SLASH       MOVE_BUG_BUZZ
-MOVE_DRAGON_PULSE    MOVE_EARTH_POWER     MOVE_MOONBLAST       MOVE_SOLAR_BEAM
-```
+Coverage went **301 → 367**. The ability path had the same latent flaw; it did not bite at those table sizes
+(78/79 reachable either way) but was corrected to the same convention so the two cannot drift.
 
-**All 56 tier-1 moves above are verified to exist in this ROM's `include/constants/moves.h`.** Note there is
-no Energy Ball in this build, so Solar Beam is the Grass special option.
-
-**Setup / status / utility**
-```
-MOVE_SWORDS_DANCE    MOVE_CALM_MIND       MOVE_DRAGON_DANCE    MOVE_PROTECT
-MOVE_SUBSTITUTE      MOVE_RECOVER         MOVE_REST            MOVE_THUNDER_WAVE
-MOVE_TOXIC           MOVE_WILL_O_WISP     MOVE_LEECH_SEED      MOVE_SPIKES
-MOVE_BATON_PASS      MOVE_TAUNT           MOVE_ENCORE          MOVE_SOFT_BOILED
-```
-
-Note how many of the 14 modern additions land here — Dark Pulse, Focus Blast, Air Slash, Bug Buzz,
-Dragon Pulse, Earth Power, Moonblast, Poison Jab, Shadow Claw, Psycho Cut, Flash Cannon, Power Gem are all
-strictly better than their Gen 3 equivalents, so they carry a lot of tier 1's weight.
-
-### Tier 2 — 35% weight (~110 moves)
-
-Defined by rule rather than enumeration, so it stays maintainable:
-
-- **Any damaging move with `power >= 65` and `accuracy >= 85`** not already in tier 1.
-- **Multi-hit and priority moves**: Quick Attack, Mach Punch, Bullet Seed, Rock Blast, Fury Cutter, Vital Throw.
-- **Secondary-effect attackers**: Ice Punch, Thunder Punch, Fire Punch, Bite, Headbutt, Waterfall, Crabhammer.
-- **Support**: Light Screen, Reflect, Haze, Roar, Whirlwind, Sing/Sleep Powder/Hypnosis, Confuse Ray,
-  Screech, Charm, Growl, Leer, Sandstorm, Rain Dance, Sunny Day, Hail, Safeguard, Heal Pulse, Moonlight,
-  Synthesis, Milk Drink, Aromatherapy, Refresh, Belly Drum, Bulk Up, Agility, Amnesia, Barrier, Acid Armor,
-  Curse, Endure, Counter, Mirror Coat, Destiny Bond, Perish Song, Pain Split, Knock Off, Torment,
-  Snatch, Trick, Skill Swap, Imprison, Bulk Up, Agility.
-
-  **This build has no Energy Ball, Roost, Aqua Jet, Sucker Punch, or Zen Headbutt** — it's Gen 3 plus 14
-  specific additions, not a full modern movepool. Verify any move you add to these tiers against
-  `include/constants/moves.h` first; a non-existent constant is a build break, and a *wrong* one is silent.
-- **HM moves** — deliberately tier 2 so they stay reachable and progression doesn't soft-lock.
-
-The `power >= 65 && accuracy >= 85` rule can be evaluated at build time or asserted in a comment; it makes
-tier 2 self-maintaining if move data changes.
-
-### Tail — 20% (everything else)
-
-Splash, Constrict, Barrier-on-a-physical-mon, one-hit-KO moves, Sketch, Metronome, Mimic, low-power
-starters (Tackle, Scratch, Pound), and the long list of Gen-1 filler. This is what preserves randomizer chaos.
-
-### Explicit exclusions
-
-Moves that should **never** be rolled regardless of tier:
-
-- `MOVE_NONE` (0) — obvious, but the modulo must not reach it.
-- Consider excluding the OHKO moves (Fissure, Horn Drill, Guillotine, Sheer Cold) — a wild mon with one is
-  purely a rage-quit generator. Your call; they're in the tail either way (~0.4% of rolls).
-
----
+**Rule for any future weighted roll: the tier selector and the within-tier index must be different linear
+combinations of the inputs, and coverage must be measured, not assumed.**
 
 ## Appendix C — Hold item tiers
 
