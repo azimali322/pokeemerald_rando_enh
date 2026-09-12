@@ -854,6 +854,55 @@ and the move actually learned all match.
 
 ---
 
+## Phase 8d — TM move info on hover (bag)
+
+**Status:** ✅ Implemented — **needs in-game verification**
+
+Vanilla only draws a TM's type / power / accuracy / PP once the item is *selected*, and it drew them
+**in place of** the description. `WIN_TMHM_INFO` is now a single 8×8-tile panel on **BG1** (priority 0,
+so it paints over the bag sprite at priority 1) at columns 5-12, rows 4-11 — pixels x 40-103, y 32-95.
+It is painted and shown from `PrintItemDescription`, so it tracks the cursor instead of the selection,
+and the description box below it is no longer cleared.
+
+The panel is an opaque white rectangle with rounded corners (`TMHM_BOX_BG_COLOR` = 15, white in the
+menu-info palette at slot 12), so `COLORID_TMHM_INFO` now uses that as its text background rather than
+transparent. The type row is the 32px type icon alone, centred — there is no room for the 42px "TYPE"
+label *and* the icon at 64px wide, and the icon already names its own type.
+
+Geometry was checked against the rendered `graphics/bag/menu.bin` background: the panel clears the
+sort hint (ends x 39), the item icon box (ends x 35), the pocket dots (end y 31), the description box
+(starts y 100) and the item list border (starts x 107). The TM-pocket bag frame's ink is x 45-95,
+y 36-95 — fully inside the panel.
+
+- [ ] **T8d.1 — Appears on hover.** Open the bag, switch to TMs & HMs. The panel is up before you press
+      anything, showing the highlighted TM's type, power, accuracy and PP.
+- [ ] **T8d.2 — Tracks the cursor.** Scroll the list; the values change on every move, including while
+      holding the D-pad (the panel is fully repainted each time — watch for stutter).
+- [ ] **T8d.3 — Description still visible.** The move description stays in its box below the panel,
+      both while hovering and while the Use/Give/Cancel menu is open.
+- [ ] **T8d.4 — Matches the randomized move.** With *Random TM Moves* on, the type, power, accuracy and
+      PP agree with the randomized move — same move the description and disc colour show.
+- [ ] **T8d.5 — Hidden on CANCEL.** Scroll to the CLOSE BAG / CANCEL row; the panel disappears and the
+      backpack comes back.
+- [ ] **T8d.6 — Hidden in other pockets.** Switch left/right out of TMs & HMs; the panel is gone before
+      the slide animation starts and does not flash back.
+- [ ] **T8d.7 — No collisions.** Nothing clips the sort hint, the item icon, the pocket dots, the
+      description box or the item list frame.
+- [ ] **T8d.8 — Dashes, not blanks.** A status move shows `---` for power; a never-miss move shows `---`
+      for accuracy.
+- [ ] **T8d.9 — Three-digit values fit.** Find a 100+ power TM (e.g. a randomized Blizzard/Fire Blast) and
+      confirm the value is not clipped at the right edge — the column is 18px wide starting at x 44.
+- [ ] **T8d.10 — HMs too.** HM rows show their original move's stats.
+- [ ] **T8d.11 — Selling.** Enter the bag from a mart's sell flow, go to TMs & HMs; the panel coexists with
+      the money window (rows 1-2) and the quantity window without overlap.
+- [ ] **T8d.12 — Messages on top.** Toss/sell message boxes (rows 15-18) draw normally; returning to the
+      list restores the panel.
+- [ ] **T8d.13 — No VRAM corruption.** The panel is at baseBlock `0x271`, the first free block after the
+      context-menu windows. Watch the item list and description for garbled tiles — that is what a
+      baseBlock collision looks like.
+
+---
+
 ## Phase 14 — Free TM/HM use
 
 **Status:** ✅ Implemented — **needs in-game verification**
