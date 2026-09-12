@@ -1305,6 +1305,27 @@ static u16 PickRandomTM(u16 seed)
     return ITEM_TM01 + RandomSeededModulo(seed, NUM_TECHNICAL_MACHINES);
 }
 
+#define TM_BAND_MAX_TRIES 64
+
+// A TM you do not already hold, or ITEM_NONE when you hold all fifty.
+//
+// Only when TMs are reusable. With finite TMs a duplicate is a second use and therefore a real
+// reward, so the draw stands as it is -- the same reasoning the TM-to-TM path has always used, and
+// this mirrors its dedup. Reusable TMs make a duplicate worth nothing at all.
+static u16 PickTMNotHeld(u16 seed)
+{
+    u16 tm = PickRandomTM(seed);
+    u8 i;
+
+    if (!gSaveBlock1Ptr->tx_Mode_InfiniteTMs)
+        return tm;
+
+    for (i = 0; i < TM_BAND_MAX_TRIES && CheckBagHasItem(tm, 1); i++)
+        tm = PickRandomTM(seed + i * 37 + 1);
+
+    return CheckBagHasItem(tm, 1) ? ITEM_NONE : tm;
+}
+
 // Weighted item pool. Weights are per-tier totals; divided by tier size they give the per-item
 // ratios below. Scaled by 100 so the thresholds stay integer -- no FPU on this hardware.
 //
@@ -1336,7 +1357,12 @@ static u16 GetWeightedItem(u16 itemId, u8 mapId)
         roll = RandomSeededModulo(itemId + mapId + 0x7A13, ITEM_W_T1 + ITEM_W_TM + ITEM_W_T2);
 
         if (roll >= ITEM_W_T1 && roll < ITEM_W_T1 + ITEM_W_TM)
-            return PickRandomTM(itemId * 11 + mapId * 17 + 0x4B8D);
+        {
+            u16 tm = PickTMNotHeld(itemId * 11 + mapId * 17 + 0x4B8D);
+
+            if (tm != ITEM_NONE)
+                return tm;
+        }
 
         roll = RandomSeededModulo(itemId * 7 + mapId * 13 + 0x2F5B,
                                   ARRAY_COUNT(sItemTier1) + ARRAY_COUNT(sItemTier2));
@@ -1351,7 +1377,14 @@ static u16 GetWeightedItem(u16 itemId, u8 mapId)
     // machines by the move each teaches, and duplicating that here would let the two drift. With
     // the TM pool off it falls back to a flat draw, matching what a found TM does.
     if (roll >= ITEM_W_T1 && roll < ITEM_W_T1 + ITEM_W_TM)
-        return PickRandomTM(itemId * 11 + mapId * 17 + 0x4B8D);
+    {
+        u16 tm = PickTMNotHeld(itemId * 11 + mapId * 17 + 0x4B8D);
+
+        if (tm != ITEM_NONE)
+            return tm;
+        // All fifty already held, so the band has nothing left to give: fall through and roll an
+        // item instead of wasting the pickup on a duplicate.
+    }
 
     if (roll < ITEM_W_T1)                                                            { table = sItemTier1; count = ARRAY_COUNT(sItemTier1); }
     else if (roll < ITEM_W_T1 + ITEM_W_TM + ITEM_W_T2)                               { table = sItemTier2; count = ARRAY_COUNT(sItemTier2); }

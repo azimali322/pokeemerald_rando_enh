@@ -37,6 +37,20 @@ Reaching that ordering costs the band 40.5% of all pickups, because 50 machines 
 near tier 2's. Pushing the *average* TM into that range instead would take roughly 85% of every
 item roll, which would leave the item tiers as a rounding error.
 
+### With REUSABLE TMS on, the band draws without replacement
+
+A reusable TM is never consumed, so a second copy is worth nothing. When that option is on the band
+retries past TMs already in the bag, and once all fifty are held it yields nothing and the pickup
+falls through to the item tiers instead of being wasted.
+
+The band stays 40.50% of pickups the whole way — retrying changes *which* TM you get, not how often
+you get one — until the set is complete, at which point it retires and the item tiers absorb its
+share. Every per-item rate then rises by **1.68×**: tier 1 to 3.361%, tier 2 to 3.176%, tier 5 to
+0.159%.
+
+With finite TMs the draw is left alone. A duplicate there is a second use, so it is a real reward —
+the same reasoning the TM-to-TM path has always used.
+
 ## Never rolled
 
 **23 items appear in no tier table.**
