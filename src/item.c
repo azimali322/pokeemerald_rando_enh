@@ -1338,11 +1338,11 @@ static u16 PickTMNotHeld(u16 seed)
 // a TM already was in the vanilla game, because the pocket check routes TMs to TMs and everything
 // else to non-TMs; nothing in these tables is a TM. Which TM the band yields is left to
 // PickWeightedTM, so the TM tiering keeps deciding that.
-#define ITEM_W_T1  400    // 4.00%
-#define ITEM_W_TM  4050   // 40.50% -- the whole TM band
-#define ITEM_W_T2  1512   // 15.12%
-#define ITEM_W_T3  2224   // 22.24%
-#define ITEM_W_T4  1218   // 12.18%
+#define ITEM_W_T1  504    // 5.04%
+#define ITEM_W_TM  2500   // 25.00% -- the whole TM band
+#define ITEM_W_T2  1906   // 19.06%
+#define ITEM_W_T3  2803   // 28.03%
+#define ITEM_W_T4  1535   // 15.35%
 // tier 5 takes the remaining 1.83%
 
 static u16 GetWeightedItem(u16 itemId, u8 mapId)

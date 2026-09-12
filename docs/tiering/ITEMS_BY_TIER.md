@@ -19,23 +19,22 @@ A band between tiers 1 and 2 now yields one; *which* TM is still decided by the 
 
 | Tier | Contents | n | Weight | Per-item | × uniform |
 |---|---|---:|---:|---:|---:|
-| 1 | Premier hold items | 2 | 4.00% | **2.000%** | 3.4× |
-| — | **TM band** — best TMs / average of 50 | 50 | 40.50% | **1.944%** / 0.810% | 3.3× / 1.4× |
-| 2 | Strong hold items | 8 | 15.12% | **1.890%** | 3.3× |
-| 3 | Other battle hold items | 20 | 22.24% | **1.112%** | 1.9× |
-| 4 | Evolution, balls, species-locked | 29 | 12.18% | **0.420%** | 0.7× |
-| 5 | Healing, vitamins, utility, junk | 63 | 5.96% | **0.095%** | 0.2× |
+| 1 | Premier hold items | 2 | 5.04% | **2.520%** | 4.3× |
+| 2 | Strong hold items | 8 | 19.06% | **2.382%** | 4.1× |
+| 3 | Other battle hold items | 20 | 28.03% | **1.401%** | 2.4× |
+| — | **TM band** — best TMs / average of 50 | 50 | 25.00% | **1.200%** / 0.500% | 2.1× / 0.9× |
+| 4 | Evolution, balls, species-locked | 29 | 15.35% | **0.529%** | 0.9× |
+| 5 | Healing, vitamins, utility, junk | 63 | 7.52% | **0.119%** | 0.2× |
 
-Uniform baseline is 0.5814% across 122 items + 50 TMs.
+Uniform baseline is 0.5814% across 122 items + 50 TMs. Item tiers fall monotonically.
 
 **The TM band is not spread evenly.** `PickWeightedTM` ranks the 50 machines by the move each
-teaches, so a TM carrying a tier-2 move takes 4.8% of the band while a tier-5 one takes 0.75%. The
-two figures above are the best TMs and the flat average; the ordering
-**tier 1 > best TMs > tier 2 > tier 3 > tier 4 > tier 5** holds on the first.
+teaches, so one carrying a tier-2 move takes 4.8% of the band and a tier-5 one takes 0.75%. The two
+figures above are the best TMs and the flat average.
 
-Reaching that ordering costs the band 40.5% of all pickups, because 50 machines each need a rate
-near tier 2's. Pushing the *average* TM into that range instead would take roughly 85% of every
-item roll, which would leave the item tiers as a rounding error.
+At 25% the band turns roughly **86 of the ~343 world pickups** into TMs — about 1.7 copies of each
+of the 50, before the dedup below trims the repeats. Raising it puts TMs above tier 2 but costs
+proportionally: at 40.5% it was ~139 pickups, nearly two in five of everything found.
 
 ### With REUSABLE TMS on, the band draws without replacement
 
