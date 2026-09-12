@@ -29,7 +29,7 @@ rows 12-13 are on PR **#13** and are *not on `master` until that is merged*.
 | 8c | Weighted TM drops + randomized TM moves | ✅ | #6 |
 | 9 | Opponent type display in battle | ✅ | #2 |
 | 10 | Level Cap Candy (party menu) | ✅ | #7 |
-| 11 | Nature / ability reroll cheat | ✅ | #7 |
+| 11 | Nature reroll cheat | ✅ | #7 |
 | 12 | Per-type STAB tiering + physical/special split | ✅ | #12 |
 | 14 | Free TM/HM use — any TM or HM on any Pokemon (`FREE TM/HM USE`) | ✅ | #16 |
 | 13 | STAB/learnset refinements — level-capped STAB injection, guaranteed uncapped same-type move above Lv30, 40% same-type bias on ordinary slots, own-type pool dealt without replacement | ✅ | #13 |

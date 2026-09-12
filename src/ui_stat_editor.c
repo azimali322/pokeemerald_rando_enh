@@ -814,7 +814,7 @@ static void ReloadNewPokemon(u8 taskId)
 }
 
 //tx_randomizer_and_challenges
-// Reroll cheat: SELECT rerolls nature, START rerolls the ability slot.
+// Reroll cheat: SELECT rerolls nature.
 //
 // Nature goes through MON_DATA_HIDDEN_NATURE (the Mint field), NOT the personality value.
 // Personality also determines gender, shininess, Unown letter, Wurmple's evolution branch and
@@ -832,27 +832,6 @@ static void RerollMonNature(void)
 
     SetMonData(mon, MON_DATA_HIDDEN_NATURE, &next);
     CalculateMonStats(mon);
-}
-
-static bool8 RerollMonAbility(void)
-{
-    struct Pokemon *mon = ReturnPartyMon();
-    u16 species = GetMonData(mon, MON_DATA_SPECIES);
-    u8 abilityNum;
-
-    // With either ability randomizer on, GetAbilityBySpecies ignores the stored abilityNum, so
-    // flipping it would change nothing visible. Refuse rather than look broken.
-    if (gSaveBlock1Ptr->tx_Random_Abilities || gSaveBlock1Ptr->tx_Random_AbilitiesVGC != TX_VGC_OFF)
-        return FALSE;
-
-    // abilities[] is only 2 wide in this codebase, and plenty of species leave slot 1 empty.
-    // Writing ABILITY_NONE would blank the summary screen, so refuse instead.
-    if (gSpeciesInfo[species].abilities[1] == ABILITY_NONE)
-        return FALSE;
-
-    abilityNum = GetMonData(mon, MON_DATA_ABILITY_NUM) ? 0 : 1;
-    SetMonData(mon, MON_DATA_ABILITY_NUM, &abilityNum);
-    return TRUE;
 }
 
 static void Task_StatEditorMain(u8 taskId) // input control when first loaded into menu
@@ -878,15 +857,6 @@ static void Task_StatEditorMain(u8 taskId) // input control when first loaded in
     {
         RerollMonNature();
         PlaySE(SE_SELECT);
-        PrintMonStats();
-        return;
-    }
-    if (JOY_NEW(START_BUTTON) && gSaveBlock1Ptr->tx_Features_RerollCheat)
-    {
-        if (RerollMonAbility())
-            PlaySE(SE_SELECT);
-        else
-            PlaySE(SE_FAILURE);     // species has only one ability
         PrintMonStats();
         return;
     }
