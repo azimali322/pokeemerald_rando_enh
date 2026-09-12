@@ -17,24 +17,28 @@ A band between tiers 1 and 2 now yields one; *which* TM is still decided by the 
 
 ## Weights
 
+**No tier exceeds 3× the uniform rate.** That ceiling is the design rule: it keeps tiers 1 to 3 and
+the TMs close enough together that a good pickup is still a surprise rather than a formality.
+
 | Tier | Contents | n | Weight | Per-item | × uniform |
 |---|---|---:|---:|---:|---:|
-| 1 | Premier hold items | 2 | 5.04% | **2.520%** | 4.3× |
-| 2 | Strong hold items | 8 | 19.06% | **2.382%** | 4.1× |
-| 3 | Other battle hold items | 20 | 28.03% | **1.401%** | 2.4× |
-| — | **TM band** — best TMs / average of 50 | 50 | 25.00% | **1.200%** / 0.500% | 2.1× / 0.9× |
-| 4 | Evolution, balls, species-locked | 29 | 15.35% | **0.529%** | 0.9× |
-| 5 | Healing, vitamins, utility, junk | 63 | 7.52% | **0.119%** | 0.2× |
+| 1 | Premier hold items | 2 | 3.49% | **1.745%** | 3.00× |
+| 2 | Strong hold items | 8 | 13.05% | **1.631%** | 2.81× |
+| 3 | Other battle hold items | 20 | 28.05% | **1.403%** | 2.41× |
+| — | **TM band** — best TMs / average of 50 | 50 | 25.00% | **1.200%** / 0.500% | 2.06× / 0.86× |
+| 4 | Evolution, balls, species-locked | 29 | 20.34% | **0.701%** | 1.21× |
+| 5 | Healing, vitamins, utility, junk | 63 | 10.07% | **0.160%** | 0.27× |
 
-Uniform baseline is 0.5814% across 122 items + 50 TMs. Item tiers fall monotonically.
+Uniform baseline is 0.5814% across 122 items + 50 TMs. Tiers 1 to 3 and the TM band now span
+1.200% to 1.745%, a 1.45× spread — they were 2.1× apart before, and 30× apart when the tiering was
+first written.
 
 **The TM band is not spread evenly.** `PickWeightedTM` ranks the 50 machines by the move each
 teaches, so one carrying a tier-2 move takes 4.8% of the band and a tier-5 one takes 0.75%. The two
 figures above are the best TMs and the flat average.
 
-At 25% the band turns roughly **86 of the ~343 world pickups** into TMs — about 1.7 copies of each
-of the 50, before the dedup below trims the repeats. Raising it puts TMs above tier 2 but costs
-proportionally: at 40.5% it was ~139 pickups, nearly two in five of everything found.
+At 25% the band turns roughly **86 of the ~343 world pickups** into TMs, about 1.7 copies of each
+of the 50 before the dedup below trims repeats.
 
 ### With REUSABLE TMS on, the band draws without replacement
 
