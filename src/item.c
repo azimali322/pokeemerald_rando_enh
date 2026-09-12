@@ -19,8 +19,8 @@
 #include "party_menu.h"
 #include "pokemon.h"
 #include "tx_randomizer_and_challenges.h"
-#include "battle_main.h"          // gTypeNames
-#include "data.h"                 // gMoveNames
+#include "data.h"
+#include "pokemon_summary_screen.h"  // gMoveDescriptionPointers
 #include "constants/moves.h"
 
 void ItemId_GetHoldEffectParam_Script();
@@ -1004,58 +1004,73 @@ u8 ItemId_GetHoldEffectParam(u16 itemId)
 }
 
 //tx_randomizer_and_challenges
-// A randomized TM still showed the description of the move it taught in the base game, because
-// that text is a fixed string per TM slot and there is no move-description table in the ROM to
-// swap in. The move's own stats are built into a buffer instead, which is accurate for all 367
-// moves rather than just the 50 that happen to be TMs.
+// A randomized TM still described the move it taught in the base game, because that text is a
+// fixed string per TM slot. gMoveDescriptionPointers -- the same table the battle move-info
+// submenu and the summary screen read -- has a description for every move, so the right one is
+// re-wrapped into the item box here.
 //
-// Three lines, and the item description box wraps at roughly 19 characters -- the longest real
-// line in item_descriptions.h is 19. Worst case here is a 12-character move name, then
-// "FIGHTING  POW 120" at 17 and "ACC 100   PP 40" at 15, so nothing overflows.
-static EWRAM_DATA u8 sRandomizedTMDesc[64] = {0};
+// Re-wrapping is the whole job. Those descriptions are written as two lines up to 29 characters
+// for a wide battle window; the bag's box is 14 tiles, about 109 usable pixels, and three lines.
+// Measured with the real glyph widths, 82 of the 368 descriptions overflow three lines in
+// FONT_NORMAL and none do in FONT_NARROW, so the string carries a font switch of its own. That
+// keeps it to one hook: the bag, the PC, the shop, the storage system and the Pyramid bag all
+// print whatever this returns, and all of them get the narrower font for these.
+#define TM_DESC_WIDTH  109
+#define TM_DESC_LINES    3
 
-static const u8 sText_Pow[] = _("  POW ");
-static const u8 sText_Status[] = _("  STATUS");
-static const u8 sText_Acc[] = _("ACC ");
-static const u8 sText_AccNever[] = _("ACC --");
-static const u8 sText_Pp[] = _("   PP ");
+static EWRAM_DATA u8 sRandomizedTMDesc[96] = {0};
 
 static const u8 *BuildRandomizedTMDescription(u16 itemId)
 {
     u16 move = ItemIdToBattleMoveId(itemId);
-    u8 *p = sRandomizedTMDesc;
+    const u8 *src;
+    u8 *out = sRandomizedTMDesc;
+    u8 *lineStart;
+    u8 *lastSpace = NULL;
+    u8 lines = 1;
 
     if (move == MOVE_NONE || move >= MOVES_COUNT)
         return gItems[SanitizeItemId(itemId)].description;
 
-    p = StringCopy(p, gMoveNames[move]);
-    *p++ = CHAR_NEWLINE;
+    *out++ = EXT_CTRL_CODE_BEGIN;
+    *out++ = EXT_CTRL_CODE_FONT;
+    *out++ = FONT_NARROW;
+    lineStart = out;
 
-    p = StringCopy(p, gTypeNames[gBattleMoves[move].type]);
-    if (gBattleMoves[move].power > 1)
+    // Copy a character at a time, remembering the last space, and break there as soon as the line
+    // would be too wide. The source's own line breaks become spaces so the wrap is ours, not one
+    // inherited from a window of a different width.
+    for (src = gMoveDescriptionPointers[move - 1]; *src != EOS; src++)
     {
-        p = StringCopy(p, sText_Pow);
-        p = ConvertIntToDecimalStringN(p, gBattleMoves[move].power, STR_CONV_MODE_LEFT_ALIGN, 3);
-    }
-    else
-    {
-        p = StringCopy(p, sText_Status);
-    }
-    *p++ = CHAR_NEWLINE;
+        u8 c = (*src == CHAR_NEWLINE || *src == CHAR_PROMPT_SCROLL || *src == CHAR_PROMPT_CLEAR)
+             ? CHAR_SPACE : *src;
 
-    // Accuracy 0 means the move cannot miss, which is worth saying rather than printing "ACC 0".
-    if (gBattleMoves[move].accuracy == 0)
-    {
-        p = StringCopy(p, sText_AccNever);
-    }
-    else
-    {
-        p = StringCopy(p, sText_Acc);
-        p = ConvertIntToDecimalStringN(p, gBattleMoves[move].accuracy, STR_CONV_MODE_LEFT_ALIGN, 3);
-    }
-    p = StringCopy(p, sText_Pp);
-    ConvertIntToDecimalStringN(p, gBattleMoves[move].pp, STR_CONV_MODE_LEFT_ALIGN, 2);
+        if (out >= &sRandomizedTMDesc[ARRAY_COUNT(sRandomizedTMDesc) - 2])
+            break;
 
+        *out = c;
+        out[1] = EOS;
+
+        if (c == CHAR_SPACE)
+        {
+            lastSpace = out;
+        }
+        else if (GetStringWidth(FONT_NARROW, lineStart, 0) > TM_DESC_WIDTH && lastSpace != NULL)
+        {
+            if (lines == TM_DESC_LINES)
+            {
+                out = lastSpace;        // no room for another line; stop at the last whole word
+                break;
+            }
+            *lastSpace = CHAR_NEWLINE;
+            lineStart = lastSpace + 1;
+            lastSpace = NULL;
+            lines++;
+        }
+        out++;
+    }
+
+    *out = EOS;
     return sRandomizedTMDesc;
 }
 
