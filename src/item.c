@@ -19,6 +19,9 @@
 #include "party_menu.h"
 #include "pokemon.h"
 #include "tx_randomizer_and_challenges.h"
+#include "battle_main.h"          // gTypeNames
+#include "data.h"                 // gMoveNames
+#include "constants/moves.h"
 
 void ItemId_GetHoldEffectParam_Script();
 
@@ -1000,8 +1003,70 @@ u8 ItemId_GetHoldEffectParam(u16 itemId)
     return gItems[SanitizeItemId(itemId)].holdEffectParam;
 }
 
+//tx_randomizer_and_challenges
+// A randomized TM still showed the description of the move it taught in the base game, because
+// that text is a fixed string per TM slot and there is no move-description table in the ROM to
+// swap in. The move's own stats are built into a buffer instead, which is accurate for all 367
+// moves rather than just the 50 that happen to be TMs.
+//
+// Three lines, and the item description box wraps at roughly 19 characters -- the longest real
+// line in item_descriptions.h is 19. Worst case here is a 12-character move name, then
+// "FIGHTING  POW 120" at 17 and "ACC 100   PP 40" at 15, so nothing overflows.
+static EWRAM_DATA u8 sRandomizedTMDesc[64] = {0};
+
+static const u8 sText_Pow[] = _("  POW ");
+static const u8 sText_Status[] = _("  STATUS");
+static const u8 sText_Acc[] = _("ACC ");
+static const u8 sText_AccNever[] = _("ACC --");
+static const u8 sText_Pp[] = _("   PP ");
+
+static const u8 *BuildRandomizedTMDescription(u16 itemId)
+{
+    u16 move = ItemIdToBattleMoveId(itemId);
+    u8 *p = sRandomizedTMDesc;
+
+    if (move == MOVE_NONE || move >= MOVES_COUNT)
+        return gItems[SanitizeItemId(itemId)].description;
+
+    p = StringCopy(p, gMoveNames[move]);
+    *p++ = CHAR_NEWLINE;
+
+    p = StringCopy(p, gTypeNames[gBattleMoves[move].type]);
+    if (gBattleMoves[move].power > 1)
+    {
+        p = StringCopy(p, sText_Pow);
+        p = ConvertIntToDecimalStringN(p, gBattleMoves[move].power, STR_CONV_MODE_LEFT_ALIGN, 3);
+    }
+    else
+    {
+        p = StringCopy(p, sText_Status);
+    }
+    *p++ = CHAR_NEWLINE;
+
+    // Accuracy 0 means the move cannot miss, which is worth saying rather than printing "ACC 0".
+    if (gBattleMoves[move].accuracy == 0)
+    {
+        p = StringCopy(p, sText_AccNever);
+    }
+    else
+    {
+        p = StringCopy(p, sText_Acc);
+        p = ConvertIntToDecimalStringN(p, gBattleMoves[move].accuracy, STR_CONV_MODE_LEFT_ALIGN, 3);
+    }
+    p = StringCopy(p, sText_Pp);
+    ConvertIntToDecimalStringN(p, gBattleMoves[move].pp, STR_CONV_MODE_LEFT_ALIGN, 2);
+
+    return sRandomizedTMDesc;
+}
+
 const u8 *ItemId_GetDescription(u16 itemId)
 {
+    //tx_randomizer_and_challenges: only TMs, and only once their moves have been shuffled. HMs
+    // are never randomized, so their descriptions are already right.
+    if (gSaveBlock1Ptr->tx_Random_TMs
+        && itemId >= ITEM_TM01 && itemId < ITEM_TM01 + NUM_TECHNICAL_MACHINES)
+        return BuildRandomizedTMDescription(itemId);
+
     return gItems[SanitizeItemId(itemId)].description;
 }
 
