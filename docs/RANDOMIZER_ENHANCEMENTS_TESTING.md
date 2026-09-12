@@ -1038,20 +1038,21 @@ Back up your `.sav` before this section.
 
 ---
 
-## Phase 11 — Ability / nature reroll cheat
+## Phase 11 — Nature reroll cheat
 
 **Status:** ✅ Implemented — **needs in-game verification**
 
-In the stat editor, gated on *Reroll Cheat*: **SELECT** rerolls nature, **START** rerolls the ability slot.
-L/R/A/B/D-pad were all already bound.
+In the stat editor, gated on *Reroll Cheat*: **SELECT** rerolls nature. L/R/A/B/D-pad were all already
+bound.
 
 Nature goes through `MON_DATA_HIDDEN_NATURE` (the Mint field), **not** the personality value — personality
 also decides gender, shininess, Unown letter, Wurmple's branch and Spinda's spots.
 
-Two refusals, both playing `SE_FAILURE` rather than silently doing nothing:
-- species whose `abilities[1]` is `ABILITY_NONE` (writing it would blank the summary)
-- **either ability randomizer being on** — `GetAbilityBySpecies` ignores the stored `abilityNum` in that
-  case, so the button would appear broken. This was `T11.10`.
+**The ability reroll was removed.** It flipped `MON_DATA_ABILITY_NUM` between the species' two slots, and
+refused (playing `SE_FAILURE`) whenever either ability randomizer was on, because `GetAbilityBySpecies`
+ignores the stored slot in that case and the button would have appeared to do nothing. With the shipped
+defaults turning *Abilities* and *Ability Pool* on, that refusal was the normal outcome rather than the
+edge case, so the feature was dropped instead of kept as a button that usually beeps.
 
 - [ ] **T11.1 — Gated.** `tx_Features_RerollCheat` Off → no reroll UI.
 - [ ] **T11.2 — Visible when on** and discoverable.
@@ -1061,14 +1062,8 @@ Two refusals, both playing `SE_FAILURE` rather than silently doing nothing:
 - [ ] **T11.5 — Personality untouched (critical).** After a nature reroll, verify **gender**, **shininess**,
       **Unown letter**, and **Spinda spots** are unchanged. Any change means `MON_DATA_PERSONALITY` was
       rerolled instead of `MON_DATA_HIDDEN_NATURE` — the bug this design exists to avoid.
-- [ ] **T11.6 — Ability rerolls** between the species' two slots.
-- [ ] **T11.7 — Single-ability species.** Graceful "no effect" message rather than writing `ABILITY_NONE`.
-      Check the summary isn't left blank.
+- [ ] **T11.6 — START does nothing.** The ability reroll is gone; START must not be bound in the editor.
 - [ ] **T11.8 — Persists** across save/reload.
-- [ ] **T11.9 — Battle agreement.** The rerolled ability actually triggers.
-- [ ] **T11.10 — Randomizer interaction.** With *Random Abilities* or *VGC Abilities* On,
-      `GetAbilityBySpecies` overrides the stored `abilityNum` — the button appears to do nothing. Verify the
-      chosen handling (disabled, or a message). **Unhandled, this reads as a broken feature.**
 - [ ] **T11.11 — Existing editor intact.** EV/IV editing still works; the cursor moves correctly through the
       6×2 grid and the new mode doesn't strand it.
 - [ ] **T11.12 — Mint interaction.** Rerolling on a mon with a Mint already applied overwrites cleanly.

@@ -55,7 +55,7 @@ options off, the game plays exactly like stock Modern Emerald.
 | **Opponent type display** | The opposing Pokémon's type icon(s) shown during move selection, so you can read a matchup without leaving the battle. Follows your target in double battles. |
 | **Cheap shop** | Ultra Balls at ₽1, plus every evolution stone and trade-evolution held item stocked at Lilycove Dept. Store 3F for ₽1. The Self-trader one floor below drops from ₽10,000 to ₽1, which makes every trade evolution reachable without a link cable. |
 | **Level Cap Candy** | A key item that raises a Pokémon to the current level cap, **stopping at each level-up move and each evolution** so you keep every choice. Only given when a level cap is set. |
-| **Reroll cheat** | In the stat editor, reroll a Pokémon's nature and ability slot. |
+| **Reroll cheat** | In the stat editor, press **SELECT** to reroll a Pokémon's nature. Writes the Mint field, not the personality value, so gender, shininess, Unown letter and Spinda spots are untouched. |
 
 ## Still in progress
 
