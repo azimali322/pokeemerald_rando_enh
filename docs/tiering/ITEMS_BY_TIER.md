@@ -1,5 +1,9 @@
 # Randomizable Items — tier assignment
 
+> **Berries are no longer in this pool.** All 43 moved to their own tiers for the berry-tree
+> randomizer — see [BERRIES.md](BERRIES.md). Tier sizes here are 2/8/20/29/63, and the weights were
+> rebalanced to keep the per-item ratios this tiering was built around.
+
 Tiered for the way you play: a cheat heal item covers healing, EVs are set manually, and Ultra Balls
 are buyable at ₽1. So healing, battle items, vitamins and balls carry almost no value here even though
 a general tier list would rank some of them highly.

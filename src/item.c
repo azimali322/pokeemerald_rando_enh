@@ -1301,10 +1301,13 @@ static u16 PickWeightedTM(u16 seed)
 // while the 10x step below it pushes healing, vitamins and utility effectively out of the pool.
 //
 // Scaled by 100 so the thresholds stay integer -- no FPU on this hardware.
-#define ITEM_W_T1 1859   // 18.59%
-#define ITEM_W_T2 1859   // 18.59%
-#define ITEM_W_T3 4647   // 46.47%
-#define ITEM_W_T4 1452   // 14.52%
+// Rebalanced when the 43 berries left these tables for the berry-tree pool. Tier sizes went
+// from 4/8/40/50/63 to 2/8/20/29/63, so the weights had to move with them to keep the
+// per-item ratios the tiers were built around: T1 = 2x T2 = 4x T3 = 16x T4 = 160x T5.
+#define ITEM_W_T1 1514   // 15.14%
+#define ITEM_W_T2 3029   // 30.29%
+#define ITEM_W_T3 3786   // 37.86%
+#define ITEM_W_T4 1372   // 13.72%
 // tier 5 takes the remaining 1.83%
 
 static u16 GetWeightedItem(u16 itemId, u8 mapId)

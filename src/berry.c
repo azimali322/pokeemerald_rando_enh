@@ -14,6 +14,7 @@
 #include "text.h"
 #include "constants/event_object_movement.h"
 #include "constants/items.h"
+#include "tx_randomizer_and_challenges.h"   //tx_randomizer_and_challenges
 #include "constants/map_groups.h"
 
 static u32 GetEnigmaBerryChecksum(struct EnigmaBerry *enigmaBerry);
@@ -1143,9 +1144,64 @@ void RemoveBerryTree(u8 id)
     gSaveBlock1Ptr->berryTrees[id] = gBlankBerryTree;
 }
 
+//tx_randomizer_and_challenges
+// Berries were 26% of the tiered item pool and 38.6% of everything the item randomizer handed out,
+// which drowned the rest of it. They are out of that pool entirely now and come from berry trees
+// instead, weighted by their own tiers -- so berries are still common, but you go and pick them.
+//
+// Tiering follows the item data's own line: 22 berries do something when held, 21 do nothing, and
+// the 21 sit together at the bottom. Reachable at 0.457% each rather than absent.
+//
+// Seeded on the tree and on what is planted in it, so a tree is stable across visits while two
+// plantings of different berries in the same plot still differ. Weighted item pool only -- with it
+// off, berries stay in the item pool and trees behave as they always did.
+#define BERRY_W_T1 3670
+#define BERRY_W_T2 2750
+#define BERRY_W_T3 1700
+#define BERRY_W_T4  920
+// T5 takes the remaining 960
+
+#include "data/pokemon/berry_tiers.h"
+
+static u8 GetWeightedBerry(u8 treeId, u8 plantedBerry)
+{
+    const u16 *table;
+    u16 count, roll;
+
+    // Strict draws from tiers 1 and 2 only -- 11 berries, so a run will repeat them.
+    if (gSaveBlock1Ptr->tx_Random_ItemsVGC == TX_VGC_STRICT)
+    {
+        roll = RandomSeededModulo(treeId * 7 + plantedBerry * 13 + 0x63C1,
+                                  ARRAY_COUNT(sBerryTier1) + ARRAY_COUNT(sBerryTier2));
+        if (roll < ARRAY_COUNT(sBerryTier1))
+            return ItemIdToBerryType(sBerryTier1[roll]);
+        return ItemIdToBerryType(sBerryTier2[roll - ARRAY_COUNT(sBerryTier1)]);
+    }
+
+    roll = RandomSeededModulo(treeId + plantedBerry + 0x1E27, 10000);
+
+    if (roll < BERRY_W_T1)                                                 { table = sBerryTier1; count = ARRAY_COUNT(sBerryTier1); }
+    else if (roll < BERRY_W_T1 + BERRY_W_T2)                               { table = sBerryTier2; count = ARRAY_COUNT(sBerryTier2); }
+    else if (roll < BERRY_W_T1 + BERRY_W_T2 + BERRY_W_T3)                  { table = sBerryTier3; count = ARRAY_COUNT(sBerryTier3); }
+    else if (roll < BERRY_W_T1 + BERRY_W_T2 + BERRY_W_T3 + BERRY_W_T4)     { table = sBerryTier4; count = ARRAY_COUNT(sBerryTier4); }
+    else                                                                   { table = sBerryTier5; count = ARRAY_COUNT(sBerryTier5); }
+
+    // Different linear combination from the tier roll, or each tier locks to one berry.
+    return ItemIdToBerryType(table[RandomSeededModulo(treeId * 7 + plantedBerry * 13 + 0x63C1, count)]);
+}
+
 u8 GetBerryTypeByBerryTreeId(u8 id)
 {
-    return gSaveBlock1Ptr->berryTrees[id].berry;
+    u8 berry = gSaveBlock1Ptr->berryTrees[id].berry;
+
+    //tx_randomizer_and_challenges: the one place a tree's berry is read, so the name shown, the
+    // count message and what lands in the bag all agree.
+    if (berry != 0
+        && gSaveBlock1Ptr->tx_Random_Items
+        && gSaveBlock1Ptr->tx_Random_ItemsVGC != TX_VGC_OFF)
+        return GetWeightedBerry(id, berry);
+
+    return berry;
 }
 
 u8 GetStageByBerryTreeId(u8 id)
