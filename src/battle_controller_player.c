@@ -1904,25 +1904,54 @@ static void MoveSelectionDisplaySTAB(void) //Displays STAB icon
 
 
 //tx_randomizer_and_challenges
-// Show the current target's type(s) during move selection, so you can read the matchup without
-// leaving the battle. Reuses the move-type icon sheet, which already has one 32x16 icon per type.
+// Show both sides' type(s) during move selection, so you can read the matchup without leaving the
+// battle. Reuses the move-type icon sheet, which already has one 32x16 icon per type.
+//
+// One 8x2 window per side carries both icons side by side. Two windows rather than four, because
+// battle already occupies ids 0..29 of the 32 in gWindows and the health box AddWindows the rest.
 //
 // Types come from gBattleMons, not gSpeciesInfo: that is live battle state, so this is correct
 // under the Modern/Fairy type modes, the type randomizer, and mid-battle changes like Conversion.
+static void MoveSelectionHideTypeWindow(u8 windowId)
+{
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    ClearWindowTilemap(windowId);
+    CopyWindowToVram(windowId, COPYWIN_FULL);
+}
+
 static void MoveSelectionHideOpponentTypes(void)
 {
-    FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_1, PIXEL_FILL(0));
-    FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_2, PIXEL_FILL(0));
-    ClearWindowTilemap(B_WIN_OPPONENT_TYPE_1);
-    ClearWindowTilemap(B_WIN_OPPONENT_TYPE_2);
-    CopyWindowToVram(B_WIN_OPPONENT_TYPE_1, COPYWIN_FULL);
-    CopyWindowToVram(B_WIN_OPPONENT_TYPE_2, COPYWIN_FULL);
+    MoveSelectionHideTypeWindow(B_WIN_OPPONENT_TYPES);
+    MoveSelectionHideTypeWindow(B_WIN_PLAYER_TYPES);
+}
+
+// Draws battlerId's types into windowId. Mono-types store the same type twice, so only the first
+// icon is drawn and the rest of the window is left transparent rather than showing an empty box.
+static void MoveSelectionDrawTypesFor(u8 windowId, u8 battlerId)
+{
+    u8 type1, type2;
+
+    if (battlerId >= MAX_BATTLERS_COUNT || gBattleMons[battlerId].species == SPECIES_NONE)
+    {
+        MoveSelectionHideTypeWindow(windowId);
+        return;
+    }
+
+    type1 = gBattleMons[battlerId].type1;
+    type2 = gBattleMons[battlerId].type2;
+
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    BlitBitmapToWindow(windowId, (const u8 *)&sMoveTypeIcons_Gfx[(type1 * 0x100) / 4], 0, 0, 32, 16);
+
+    if (type2 != type1)
+        BlitBitmapToWindow(windowId, (const u8 *)&sMoveTypeIcons_Gfx[(type2 * 0x100) / 4], 32, 0, 32, 16);
+
+    PutWindowTilemap(windowId);
+    CopyWindowToVram(windowId, COPYWIN_FULL);
 }
 
 static void MoveSelectionDisplayOpponentTypes(u8 targetId)
 {
-    u8 type1, type2;
-
     // Tied to the same option as the effectiveness and STAB hints: a player who turns those off
     // does not want a type readout either.
     if (gSaveBlock2Ptr->optionTypeEffective != 0)
@@ -1931,35 +1960,10 @@ static void MoveSelectionDisplayOpponentTypes(u8 targetId)
         return;
     }
 
-    if (targetId >= MAX_BATTLERS_COUNT || gBattleMons[targetId].species == SPECIES_NONE)
-    {
-        MoveSelectionHideOpponentTypes();
-        return;
-    }
-
-    type1 = gBattleMons[targetId].type1;
-    type2 = gBattleMons[targetId].type2;
-
     LoadPalette(sMoveTypeIcons_Pal, 13 * 16, 32);
 
-    FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_1, PIXEL_FILL(15));
-    BlitBitmapToWindow(B_WIN_OPPONENT_TYPE_1, (const u8 *)&sMoveTypeIcons_Gfx[(type1 * 0x100) / 4], 0, 0, 32, 16);
-    PutWindowTilemap(B_WIN_OPPONENT_TYPE_1);
-    CopyWindowToVram(B_WIN_OPPONENT_TYPE_1, COPYWIN_FULL);
-
-    if (type2 != type1)     // mono-type mons store the same type twice; don't draw it again
-    {
-        FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_2, PIXEL_FILL(15));
-        BlitBitmapToWindow(B_WIN_OPPONENT_TYPE_2, (const u8 *)&sMoveTypeIcons_Gfx[(type2 * 0x100) / 4], 0, 0, 32, 16);
-        PutWindowTilemap(B_WIN_OPPONENT_TYPE_2);
-        CopyWindowToVram(B_WIN_OPPONENT_TYPE_2, COPYWIN_FULL);
-    }
-    else
-    {
-        FillWindowPixelBuffer(B_WIN_OPPONENT_TYPE_2, PIXEL_FILL(0));
-        ClearWindowTilemap(B_WIN_OPPONENT_TYPE_2);
-        CopyWindowToVram(B_WIN_OPPONENT_TYPE_2, COPYWIN_FULL);
-    }
+    MoveSelectionDrawTypesFor(B_WIN_OPPONENT_TYPES, targetId);
+    MoveSelectionDrawTypesFor(B_WIN_PLAYER_TYPES, gActiveBattler);
 }
 
 static void MoveSelectionDisplayMoveTypeDoubles(u8 targetId)
