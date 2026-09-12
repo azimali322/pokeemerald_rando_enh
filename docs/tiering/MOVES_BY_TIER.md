@@ -11,11 +11,11 @@ Used by the VGC move pool (Phase 5) and TM weighting (Phase 8c).
 | Tier | Community name | Moves | Share |
 |---|---|---:|---:|
 | 1 | Meta Defining | 3 | 0.8% |
-| 2 | Staples | 27 | 7.4% |
-| 3 | Filler/Outclassed | 94 | 25.6% |
-| 4 | Niche | 160 | 43.6% |
+| 2 | Staples | 26 | 7.1% |
+| 3 | Filler/Outclassed | 90 | 24.5% |
+| 4 | Niche | 157 | 42.8% |
 | 5 | Bad | 72 | 19.6% |
-| 6 | Pokemon Homeless | 11 | 3.0% |
+| 6 | Pokemon Homeless | 19 | 5.2% |
 | | **Total** | **367** | |
 
 ## Weights — implemented
@@ -24,12 +24,12 @@ Used by the VGC move pool (Phase 5) and TM weighting (Phase 8c).
 
 | Tier | n | Weight | Per-move | × uniform |
 |---|---:|---:|---:|---:|
-| 1 Meta Defining | 3 | 4% | 1.400% | 5.14× |
-| 2 Staples | 26 | 24% | 0.925% | 3.39× |
-| 3 Filler | 93 | 38% | 0.408% | 1.50× |
+| 1 Meta Defining | 3 | 4% | 1.333% | 4.89× |
+| 2 Staples | 26 | 24% | 0.923% | 3.39× |
+| 3 Filler | 90 | 38% | 0.422% | 1.55× |
 | 4 Niche | 157 | 27% | 0.172% | 0.63× |
-| 5 Bad | 73 | 6% | 0.080% | 0.29× |
-| 6 Homeless | 15 | 1% | 0.062% | 0.23× |
+| 5 Bad | 72 | 6% | 0.083% | 0.31× |
+| 6 Homeless | 19 | 1% | 0.053% | 0.19× |
 
 Uniform baseline is 0.272% per move. *Strict* mode draws from tiers 1+2 together (29 moves) — tier 1
 alone is 3 moves, which would give every Pokémon the same moveset.
@@ -97,7 +97,7 @@ would cost you a lot of usable options.
   [ ] PROTECT               [TM] pow=  0 acc=  0 NORMAL  STAT pp=10  PROTECT
 ```
 
-## Tier 2 — Staples (27)
+## Tier 2 — Staples (26)
 
 ```
   [ ] ERUPTION                   pow=150 acc=100 FIRE    SPEC pp= 5  ERUPTION
@@ -129,7 +129,7 @@ would cost you a lot of usable options.
   [ ] SWORDS_DANCE               pow=  0 acc=  0 NORMAL  STAT pp=20  ATTACK_UP_2
 ```
 
-## Tier 3 — Filler/Outclassed (94)
+## Tier 3 — Filler/Outclassed (90)
 
 ```
   [ ] BLAST_BURN                 pow=150 acc= 90 FIRE    SPEC pp= 5  RECHARGE
@@ -186,11 +186,8 @@ would cost you a lot of usable options.
   [ ] BEAT_UP                    pow= 10 acc=100 DARK    PHYS pp=10  BEAT_UP
   [ ] COUNTER                    pow=  1 acc=100 FIGHTINGPHYS pp=20  COUNTER
   [ ] ENDEAVOR                   pow=  1 acc=100 NORMAL  PHYS pp= 5  ENDEAVOR
-  [ ] FISSURE                    pow=  1 acc= 30 GROUND  PHYS pp= 5  OHKO
   [ ] FLAIL                      pow=  1 acc=100 NORMAL  PHYS pp=15  FLAIL
   [ ] FRUSTRATION           [TM] pow=  1 acc=100 NORMAL  PHYS pp=20  FRUSTRATION
-  [ ] GUILLOTINE                 pow=  1 acc= 30 NORMAL  PHYS pp= 5  OHKO
-  [ ] HORN_DRILL                 pow=  1 acc= 30 NORMAL  PHYS pp= 5  OHKO
   [ ] MIRROR_COAT                pow=  1 acc=100 PSYCHIC SPEC pp=20  MIRROR_COAT
   [ ] RETURN                [TM] pow=  1 acc=100 NORMAL  PHYS pp=20  RETURN
   [ ] SUPER_FANG                 pow=  1 acc= 90 NORMAL  PHYS pp=10  SUPER_FANG
@@ -228,7 +225,7 @@ would cost you a lot of usable options.
   [ ] YAWN                       pow=  0 acc=100 NORMAL  STAT pp=10  YAWN
 ```
 
-## Tier 4 — Niche (160)
+## Tier 4 — Niche (157)
 
 ```
   [ ] FOCUS_PUNCH           [TM] pow=150 acc=100 FIGHTINGPHYS pp=20  FOCUS_PUNCH
@@ -329,7 +326,6 @@ would cost you a lot of usable options.
   [ ] BIDE                       pow=  1 acc=100 NORMAL  PHYS pp=10  BIDE
   [ ] REVERSAL                   pow=  1 acc=100 FIGHTINGPHYS pp=15  FLAIL
   [ ] SEISMIC_TOSS               pow=  1 acc=100 FIGHTINGPHYS pp=20  LEVEL_DAMAGE
-  [ ] SHEER_COLD                 pow=  1 acc= 30 ICE     SPEC pp= 5  OHKO
   [ ] ASSIST                     pow=  0 acc=100 NORMAL  STAT pp=20  ASSIST
   [ ] BARRIER                    pow=  0 acc=  0 PSYCHIC STAT pp=20  DEFENSE_UP_2
   [ ] BLOCK                      pow=  0 acc=100 NORMAL  STAT pp= 5  MEAN_LOOK
@@ -470,19 +466,27 @@ would cost you a lot of usable options.
   [ ] WITHDRAW                   pow=  0 acc=  0 WATER   STAT pp=40  DEFENSE_UP
 ```
 
-## Tier 6 — Pokemon Homeless (11)
+## Tier 6 — Pokemon Homeless (19)
 
 ```
-  [ ] EXPLOSION                  pow=250 acc=100 NORMAL  PHYS pp= 5  EXPLOSION <-- NUZLOCKE
-  [ ] SELF_DESTRUCT              pow=200 acc=100 NORMAL  PHYS pp= 5  EXPLOSION <-- NUZLOCKE
-  [ ] HI_JUMP_KICK               pow=100 acc= 90 FIGHTINGPHYS pp=10  RECOIL_IF_MISS
-  [ ] SUBMISSION                 pow= 80 acc= 80 FIGHTINGPHYS pp=20  RECOIL
-  [ ] THUNDER_PUNCH              pow= 75 acc=100 ELECTRICPHYS pp=15  PARALYZE_HIT
-  [ ] DOUBLE_KICK                pow= 30 acc=100 FIGHTINGPHYS pp=30  DOUBLE_HIT
-  [ ] SMOG                       pow= 30 acc= 70 POISON  SPEC pp=20  POISON_HIT
-  [ ] DOUBLE_TEAM           [TM] pow=  0 acc=  0 NORMAL  STAT pp=15  EVASION_UP
-  [ ] MEMENTO                    pow=  0 acc=100 DARK    STAT pp=10  MEMENTO <-- NUZLOCKE
-  [ ] SMOKESCREEN                pow=  0 acc=100 NORMAL  STAT pp=20  ACCURACY_DOWN
-  [ ] TRICK                      pow=  0 acc=100 PSYCHIC STAT pp=10  TRICK
+  [ ] EXPLOSION                     pow=250 acc=100 NORMAL  PHYS  pp= 5  EXPLOSION
+  [ ] SELF_DESTRUCT                 pow=200 acc=100 NORMAL  PHYS  pp= 5  EXPLOSION
+  [ ] HI_JUMP_KICK                  pow=100 acc= 90 FIGHTINGPHYS  pp=10  RECOIL_IF_MISS
+  [ ] JUMP_KICK                     pow= 85 acc= 95 FIGHTINGPHYS  pp=10  RECOIL_IF_MISS
+  [ ] SUBMISSION                    pow= 80 acc= 80 FIGHTINGPHYS  pp=20  RECOIL
+  [ ] THUNDER_PUNCH                 pow= 75 acc=100 ELECTRICPHYS  pp=15  PARALYZE_HIT
+  [ ] STRUGGLE                      pow= 50 acc=100 NORMAL  PHYS  pp= 1  RECOIL
+  [ ] DOUBLE_KICK                   pow= 30 acc=100 FIGHTINGPHYS  pp=30  DOUBLE_HIT
+  [ ] SMOG                          pow= 30 acc= 70 POISON  SPEC  pp=20  POISON_HIT
+  [ ] FISSURE                       pow=  1 acc= 30 GROUND  PHYS  pp= 5  OHKO
+  [ ] GUILLOTINE                    pow=  1 acc= 30 NORMAL  PHYS  pp= 5  OHKO
+  [ ] HORN_DRILL                    pow=  1 acc= 30 NORMAL  PHYS  pp= 5  OHKO
+  [ ] SHEER_COLD                    pow=  1 acc= 30 ICE     SPEC  pp= 5  OHKO
+  [ ] CURSE                         pow=  0 acc=  0 MYSTERY STAT  pp=10  CURSE
+  [ ] DOUBLE_TEAM              [TM] pow=  0 acc=  0 NORMAL  STAT  pp=15  EVASION_UP
+  [ ] MEMENTO                       pow=  0 acc=100 DARK    STAT  pp=10  MEMENTO
+  [ ] PERISH_SONG                   pow=  0 acc=  0 NORMAL  STAT  pp= 5  PERISH_SONG
+  [ ] SMOKESCREEN                   pow=  0 acc=100 NORMAL  STAT  pp=20  ACCURACY_DOWN
+  [ ] TRICK                         pow=  0 acc=100 PSYCHIC STAT  pp=10  TRICK
 ```
 
