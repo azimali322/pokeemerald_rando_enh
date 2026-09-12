@@ -19,6 +19,9 @@
 #include "party_menu.h"
 #include "pokemon.h"
 #include "tx_randomizer_and_challenges.h"
+#include "data.h"
+#include "pokemon_summary_screen.h"  // gMoveDescriptionPointers
+#include "constants/moves.h"
 
 void ItemId_GetHoldEffectParam_Script();
 
@@ -1000,8 +1003,85 @@ u8 ItemId_GetHoldEffectParam(u16 itemId)
     return gItems[SanitizeItemId(itemId)].holdEffectParam;
 }
 
+//tx_randomizer_and_challenges
+// A randomized TM still described the move it taught in the base game, because that text is a
+// fixed string per TM slot. gMoveDescriptionPointers -- the same table the battle move-info
+// submenu and the summary screen read -- has a description for every move, so the right one is
+// re-wrapped into the item box here.
+//
+// Re-wrapping is the whole job. Those descriptions are written as two lines up to 29 characters
+// for a wide battle window; the bag's box is 14 tiles, about 109 usable pixels, and three lines.
+// Measured with the real glyph widths, 82 of the 368 descriptions overflow three lines in
+// FONT_NORMAL and none do in FONT_NARROW, so the string carries a font switch of its own. That
+// keeps it to one hook: the bag, the PC, the shop, the storage system and the Pyramid bag all
+// print whatever this returns, and all of them get the narrower font for these.
+#define TM_DESC_WIDTH  109
+#define TM_DESC_LINES    3
+
+static EWRAM_DATA u8 sRandomizedTMDesc[96] = {0};
+
+static const u8 *BuildRandomizedTMDescription(u16 itemId)
+{
+    u16 move = ItemIdToBattleMoveId(itemId);
+    const u8 *src;
+    u8 *out = sRandomizedTMDesc;
+    u8 *lineStart;
+    u8 *lastSpace = NULL;
+    u8 lines = 1;
+
+    if (move == MOVE_NONE || move >= MOVES_COUNT)
+        return gItems[SanitizeItemId(itemId)].description;
+
+    *out++ = EXT_CTRL_CODE_BEGIN;
+    *out++ = EXT_CTRL_CODE_FONT;
+    *out++ = FONT_NARROW;
+    lineStart = out;
+
+    // Copy a character at a time, remembering the last space, and break there as soon as the line
+    // would be too wide. The source's own line breaks become spaces so the wrap is ours, not one
+    // inherited from a window of a different width.
+    for (src = gMoveDescriptionPointers[move - 1]; *src != EOS; src++)
+    {
+        u8 c = (*src == CHAR_NEWLINE || *src == CHAR_PROMPT_SCROLL || *src == CHAR_PROMPT_CLEAR)
+             ? CHAR_SPACE : *src;
+
+        if (out >= &sRandomizedTMDesc[ARRAY_COUNT(sRandomizedTMDesc) - 2])
+            break;
+
+        *out = c;
+        out[1] = EOS;
+
+        if (c == CHAR_SPACE)
+        {
+            lastSpace = out;
+        }
+        else if (GetStringWidth(FONT_NARROW, lineStart, 0) > TM_DESC_WIDTH && lastSpace != NULL)
+        {
+            if (lines == TM_DESC_LINES)
+            {
+                out = lastSpace;        // no room for another line; stop at the last whole word
+                break;
+            }
+            *lastSpace = CHAR_NEWLINE;
+            lineStart = lastSpace + 1;
+            lastSpace = NULL;
+            lines++;
+        }
+        out++;
+    }
+
+    *out = EOS;
+    return sRandomizedTMDesc;
+}
+
 const u8 *ItemId_GetDescription(u16 itemId)
 {
+    //tx_randomizer_and_challenges: only TMs, and only once their moves have been shuffled. HMs
+    // are never randomized, so their descriptions are already right.
+    if (gSaveBlock1Ptr->tx_Random_TMs
+        && itemId >= ITEM_TM01 && itemId < ITEM_TM01 + NUM_TECHNICAL_MACHINES)
+        return BuildRandomizedTMDescription(itemId);
+
     return gItems[SanitizeItemId(itemId)].description;
 }
 

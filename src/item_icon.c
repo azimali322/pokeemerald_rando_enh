@@ -5,6 +5,10 @@
 #include "malloc.h"
 #include "sprite.h"
 #include "constants/items.h"
+#include "constants/moves.h"
+#include "data.h"
+#include "party_menu.h"
+#include "tx_randomizer_and_challenges.h"
 
 // EWRAM vars
 EWRAM_DATA u8 *gItemIconDecompressionBuffer = NULL;
@@ -157,12 +161,60 @@ u8 AddCustomItemIconSprite(const struct SpriteTemplate *customSpriteTemplate, u1
     }
 }
 
+//tx_randomizer_and_challenges
+// Every TM shares one disc graphic and is told apart by a type-coloured palette, so a randomized
+// TM kept the colour of the move it taught in the base game. This picks the palette from the move
+// it teaches now.
+//
+// Bug, Fairy and Mystery have no TM palette -- no base-game TM teaches those types -- so they fall
+// back to the Normal disc rather than reading a null entry.
+static const u32 *const sTMPaletteByType[NUMBER_OF_MON_TYPES] =
+{
+    [TYPE_NORMAL]   = gItemIconPalette_NormalTMHM,
+    [TYPE_FIGHTING] = gItemIconPalette_FightingTMHM,
+    [TYPE_FLYING]   = gItemIconPalette_FlyingTMHM,
+    [TYPE_POISON]   = gItemIconPalette_PoisonTMHM,
+    [TYPE_GROUND]   = gItemIconPalette_GroundTMHM,
+    [TYPE_ROCK]     = gItemIconPalette_RockTMHM,
+    [TYPE_GHOST]    = gItemIconPalette_GhostTMHM,
+    [TYPE_STEEL]    = gItemIconPalette_SteelTMHM,
+    [TYPE_FIRE]     = gItemIconPalette_FireTMHM,
+    [TYPE_WATER]    = gItemIconPalette_WaterTMHM,
+    [TYPE_GRASS]    = gItemIconPalette_GrassTMHM,
+    [TYPE_ELECTRIC] = gItemIconPalette_ElectricTMHM,
+    [TYPE_PSYCHIC]  = gItemIconPalette_PsychicTMHM,
+    [TYPE_ICE]      = gItemIconPalette_IceTMHM,
+    [TYPE_DRAGON]   = gItemIconPalette_DragonTMHM,
+    [TYPE_DARK]     = gItemIconPalette_DarkTMHM,
+};
+
+static const void *GetRandomizedTMPalette(u16 itemId)
+{
+    u16 move = ItemIdToBattleMoveId(itemId);
+    u8 type;
+
+    if (move == MOVE_NONE || move >= MOVES_COUNT)
+        return gItemIconTable[itemId][1];
+
+    type = gBattleMoves[move].type;
+    if (type >= NUMBER_OF_MON_TYPES || sTMPaletteByType[type] == NULL)
+        return gItemIconPalette_NormalTMHM;
+
+    return sTMPaletteByType[type];
+}
+
 const void *GetItemIconPicOrPalette(u16 itemId, u8 which)
 {
     if (itemId == ITEM_LIST_END)
         itemId = ITEMS_COUNT; // Use last icon, the "return to field" arrow
     else if (itemId >= ITEMS_COUNT)
         itemId = 0;
+
+    //tx_randomizer_and_challenges: palette only, and only for TMs. HMs are never randomized.
+    if (which == 1
+        && gSaveBlock1Ptr->tx_Random_TMs
+        && itemId >= ITEM_TM01 && itemId < ITEM_TM01 + NUM_TECHNICAL_MACHINES)
+        return GetRandomizedTMPalette(itemId);
 
     return gItemIconTable[itemId][which];
 }
