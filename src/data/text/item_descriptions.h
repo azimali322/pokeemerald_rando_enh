@@ -1686,9 +1686,9 @@ static const u8 sInfiniteRepel[] = _(
     "turn it off.");
 
 static const u8 sLevelCapCandyDesc[] = _(
-    "Raises a POKéMON to the\n"
-    "level cap, stopping to evolve\n"
-    "and learn moves.");
+    "Raises a POKéMON to\n"
+    "the cap, pausing to\n"
+    "evolve and learn.");
 
 static const u8 sInfiniteRareCandy[] = _(
     "Gives 999 Rare\n"

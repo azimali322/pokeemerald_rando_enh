@@ -99,6 +99,7 @@ enum {
     MENU_TRADE2,
     MENU_TOSS,
     MENU_FOLLOW,
+    MENU_CAP_CANDY,     //tx_randomizer_and_challenges
     MENU_FIELD_MOVES
 };
 
@@ -427,6 +428,7 @@ static void DisplayLevelUpStatsPg1(u8);
 static void Task_DisplayLevelUpStatsPg2(u8);
 static void DisplayLevelUpStatsPg2(u8);
 static void Task_TryLearnNewMoves(u8);
+static void Task_CapCandySilentLevel(u8);   //tx_randomizer_and_challenges
 static void PartyMenuTryEvolution(u8);
 static void DisplayMonNeedsToReplaceMove(u8);
 static void DisplayMonLearnedMove(u8, u16);
@@ -470,6 +472,7 @@ static void BlitBitmapToPartyWindow_LeftColumn(u8, u8, u8, u8, u8, bool8);
 static void BlitBitmapToPartyWindow_RightColumn(u8, u8, u8, u8, u8, bool8);
 static void CursorCb_Summary(u8);
 static void CursorCb_StatEdit(u8);
+static void CursorCb_CapCandy(u8);   //tx_randomizer_and_challenges
 static void CursorCb_Switch(u8);
 static void CursorCb_Cancel1(u8);
 static void CursorCb_Item(u8);
@@ -2681,6 +2684,11 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
     if ((FlagGet(FLAG_INFINITE_STUFF) == 1) || (VarGet(VAR_DEBUG_OPTIONS) == 1))
         AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_STAT_EDIT);
 
+    //tx_randomizer_and_challenges: reach the Cap Candy from the mon rather than from the bag.
+    // Only worth showing when it is actually held and a cap exists for it to climb to.
+    if (IsLevelCapActive() && CheckBagHasItem(ITEM_LEVEL_CAP_CANDY, 1))
+        AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_CAP_CANDY);
+
     if (HMsOverwriteOptionActive()) //tx_randomizer_and_challenges  
     {
         if (slotId == 0)
@@ -4536,6 +4544,20 @@ static void ChangePokemonStatsPartyScreen(void)
 {
     StatEditor_Init(ChangePokemonStatsPartyScreen_CB);
 }
+//tx_randomizer_and_challenges
+// Same effect as using the Cap Candy from the bag: set the item the use-callback reads, then run
+// it. Both option windows come down first, as every cursor callback that acts in place does.
+static void CursorCb_CapCandy(u8 taskId)
+{
+    PlaySE(SE_SELECT);
+    PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[0]);
+    PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[1]);
+
+    gSpecialVar_ItemId = ITEM_LEVEL_CAP_CANDY;
+    gPartyMenu.learnMoveState = 0;
+    ItemUseCB_RareCandy(taskId, Task_ReturnToChooseMonAfterText);
+}
+
 static void CursorCb_StatEdit(u8 taskId)
 {
     PlaySE(SE_SELECT);
@@ -5499,7 +5521,13 @@ void ItemUseCB_RareCandy(u8 taskId, TaskFunc task)
         StringExpandPlaceholders(gStringVar4, gText_PkmnElevatedToLvVar2);
         DisplayPartyMenuMessage(gStringVar4, TRUE);
         ScheduleBgCopyTilemapToVram(2);
-        gTasks[taskId].func = Task_DisplayLevelUpStatsPg1;
+        //tx_randomizer_and_challenges: the Cap Candy climbs many levels in one use, so the
+        // stat window and its two button presses per level would make it unusable. Only a move
+        // to learn or an evolution is worth stopping for.
+        if (gSpecialVar_ItemId == ITEM_LEVEL_CAP_CANDY)
+            gTasks[taskId].func = Task_CapCandySilentLevel;
+        else
+            gTasks[taskId].func = Task_DisplayLevelUpStatsPg1;
     }
 }
 
@@ -5590,6 +5618,36 @@ static void DisplayLevelUpStatsPg2(u8 taskId)
     DrawLevelUpWindowPg2(arrayPtr[12], &arrayPtr[6], TEXT_COLOR_WHITE, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_LIGHT_GRAY);
     CopyWindowToVram(arrayPtr[12], COPYWIN_GFX);
     ScheduleBgCopyTilemapToVram(2);
+}
+
+//tx_randomizer_and_challenges
+// Task_TryLearnNewMoves without the stat window or the button press: the level itself passes
+// silently, and only a move or an evolution hands control back to the player.
+static void Task_CapCandySilentLevel(u8 taskId)
+{
+    u16 learnMove;
+
+    if (!WaitFanfare(FALSE) || IsPartyMenuTextPrinterActive() == TRUE)
+        return;
+
+    RemoveLevelUpStatsWindow();
+    learnMove = MonTryLearningNewMove(&gPlayerParty[gPartyMenu.slotId], TRUE);
+    gPartyMenu.learnMoveState = 1;
+    switch (learnMove)
+    {
+    case 0:                     // nothing to learn; evolution check, then the next level
+        PartyMenuTryEvolution(taskId);
+        break;
+    case MON_HAS_MAX_MOVES:
+        DisplayMonNeedsToReplaceMove(taskId);
+        break;
+    case MON_ALREADY_KNOWS_MOVE:
+        gTasks[taskId].func = Task_TryLearningNextMove;
+        break;
+    default:
+        DisplayMonLearnedMove(taskId, learnMove);
+        break;
+    }
 }
 
 static void Task_TryLearnNewMoves(u8 taskId)

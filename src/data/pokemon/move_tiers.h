@@ -138,7 +138,7 @@ static const u16 sMoveTier3[] =
     MOVE_YAWN,
 };
 
-// Tier 4 -- Niche (157 moves, 27% weight)
+// Tier 4 -- Niche (156 moves, 27% weight)
 static const u16 sMoveTier4[] =
 {
     MOVE_ABSORB,
@@ -168,7 +168,6 @@ static const u16 sMoveTier4[] =
     MOVE_CROSS_CHOP,
     MOVE_CRUSH_CLAW,
     MOVE_DARK_PULSE,
-    MOVE_DESTINY_BOND,
     MOVE_DRAGON_BREATH,
     MOVE_DREAM_EATER,
     MOVE_DRILL_PECK,
@@ -377,12 +376,13 @@ static const u16 sMoveTier5[] =
     MOVE_ZAP_CANNON,
 };
 
-// Tier 6 -- Pokemon Homeless (19 moves, 1% weight)
+// Tier 6 -- Pokemon Homeless (20 moves, 1% weight)
 // The four one-hit KO moves are forced down here: a nuzlocke cannot recover from one,
 // so they stay reachable but rare rather than turning up in ordinary move pools.
 static const u16 sMoveTier6[] =
 {
     MOVE_CURSE,   // forced down: Ghost version costs half max HP
+    MOVE_DESTINY_BOND,   // forced down: trades your Pokemon for theirs
     MOVE_DOUBLE_KICK,
     MOVE_DOUBLE_TEAM,
     MOVE_EXPLOSION,   // forced down: guaranteed self-KO
