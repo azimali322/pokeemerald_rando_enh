@@ -769,6 +769,41 @@ static u8 GetNumberOfBadges(void)
     return count;
 }
 
+// Longest stock list is 25 items; the copy below needs room for that plus an Ultra Ball and the
+// ITEM_NONE terminator.
+#define MART_STOCK_MAX 32
+static EWRAM_DATA u16 sCheapShopStock[MART_STOCK_MAX] = {0};
+
+// Cheap Shop drops Ultra Balls to 1 Pokedollar, but the badge-scaled mart stock does not carry
+// them until four badges, so early on there was nothing to buy. This copies the list the mart
+// would have shown and inserts an Ultra Ball after the last Poke Ball variant, leaving the rest
+// of the ordering alone.
+static const u16 *AddUltraBallsToStock(const u16 *items)
+{
+    u16 i, count = 0, insertAt = 0;
+
+    for (i = 0; i < MART_STOCK_MAX - 2 && items[i] != ITEM_NONE; i++)
+    {
+        if (items[i] == ITEM_ULTRA_BALL)
+            return items;               // already stocked; nothing to do
+        if (items[i] == ITEM_POKE_BALL || items[i] == ITEM_GREAT_BALL)
+            insertAt = i + 1;           // sits behind the last ball, so it reads naturally
+        count++;
+    }
+
+    for (i = 0; i < insertAt; i++)
+        sCheapShopStock[i] = items[i];
+
+    sCheapShopStock[insertAt] = ITEM_ULTRA_BALL;
+
+    for (i = insertAt; i < count; i++)
+        sCheapShopStock[i + 1] = items[i];
+
+    sCheapShopStock[count + 1] = ITEM_NONE;     // written every call, so a shorter list after a
+                                                // longer one cannot leave stale entries visible
+    return sCheapShopStock;
+}
+
 static void SetShopItemsForSale(const u16 *items)
 {
     u16 i = 0;
@@ -780,6 +815,9 @@ static void SetShopItemsForSale(const u16 *items)
         sMartInfo.itemList = sShopInventories_PC[badgeCount];
     else
         sMartInfo.itemList = items;
+
+    if (gSaveBlock1Ptr->tx_Features_CheapBalls)
+        sMartInfo.itemList = AddUltraBallsToStock(sMartInfo.itemList);
 
     sMartInfo.itemCount = 0;
     while (sMartInfo.itemList[i])
