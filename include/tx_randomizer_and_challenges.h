@@ -39,7 +39,7 @@
 #define TX_RANDOM_ITEMS_VGC             TX_VGC_WEIGHTED
 #define TX_RANDOM_LEARNSETS             TRUE
 #define TX_RANDOM_TMS_VGC               TX_VGC_WEIGHTED
-#define TX_RANDOM_TM_MOVES              FALSE
+#define TX_RANDOM_TM_MOVES              TRUE
 #define TX_RANDOM_TM_COMPAT             TRUE    // TRUE = every Pokemon can learn every TM/HM
 #define TX_FEATURES_CHEAP_BALLS         TRUE
 #define TX_FEATURES_REROLL_CHEAT        TRUE
@@ -66,7 +66,7 @@
 #define TX_DIFFICULTY_SCALING_EVS 1      // 0 off, 1 Scale, 2 Hard, 3 Extreme
 #define TX_DIFFICULTY_PKMN_CENTER 0 //0 no limit, 1 none
 #define TX_DIFFICULTY_LIMIT_DIFFICULTY 0
-#define TX_DIFFICULTY_MAX_PARTY_IVS 1    // 0 "Yes" normal IVs, 1 "No" always 31, 2 30-31
+#define TX_DIFFICULTY_MAX_PARTY_IVS 2    // 0 "Yes", 1 "No", 2 "No (HP)" -- IVs 30-31
 
 #define TX_CHALLENGE_EVO_LIMIT 0 //0 off, 1 first, 2 none
 #define TX_CHALLENGE_BASE_STAT_EQUALIZER 0 //0=off, 1=100, 2=255, 3=500

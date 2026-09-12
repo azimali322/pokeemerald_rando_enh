@@ -731,7 +731,10 @@ static void PrintMonStats()
     StringCopy(gStringVar2, gNatureNamePointers[nature]);
     AddTextPrinterParameterized4(WINDOW_3, FONT_SMALL_NARROW, 4, 50, 0, 0, sMenuWindowFontColors[FONT_WHITE], 0xFF, gStringVar2);
 
-    StringCopy(gStringVar2, gAbilityNames[gSpeciesInfo[sStatEditorDataPtr->speciesID].abilities[GetMonData(ReturnPartyMon(), MON_DATA_ABILITY_NUM)]]);
+    // GetMonAbility, not gSpeciesInfo directly: with either ability randomizer on the stored
+    // abilityNum is ignored, so reading the table gave the vanilla ability rather than the one the
+    // summary screen and the battle engine actually use.
+    StringCopy(gStringVar2, gAbilityNames[GetMonAbility(ReturnPartyMon())]);
     AddTextPrinterParameterized4(WINDOW_3, FONT_SMALL_NARROW, 4, 34, 0, 0, sMenuWindowFontColors[FONT_WHITE], 0xFF, gStringVar2);
 
     PutWindowTilemap(WINDOW_3);

@@ -2934,6 +2934,7 @@ static const u8 gSpeciesMapping[NUM_SPECIES+1] =
 };
 #include "data/pokemon/species_by_bst.h"
 #include "data/pokemon/ability_tiers.h"
+#include "data/pokemon/species_family_root.h"
 #include "data/pokemon/move_tiers.h"
 
 //tx_randomizer_and_challenges
@@ -8283,10 +8284,27 @@ u8 GetMonsStateToDoubles_2(void)
 #define ABILITY_W_D    6
 // F takes the remaining 2
 
+// An ability is meant to be a property of the Pokemon, not of the form it currently has, so the
+// randomizers seed on the root of its evolution family rather than on the species in front of
+// them. Bagon, Shelgon and Salamence all resolve to Bagon and therefore to one ability, and a
+// split family (Wurmple, Eevee, Tyrogue) shares one across every branch.
+//
+// The table is generated because GetPreEvolution scans the whole evolution table -- 462 species by
+// 8 slots -- and this runs once per frame in battle.
+static u16 GetAbilitySeedSpecies(u16 species)
+{
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return species;
+
+    return sSpeciesFamilyRoot[species];
+}
+
 static u16 GetVGCAbility(u16 species, u8 abilityNum)
 {
     const u16 *table;
     u16 count, roll;
+
+    species = GetAbilitySeedSpecies(species);
 
     // Strict mode draws from S+A only. That is 16 abilities, so a full party will repeat.
     if (gSaveBlock1Ptr->tx_Random_AbilitiesVGC == TX_VGC_STRICT)
@@ -8355,7 +8373,8 @@ u8 GetAbilityBySpecies(u16 species, u8 abilityNum)
 
     if (gSaveBlock1Ptr->tx_Random_Abilities) //tx_randomizer_and_challenges
     {
-        species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_ABILITY, 0);
+        // Family root, for the same reason as the VGC path above.
+        species = GetSpeciesRandomSeeded(GetAbilitySeedSpecies(species), TX_RANDOM_T_ABILITY, 0);
         if (gSpeciesInfo[species].abilities[1] == ABILITY_NONE)
             abilityNum = 0;
         else

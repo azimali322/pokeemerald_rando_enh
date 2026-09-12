@@ -99,7 +99,7 @@ static void SetDefaultOptions(void)
     gSaveBlock2Ptr->optionsBattleSceneOff = FALSE;
     gSaveBlock2Ptr->regionMapZoom = FALSE;
     gSaveBlock2Ptr->optionsDifficulty = 2;              // Hard
-    gSaveBlock2Ptr->optionsfollowerEnable = 0;
+    gSaveBlock2Ptr->optionsfollowerEnable = 1;  // 0 is On here; 1 turns the follower off
     gSaveBlock2Ptr->optionsfollowerLargeEnable = 1;
     gSaveBlock2Ptr->optionsautoRun = 0;                 // 0 is On for every option below too
     gSaveBlock2Ptr->optionsAutorunDive = 0;
