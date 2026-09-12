@@ -1594,13 +1594,14 @@ generated to `src/data/pokemon/move_tiers.h`.
 | 3 | Filler/Outclassed | 93 | 38% | **0.408%** | 1.50× |
 | 4 | Niche | 157 | 27% | **0.172%** | 0.63× |
 | 5 | Bad | 73 | 6% | **0.080%** | 0.29× |
-| 6 | Pokemon Homeless | 15 | 1% | **0.062%** | 0.23× |
+| 6 | Pokemon Homeless | 19 | 1% | **0.053%** | 0.19× |
 
 Uniform baseline is **0.272%** per move. Per-move odds fall monotonically across all six tiers.
 
 **Why these differ from the ability weights (40/30/22/6/2).** The two pools have very different shapes.
 Abilities are 16/22/26/9/6 — fairly even, so a 40% top tier lands at ~2× uniform. Moves are
-3/26/93/157/73/15 — tier 1 has **three** moves and tier 4 has **157**. Copying the ability weights across
+3/26/90/157/72/19 — tier 1 has **three** moves and tier 4 has **157**. The four one-hit KO
+moves sit in tier 6 regardless of their community placement: a nuzlocke cannot recover from one. Copying the ability weights across
 would give a tier-1 move a **~15× uniform** boost and put Protect on half the Pokémon in the game. The
 gentler 4% top weight still yields 5.14× because the tier is so small.
 

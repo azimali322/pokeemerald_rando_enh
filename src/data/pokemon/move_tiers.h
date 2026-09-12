@@ -43,7 +43,7 @@ static const u16 sMoveTier2[] =
     MOVE_SWORDS_DANCE,
 };
 
-// Tier 3 -- Filler/Outclassed (93 moves, 38% weight)
+// Tier 3 -- Filler/Outclassed (90 moves, 38% weight)
 static const u16 sMoveTier3[] =
 {
     MOVE_ACID_ARMOR,
@@ -76,7 +76,6 @@ static const u16 sMoveTier3[] =
     MOVE_ENDEAVOR,
     MOVE_EXTRASENSORY,
     MOVE_FIRE_BLAST,
-    MOVE_FISSURE,
     MOVE_FLAIL,
     MOVE_FLAMETHROWER,
     MOVE_FLASH_CANNON,
@@ -84,11 +83,9 @@ static const u16 sMoveTier3[] =
     MOVE_FRENZY_PLANT,
     MOVE_FRUSTRATION,
     MOVE_GROWL,
-    MOVE_GUILLOTINE,
     MOVE_HEAL_BELL,
     MOVE_HEAT_WAVE,
     MOVE_HELPING_HAND,
-    MOVE_HORN_DRILL,
     MOVE_HOWL,
     MOVE_HYDRO_CANNON,
     MOVE_HYPER_BEAM,
@@ -263,7 +260,6 @@ static const u16 sMoveTier4[] =
     MOVE_SECRET_POWER,
     MOVE_SEISMIC_TOSS,
     MOVE_SHARPEN,
-    MOVE_SHEER_COLD,
     MOVE_SIGNAL_BEAM,
     MOVE_SING,
     MOVE_SKY_UPPERCUT,
@@ -304,7 +300,7 @@ static const u16 sMoveTier4[] =
     MOVE_WRAP,
 };
 
-// Tier 5 -- Bad (73 moves, 6% weight)
+// Tier 5 -- Bad (72 moves, 6% weight)
 static const u16 sMoveTier5[] =
 {
     MOVE_ATTRACT,
@@ -381,18 +377,24 @@ static const u16 sMoveTier5[] =
     MOVE_ZAP_CANNON,
 };
 
-// Tier 6 -- Pokemon Homeless (15 moves, 1% weight)
+// Tier 6 -- Pokemon Homeless (19 moves, 1% weight)
+// The four one-hit KO moves are forced down here: a nuzlocke cannot recover from one,
+// so they stay reachable but rare rather than turning up in ordinary move pools.
 static const u16 sMoveTier6[] =
 {
     MOVE_CURSE,   // forced down: Ghost version costs half max HP
     MOVE_DOUBLE_KICK,
     MOVE_DOUBLE_TEAM,
     MOVE_EXPLOSION,   // forced down: guaranteed self-KO
+    MOVE_FISSURE,   // forced down: one-hit KO
+    MOVE_GUILLOTINE,   // forced down: one-hit KO
     MOVE_HI_JUMP_KICK,   // recoil: dropped one tier
+    MOVE_HORN_DRILL,   // forced down: one-hit KO
     MOVE_JUMP_KICK,   // recoil: dropped one tier
     MOVE_MEMENTO,   // forced down: guaranteed self-KO
     MOVE_PERISH_SONG,   // forced down: faints both sides
     MOVE_SELF_DESTRUCT,   // forced down: guaranteed self-KO
+    MOVE_SHEER_COLD,   // forced down: one-hit KO
     MOVE_SMOG,
     MOVE_SMOKESCREEN,
     MOVE_STRUGGLE,   // recoil: dropped one tier
