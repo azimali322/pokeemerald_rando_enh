@@ -17,18 +17,25 @@ A band between tiers 1 and 2 now yields one; *which* TM is still decided by the 
 
 ## Weights
 
-| Tier | Contents | n | Weight | Per-item | × uniform | vs next tier |
-|---|---|---:|---:|---:|---:|---:|
-| 1 | Premier hold items | 2 | 8.08% | 4.0400% | 6.95× | 1.6× |
-| — | **TM band** (which TM is left to the TM tiering) | 50 | 13.89% | 0.2778% | 0.48× | — |
-| 2 | Strong hold items | 8 | 20.20% | 2.5250% | 4.34× | 1.6× |
-| 3 | Other battle hold items | 20 | 31.57% | 1.5785% | 2.72× | 2.5× |
-| 4 | Evolution, balls, species-locked | 29 | 18.31% | 0.6314% | 1.09× | 5× |
-| 5 | Healing, vitamins, utility, junk | 63 | 7.95% | 0.1262% | 0.22× | — |
+| Tier | Contents | n | Weight | Per-item | × uniform |
+|---|---|---:|---:|---:|---:|
+| 1 | Premier hold items | 2 | 4.00% | **2.000%** | 3.4× |
+| — | **TM band** — best TMs / average of 50 | 50 | 40.50% | **1.944%** / 0.810% | 3.3× / 1.4× |
+| 2 | Strong hold items | 8 | 15.12% | **1.890%** | 3.3× |
+| 3 | Other battle hold items | 20 | 22.24% | **1.112%** | 1.9× |
+| 4 | Evolution, balls, species-locked | 29 | 12.18% | **0.420%** | 0.7× |
+| 5 | Healing, vitamins, utility, junk | 63 | 5.96% | **0.095%** | 0.2× |
 
-Uniform baseline is 0.5814% per item across 122 items + 50 TMs. Ratios between item tiers:
-**1.6× / 1.6× / 2.5× / 5×**, softened from 2× / 2× / 4× / 10× — tier 1 fell from 9.2× the uniform
-rate to 6.9×. It lost Lum and Sitrus to the berry split, which is what had concentrated it.
+Uniform baseline is 0.5814% across 122 items + 50 TMs.
+
+**The TM band is not spread evenly.** `PickWeightedTM` ranks the 50 machines by the move each
+teaches, so a TM carrying a tier-2 move takes 4.8% of the band while a tier-5 one takes 0.75%. The
+two figures above are the best TMs and the flat average; the ordering
+**tier 1 > best TMs > tier 2 > tier 3 > tier 4 > tier 5** holds on the first.
+
+Reaching that ordering costs the band 40.5% of all pickups, because 50 machines each need a rate
+near tier 2's. Pushing the *average* TM into that range instead would take roughly 85% of every
+item roll, which would leave the item tiers as a rounding error.
 
 ## Never rolled
 
