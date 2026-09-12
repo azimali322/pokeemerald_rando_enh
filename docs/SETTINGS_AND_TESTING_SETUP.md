@@ -9,8 +9,8 @@ Companions: [`RANDOMIZER_ENHANCEMENTS_PLAN.md`](RANDOMIZER_ENHANCEMENTS_PLAN.md)
 
 ## 1. Inventory — what's done
 
-**17 of 17 phases implemented.** Phases 0-11 are merged to `master` via PRs #1-#8; the refinements in
-rows 12-13 are on PR **#13** and are *not on `master` until that is merged*.
+**Everything requested is built and on `master`**, verified by checking the code rather than this table
+— it has drifted before. The one exception is noted under *What's left*.
 
 | Phase | Feature | Status | PR |
 |---|---|:-:|---|
@@ -40,7 +40,8 @@ Both optional — nothing is blocked:
 
 | Item | Size | Why it was deferred |
 |---|---|---|
-| **Phase 10 — PC storage use** | M | Box Pokémon are `struct BoxPokemon` with no level or current-HP field; a bad round-trip corrupts them. Worth its own change. |
+| **Phase 10 — PC storage use** | M | Box Pokémon are `struct BoxPokemon` with no level or current-HP field; a bad round-trip corrupts them. Worth its own change. **The only requested feature not built.** |
+| **Play-testing** | — | Everything is verified by reproducing the algorithms against the ROM's own data tables. In-game behaviour is confirmed only where it has actually been played. |
 | ~~Per-type STAB tiering~~ | — | **Done** (#12). Reuses the Phase 5 tiers — no separate ranking was needed, since all 8 types with 10+ STAB moves already spread across 3-4 tiers. Added a physical/special split at the same time. |
 
 ### Ideas considered and not built
