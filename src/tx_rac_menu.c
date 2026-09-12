@@ -595,14 +595,14 @@ static const u8 sText_EvolutionMethods[] =          _("EVO LINES");
 static const u8 sText_TypeEff[] =                   _("EFFECTIVENESS");
 static const u8 sText_Items[] =                     _("ITEMS");
 static const u8 sText_Chaos[] =                     _("CHAOS MODE");
-static const u8 sText_WildLevelScaled[] =           _("LEVEL-SCALED WILDS");
-static const u8 sText_LegendaryEncounters[] =       _("RANDOM LEGENDARIES");
-static const u8 sText_MovesVGC[] =                  _("VGC MOVE POOL");
+static const u8 sText_WildLevelScaled[] =           _("LVL-SCALED WILDS");
+static const u8 sText_LegendaryEncounters[] =       _("RANDOM LEGENDS");
+static const u8 sText_MovesVGC[] =                  _("MOVE POOL");
 static const u8 sText_GuaranteeStab[] =             _("GUARANTEE STAB");
 static const u8 sText_Learnsets[] =                 _("SMART LEARNSETS");
-static const u8 sText_AbilitiesVGC[] =              _("VGC ABILITY POOL");
-static const u8 sText_ItemsVGC[] =                  _("VGC ITEM POOL");
-static const u8 sText_TMsVGC[] =                    _("VGC TM POOL");
+static const u8 sText_AbilitiesVGC[] =              _("ABILITY POOL");
+static const u8 sText_ItemsVGC[] =                  _("ITEM POOL");
+static const u8 sText_TMsVGC[] =                    _("TM POOL");
 static const u8 sText_TMMoves[] =                   _("RANDOM TM MOVES");
 static const u8 sText_TMCompat[] =                  _("FREE TM/HM USE");
 static const u8 sText_CheapBalls[] =                _("CHEAP SHOP");
@@ -2592,14 +2592,11 @@ static const u8 sText_Balancing_Balanced[] = _("Balanced");
 static const u8 sText_Balancing_Improved[] = _("Improved");
 static void DrawChoices_Random_EvoStages(int selection, int y)
 {
-    bool8 active = CheckConditions(MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL);
-    u8 styles[3] = {0};
-    int xMid = GetMiddleX(sText_Off, sText_Balancing_Balanced, sText_Balancing_Improved);
-    styles[selection] = 1;
+    // Two at a time, as the GAMEMODE row does. "Off Balanced Improved" is 19 characters in a
+    // 94-pixel span, so drawing all three overlapped them into an unreadable smear.
+    static const u8 *const strings[] = { sText_Off, sText_Balancing_Balanced, sText_Balancing_Improved };
 
-    DrawOptionMenuChoice(sText_Off, 104, y, styles[0], active);
-    DrawOptionMenuChoice(sText_Balancing_Balanced, xMid, y, styles[1], active);
-    DrawOptionMenuChoice(sText_Balancing_Improved, GetStringRightAlignXOffset(1, sText_Balancing_Improved, 198), y, styles[2], active);
+    DrawChoices_Options_Three(strings, selection, y, CheckConditions(MENUITEM_RANDOM_SIMILAR_EVOLUTION_LEVEL));
 }
 static void DrawChoices_Random_Legendaries(int selection, int y)
 {
@@ -2652,13 +2649,10 @@ static const u8 sText_VGC_Weighted[] = _("Weighted");
 static const u8 sText_VGC_Strict[]   = _("Strict");
 static void DrawChoices_VGC_Mode(int selection, int y, bool8 active)
 {
-    u8 styles[3] = {0};
-    int xMid = GetMiddleX(sText_Off, sText_VGC_Weighted, sText_VGC_Strict);
-    styles[selection] = 1;
+    // Two at a time -- "Off Weighted Strict" does not fit the 94-pixel span either.
+    static const u8 *const strings[] = { sText_Off, sText_VGC_Weighted, sText_VGC_Strict };
 
-    DrawOptionMenuChoice(sText_Off, 104, y, styles[0], active);
-    DrawOptionMenuChoice(sText_VGC_Weighted, xMid, y, styles[1], active);
-    DrawOptionMenuChoice(sText_VGC_Strict, GetStringRightAlignXOffset(1, sText_VGC_Strict, 198), y, styles[2], active);
+    DrawChoices_Options_Three(strings, selection, y, active);
 }
 static void DrawChoices_Random_MovesVGC(int selection, int y)
 {
@@ -2981,10 +2975,9 @@ static const u8 sText_Encounters_Modern_Long[]    = _("Modern");
 
 static void DrawChoices_Mode_AlternateSpawns(int selection, int y)
 {
+    // "Vanilla Modern Postgame" is 21 characters; two at a time, like the rows above.
+    static const u8 *const strings[] = { sText_Encounters_Vanilla, sText_Encounters_Modern, sText_Encounters_Postgame };
     bool8 active = CheckConditions(MENUITEM_MODE_ALTERNATE_SPAWNS);
-    u8 styles[3] = {0};
-    int xMid = GetMiddleX(sText_Encounters_Vanilla, sText_Encounters_Modern, sText_Encounters_Postgame);
-    styles[selection] = 1;
 
     if (selection == 0)
     {
@@ -2999,9 +2992,7 @@ static void DrawChoices_Mode_AlternateSpawns(int selection, int y)
         gSaveBlock1Ptr->tx_Mode_Encounters = 2; //Vanilla encounters, with post-game pokémon
     }
 
-    DrawOptionMenuChoice(sText_Encounters_Vanilla, 104, y, styles[0], active);
-    DrawOptionMenuChoice(sText_Encounters_Modern, xMid, y, styles[1], active);
-    DrawOptionMenuChoice(sText_Encounters_Postgame, GetStringRightAlignXOffset(1, sText_Encounters_Postgame, 198), y, styles[2], active);
+    DrawChoices_Options_Three(strings, selection, y, active);
 }
 
 static void DrawChoices_Challenges_LimitDifficulty(int selection, int y)
