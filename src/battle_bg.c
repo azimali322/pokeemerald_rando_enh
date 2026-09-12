@@ -417,28 +417,29 @@ static const struct WindowTemplate sStandardBattleWindowTemplates[] =
         .baseBlock = 0x0350,
     },
     //tx_randomizer_and_challenges: each side's type icons, sat beside its health box.
-    // One 8x2 window per side holds both icons, so a dual type needs no extra window -- battle
-    // already uses ids 0..29 of the 32 in gWindows, and the health box AddWindows the rest.
+    // One 4x3 window per side holds both icons stacked, so a dual type needs no extra window --
+    // battle already uses ids 0..29 of the 32 in gWindows, and the health box AddWindows the rest.
+    // A mono-type shrinks the window to 4x2 at draw time so the unused row shows the scene.
     // The battle text BG is scrolled so that tilemap row 40 is the top of the screen during move
     // selection: row 43 lines up with the opponent's box, row 53 with yours.
     // 0x3BC..0x3DB of the 68 tiles free above B_WIN_MOVE_DESCRIPTION.
     [B_WIN_OPPONENT_TYPES] = {
         .bg = 0,
-        .tilemapLeft = 15,
+        .tilemapLeft = 14,
         .tilemapTop = 43,
-        .width = 8,
-        .height = 2,
+        .width = 4,
+        .height = 3,
         .paletteNum = 13,
         .baseBlock = 0x03BC,
     },
     [B_WIN_PLAYER_TYPES] = {
         .bg = 0,
-        .tilemapLeft = 9,
-        .tilemapTop = 53,
-        .width = 8,
-        .height = 2,
+        .tilemapLeft = 13,
+        .tilemapTop = 50,
+        .width = 4,
+        .height = 3,
         .paletteNum = 13,
-        .baseBlock = 0x03CC,
+        .baseBlock = 0x03C8,
     },
     DUMMY_WIN_TEMPLATE
 };
@@ -698,28 +699,29 @@ static const struct WindowTemplate sBattleArenaWindowTemplates[] =
         .baseBlock = 0x0350,
     },
     //tx_randomizer_and_challenges: each side's type icons, sat beside its health box.
-    // One 8x2 window per side holds both icons, so a dual type needs no extra window -- battle
-    // already uses ids 0..29 of the 32 in gWindows, and the health box AddWindows the rest.
+    // One 4x3 window per side holds both icons stacked, so a dual type needs no extra window --
+    // battle already uses ids 0..29 of the 32 in gWindows, and the health box AddWindows the rest.
+    // A mono-type shrinks the window to 4x2 at draw time so the unused row shows the scene.
     // The battle text BG is scrolled so that tilemap row 40 is the top of the screen during move
     // selection: row 43 lines up with the opponent's box, row 53 with yours.
     // 0x3BC..0x3DB of the 68 tiles free above B_WIN_MOVE_DESCRIPTION.
     [B_WIN_OPPONENT_TYPES] = {
         .bg = 0,
-        .tilemapLeft = 15,
+        .tilemapLeft = 14,
         .tilemapTop = 43,
-        .width = 8,
-        .height = 2,
+        .width = 4,
+        .height = 3,
         .paletteNum = 13,
         .baseBlock = 0x03BC,
     },
     [B_WIN_PLAYER_TYPES] = {
         .bg = 0,
-        .tilemapLeft = 9,
-        .tilemapTop = 53,
-        .width = 8,
-        .height = 2,
+        .tilemapLeft = 13,
+        .tilemapTop = 50,
+        .width = 4,
+        .height = 3,
         .paletteNum = 13,
-        .baseBlock = 0x03CC,
+        .baseBlock = 0x03C8,
     },
     DUMMY_WIN_TEMPLATE
 };
