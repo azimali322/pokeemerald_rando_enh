@@ -194,6 +194,12 @@ static EWRAM_DATA bool8 sAckBallUseBtn = FALSE;
 static EWRAM_DATA bool8 sBallSwapped = FALSE;
 static EWRAM_DATA bool8 sDescriptionSubmenu = 0;
 
+// The player's window shares rows 50-52 with the move description submenu, so the readout is
+// pulled down while that is open and put back when it closes. Remembering the target avoids
+// having to re-derive it at that point.
+static u8 sTypeDisplayTargetId = 0;
+
+
 static const u8 sTargetIdentities[MAX_BATTLERS_COUNT] = {B_POSITION_PLAYER_LEFT, B_POSITION_PLAYER_RIGHT, B_POSITION_OPPONENT_RIGHT, B_POSITION_OPPONENT_LEFT};
 
 // unknown unused data
@@ -830,11 +836,13 @@ static void HandleInputChooseMove(void)
             PlaySE(SE_SELECT);
             MoveSelectionDisplayPpNumber();
             MoveSelectionDisplayMoveType();
+            MoveSelectionDisplayOpponentTypes(sTypeDisplayTargetId);    //tx: restore the readout
         }
     }
     else if (JOY_NEW(START_BUTTON)) //AdditionalBattleInfo
     {
         sDescriptionSubmenu = TRUE;
+        MoveSelectionHideOpponentTypes();                               //tx: shares rows 50-52
         MoveSelectionDisplayMoveDescription();
     }
 }
@@ -1907,13 +1915,28 @@ static void MoveSelectionDisplaySTAB(void) //Displays STAB icon
 // Show both sides' type(s) during move selection, so you can read the matchup without leaving the
 // battle. Reuses the move-type icon sheet, which already has one 32x16 icon per type.
 //
-// One 8x2 window per side carries both icons side by side. Two windows rather than four, because
+// The sheet pads each badge with white: rows 0-1 and 14-15 are blank, and only rows 2-13 are the
+// coloured box. Blitting the full 16 rows drew those white bars above and below every icon, so
+// only the badge is copied -- which also makes each icon 12px instead of 16, three quarters the
+// height, and lets two stack in the space one used to take.
+//
+// One 4x3 window per side carries both icons stacked. Two windows rather than four, because
 // battle already occupies ids 0..29 of the 32 in gWindows and the health box AddWindows the rest.
+// A mono-type shrinks its window to 4x2 for the draw, so the row it does not use goes back to
+// showing the battle scene instead of this window's blank tiles.
 //
 // Types come from gBattleMons, not gSpeciesInfo: that is live battle state, so this is correct
 // under the Modern/Fairy type modes, the type randomizer, and mid-battle changes like Conversion.
+#define TYPE_ICON_WIDTH      32
+#define TYPE_ICON_SHEET_H    16
+#define TYPE_ICON_SRC_Y       2     // first row of the coloured badge
+#define TYPE_ICON_HEIGHT     12     // rows 2..13: the badge with its white padding cropped off
+#define TYPE_WIN_ROWS_MONO    2
+#define TYPE_WIN_ROWS_DUAL    3
+
 static void MoveSelectionHideTypeWindow(u8 windowId)
 {
+    SetWindowAttribute(windowId, WINDOW_HEIGHT, TYPE_WIN_ROWS_DUAL);
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
     ClearWindowTilemap(windowId);
     CopyWindowToVram(windowId, COPYWIN_FULL);
@@ -1925,11 +1948,19 @@ static void MoveSelectionHideOpponentTypes(void)
     MoveSelectionHideTypeWindow(B_WIN_PLAYER_TYPES);
 }
 
-// Draws battlerId's types into windowId. Mono-types store the same type twice, so only the first
-// icon is drawn and the rest of the window is left transparent rather than showing an empty box.
+static void MoveSelectionBlitTypeIcon(u8 windowId, u8 type, u16 destY)
+{
+    BlitBitmapRectToWindow(windowId, (const u8 *)&sMoveTypeIcons_Gfx[(type * 0x100) / 4],
+                           0, TYPE_ICON_SRC_Y, TYPE_ICON_WIDTH, TYPE_ICON_SHEET_H,
+                           0, destY, TYPE_ICON_WIDTH, TYPE_ICON_HEIGHT);
+}
+
+// Draws battlerId's types into windowId, stacked. Mono-types store the same type twice, so only
+// one icon is drawn and the window is shortened to match.
 static void MoveSelectionDrawTypesFor(u8 windowId, u8 battlerId)
 {
     u8 type1, type2;
+    bool8 dual;
 
     if (battlerId >= MAX_BATTLERS_COUNT || gBattleMons[battlerId].species == SPECIES_NONE)
     {
@@ -1939,12 +1970,20 @@ static void MoveSelectionDrawTypesFor(u8 windowId, u8 battlerId)
 
     type1 = gBattleMons[battlerId].type1;
     type2 = gBattleMons[battlerId].type2;
+    dual = (type2 != type1);
 
+    // Clear at full height before shrinking, or a row left over from a previous dual-type target
+    // keeps its tilemap entry and shows a stale strip.
+    SetWindowAttribute(windowId, WINDOW_HEIGHT, TYPE_WIN_ROWS_DUAL);
+    ClearWindowTilemap(windowId);
+
+    SetWindowAttribute(windowId, WINDOW_HEIGHT, dual ? TYPE_WIN_ROWS_DUAL : TYPE_WIN_ROWS_MONO);
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-    BlitBitmapToWindow(windowId, (const u8 *)&sMoveTypeIcons_Gfx[(type1 * 0x100) / 4], 0, 0, 32, 16);
 
-    if (type2 != type1)
-        BlitBitmapToWindow(windowId, (const u8 *)&sMoveTypeIcons_Gfx[(type2 * 0x100) / 4], 32, 0, 32, 16);
+    // A single badge is centred in its two rows; a pair fills all three exactly.
+    MoveSelectionBlitTypeIcon(windowId, type1, dual ? 0 : 2);
+    if (dual)
+        MoveSelectionBlitTypeIcon(windowId, type2, TYPE_ICON_HEIGHT);
 
     PutWindowTilemap(windowId);
     CopyWindowToVram(windowId, COPYWIN_FULL);
@@ -1952,6 +1991,8 @@ static void MoveSelectionDrawTypesFor(u8 windowId, u8 battlerId)
 
 static void MoveSelectionDisplayOpponentTypes(u8 targetId)
 {
+    sTypeDisplayTargetId = targetId;
+
     // Tied to the same option as the effectiveness and STAB hints: a player who turns those off
     // does not want a type readout either.
     if (gSaveBlock2Ptr->optionTypeEffective != 0)
