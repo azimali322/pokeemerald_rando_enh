@@ -10222,8 +10222,11 @@ u32 CanMonLearnTMHM(struct Pokemon *mon, u8 tm)
 
         // Ahead of the substitution below: it costs an RNG walk per call, and this function is
         // called once per TM when the party menu or the dex lists them.
+        // SPECIES_NONE is an empty party slot, not a Pokemon -- it must stay unteachable, or
+        // callers that scan the party (CanLearnFlashInParty, the daycare, the dex) see a blank
+        // slot as a valid TM user.
         if (IsTMHMUseFree())
-            return (species == SPECIES_EGG) ? 0 : TRUE;
+            return (species == SPECIES_EGG || species == SPECIES_NONE) ? 0 : TRUE;
 
         //tx_randomizer_and_challenges
         if (gSaveBlock1Ptr->tx_Random_Moves)
@@ -10261,8 +10264,11 @@ u32 CanMonLearnTMHM(struct Pokemon *mon, u8 tm)
 
         // Ahead of the substitution below: it costs an RNG walk per call, and this function is
         // called once per TM when the party menu or the dex lists them.
+        // SPECIES_NONE is an empty party slot, not a Pokemon -- it must stay unteachable, or
+        // callers that scan the party (CanLearnFlashInParty, the daycare, the dex) see a blank
+        // slot as a valid TM user.
         if (IsTMHMUseFree())
-            return (species == SPECIES_EGG) ? 0 : TRUE;
+            return (species == SPECIES_EGG || species == SPECIES_NONE) ? 0 : TRUE;
 
         //tx_randomizer_and_challenges
         if (gSaveBlock1Ptr->tx_Random_Moves)
@@ -10300,8 +10306,11 @@ u32 CanSpeciesLearnTMHM(u16 species, u8 tm)
 {
     if (gSaveBlock1Ptr->tx_Mode_Modern_Moves == 0)
     {
+        // SPECIES_NONE is an empty party slot, not a Pokemon -- it must stay unteachable, or
+        // callers that scan the party (CanLearnFlashInParty, the daycare, the dex) see a blank
+        // slot as a valid TM user.
         if (IsTMHMUseFree())
-            return (species == SPECIES_EGG) ? 0 : TRUE;
+            return (species == SPECIES_EGG || species == SPECIES_NONE) ? 0 : TRUE;
 
         //tx_randomizer_and_challenges
         if (gSaveBlock1Ptr->tx_Random_Moves)
@@ -10334,8 +10343,11 @@ u32 CanSpeciesLearnTMHM(u16 species, u8 tm)
     }
     else if (gSaveBlock1Ptr->tx_Mode_Modern_Moves == 1)
     {
+        // SPECIES_NONE is an empty party slot, not a Pokemon -- it must stay unteachable, or
+        // callers that scan the party (CanLearnFlashInParty, the daycare, the dex) see a blank
+        // slot as a valid TM user.
         if (IsTMHMUseFree())
-            return (species == SPECIES_EGG) ? 0 : TRUE;
+            return (species == SPECIES_EGG || species == SPECIES_NONE) ? 0 : TRUE;
 
         //tx_randomizer_and_challenges
         if (gSaveBlock1Ptr->tx_Random_Moves)
