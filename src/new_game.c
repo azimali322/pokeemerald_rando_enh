@@ -92,13 +92,13 @@ static void InitPlayerTrainerId(void)
 // L=A isnt set here for some reason.
 static void SetDefaultOptions(void)
 {
-    gSaveBlock2Ptr->optionsTextSpeed = OPTIONS_TEXT_SPEED_FAST;
+    gSaveBlock2Ptr->optionsTextSpeed = OPTIONS_TEXT_SPEED_FASTER;
     gSaveBlock2Ptr->optionsWindowFrameType = 0;
     gSaveBlock2Ptr->optionsSound = OPTIONS_SOUND_STEREO;
     gSaveBlock2Ptr->optionsBattleStyle = OPTIONS_BATTLE_STYLE_SET;
     gSaveBlock2Ptr->optionsBattleSceneOff = FALSE;
     gSaveBlock2Ptr->regionMapZoom = FALSE;
-    gSaveBlock2Ptr->optionsDifficulty = 1;
+    gSaveBlock2Ptr->optionsDifficulty = 2;              // Hard
     gSaveBlock2Ptr->optionsfollowerEnable = 0;
     gSaveBlock2Ptr->optionsfollowerLargeEnable = 1;
     gSaveBlock2Ptr->optionsautoRun = 1;
@@ -110,7 +110,7 @@ static void SetDefaultOptions(void)
     gSaveBlock2Ptr->optionsFishing = 1;
     gSaveBlock2Ptr->optionsFastIntro = 1;
     gSaveBlock2Ptr->optionsFastBattle = 1;
-    gSaveBlock2Ptr->optionsBattleSpeed = 0;
+    gSaveBlock2Ptr->optionsBattleSpeed = 1;             // 2x anim speed
     gSaveBlock2Ptr->optionsBikeMusic = 0;
     gSaveBlock2Ptr->optionsEvenFasterJoy = 1;
     gSaveBlock2Ptr->optionsSurfMusic = 0;
@@ -121,13 +121,13 @@ static void SetDefaultOptions(void)
     gSaveBlock2Ptr->optionsSkipIntro = 1;
     gSaveBlock2Ptr->optionsLRtoRun = 0;
     gSaveBlock2Ptr->optionsBallPrompt = 1;
-    gSaveBlock2Ptr->optionsUnitSystem = 0;
+    gSaveBlock2Ptr->optionsUnitSystem = 1;              // imperial
     gSaveBlock2Ptr->optionsMusicOnOff = 0;
     gSaveBlock2Ptr->optionsNewBackgrounds = 0;
-    gSaveBlock2Ptr->optionsRunType = 1;
+    gSaveBlock2Ptr->optionsRunType = 2;                 // B moves the cursor to Run
     gSaveBlock2Ptr->optionsSurfOverworld = 0;
     gSaveBlock2Ptr->optionsCursorMemory = 1;
-    gSaveBlock2Ptr->optionsBrighterNights = 0;
+    gSaveBlock2Ptr->optionsBrighterNights = 1;
 }
 
 static void ClearPokedexFlags(void)

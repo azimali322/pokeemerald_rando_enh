@@ -1666,6 +1666,7 @@ void CB2_InitTxRandomizerChallengesMenu(void)
         gSaveBlock1Ptr->tx_Challenges_MaxPartyIVs           = TX_DIFFICULTY_MAX_PARTY_IVS;
         gSaveBlock1Ptr->tx_Difficulty_EscapeRopeDig         = TX_DIFFICULTY_ESCAPE_ROPE_DIG;
         gSaveBlock1Ptr->tx_Difficulty_HardExp               = TX_DIFFICULTY_HARD_EXP;
+        gSaveBlock1Ptr->tx_Difficulty_CatchRate             = TX_DIFFICULTY_CATCH_RATE;
 
         gSaveBlock1Ptr->tx_Challenges_PCHeal                = TX_CHALLENGE_PCHEAL;
         gSaveBlock1Ptr->tx_Challenges_Expensive             = TX_CHALLENGES_EXPENSIVE;
@@ -1678,7 +1679,7 @@ void CB2_InitTxRandomizerChallengesMenu(void)
 
         sOptions = AllocZeroed(sizeof(*sOptions));
         //MENU MODE
-        sOptions->sel_mode[MENUITEM_MODE_CLASSIC_MODERN]         = FALSE;
+        sOptions->sel_mode[MENUITEM_MODE_CLASSIC_MODERN]         = TX_MODE_GAMEMODE;
         sOptions->sel_mode[MENUITEM_MODE_ALTERNATE_SPAWNS]       = gSaveBlock1Ptr->tx_Mode_Encounters;
         sOptions->sel_mode[MENUITEM_MODE_INFINITE_TMS]           = gSaveBlock1Ptr->tx_Mode_InfiniteTMs;
         sOptions->sel_mode[MENUITEM_MODE_SURVIVE_POISON]         = gSaveBlock1Ptr->tx_Mode_PoisonSurvive;
@@ -1704,7 +1705,7 @@ void CB2_InitTxRandomizerChallengesMenu(void)
         sOptions->sel_features[MENUITEM_FEATURES_SHINY_COLOR]            = gSaveBlock1Ptr->tx_Features_ShinyColors;
 
         //MENU RANDOMIZER
-        sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]                     = FALSE;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]                     = TX_RANDOMIZER_ON;
         sOptions->sel_randomizer[MENUITEM_RANDOM_STARTER]                    = gSaveBlock1Ptr->tx_Random_Starter;
         sOptions->sel_randomizer[MENUITEM_RANDOM_WILD_PKMN]                  = gSaveBlock1Ptr->tx_Random_WildPokemon;
         sOptions->sel_randomizer[MENUITEM_RANDOM_TRAINER]                    = gSaveBlock1Ptr->tx_Random_Trainer;
@@ -1733,12 +1734,16 @@ void CB2_InitTxRandomizerChallengesMenu(void)
         sOptions->sel_randomizer[MENUITEM_RANDOM_CHAOS]                      = gSaveBlock1Ptr->tx_Random_Chaos;
 
         // MENU_NUZLOCKE
+        // Must match sText_Nuzlocke_Strings and the switch in SaveData below:
+        // 0 Off, 1 Easy, 2 Normal, 3 Hardcore. This read-back was written when the option had
+        // three states and was never updated when Easy was added, so it reported every mode one
+        // step too low -- Hardcore showed as Normal, Normal as Easy, Easy as Off.
         if (gSaveBlock1Ptr->tx_Challenges_Nuzlocke && gSaveBlock1Ptr->tx_Challenges_NuzlockeHardcore)
-            sOptions->sel_nuzlocke[MENUITEM_NUZLOCKE_NUZLOCKE] = 2;
+            sOptions->sel_nuzlocke[MENUITEM_NUZLOCKE_NUZLOCKE] = 3;
         else if (gSaveBlock1Ptr->tx_Challenges_Nuzlocke)
-            sOptions->sel_nuzlocke[MENUITEM_NUZLOCKE_NUZLOCKE] = 1;
+            sOptions->sel_nuzlocke[MENUITEM_NUZLOCKE_NUZLOCKE] = 2;
         else if (gSaveBlock1Ptr->tx_Nuzlocke_EasyMode)
-            sOptions->sel_nuzlocke[MENUITEM_NUZLOCKE_NUZLOCKE] = 0;
+            sOptions->sel_nuzlocke[MENUITEM_NUZLOCKE_NUZLOCKE] = 1;
         else
             sOptions->sel_nuzlocke[MENUITEM_NUZLOCKE_NUZLOCKE] = 0;
         sOptions->sel_nuzlocke[MENUITEM_NUZLOCKE_SPECIES_CLAUSE]    = !gSaveBlock1Ptr->tx_Nuzlocke_SpeciesClause;
