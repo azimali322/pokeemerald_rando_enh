@@ -103,6 +103,7 @@ enum
     MENUITEM_RANDOM_ITEMS_VGC,
     MENUITEM_RANDOM_TMS_VGC,
     MENUITEM_RANDOM_TM_MOVES,
+    MENUITEM_RANDOM_TM_COMPAT,
     MENUITEM_RANDOM_CHAOS,
     MENUITEM_RANDOM_NEXT,
     MENUITEM_RANDOM_COUNT,
@@ -300,6 +301,7 @@ static void DrawChoices_Random_AbilitiesVGC(int selection, int y);
 static void DrawChoices_Random_ItemsVGC(int selection, int y);
 static void DrawChoices_Random_TMsVGC(int selection, int y);
 static void DrawChoices_Random_TMMoves(int selection, int y);
+static void DrawChoices_Random_TMCompat(int selection, int y);
 static void DrawChoices_Features_CheapBalls(int selection, int y);
 static void DrawChoices_Features_RerollCheat(int selection, int y);
 
@@ -456,6 +458,7 @@ struct // MENU_RANDOMIZER
     [MENUITEM_RANDOM_ITEMS_VGC]                 = {DrawChoices_Random_ItemsVGC,         ProcessInput_Options_Three},
     [MENUITEM_RANDOM_TMS_VGC]                   = {DrawChoices_Random_TMsVGC,           ProcessInput_Options_Three},
     [MENUITEM_RANDOM_TM_MOVES]                  = {DrawChoices_Random_TMMoves,          ProcessInput_Options_Two},
+    [MENUITEM_RANDOM_TM_COMPAT]                 = {DrawChoices_Random_TMCompat,         ProcessInput_Options_Two},
     [MENUITEM_RANDOM_CHAOS]                     = {DrawChoices_Random_OffChaos,         ProcessInput_Options_Two},
     [MENUITEM_RANDOM_NEXT]                      = {NULL, NULL},
 };
@@ -601,6 +604,7 @@ static const u8 sText_AbilitiesVGC[] =              _("VGC ABILITY POOL");
 static const u8 sText_ItemsVGC[] =                  _("VGC ITEM POOL");
 static const u8 sText_TMsVGC[] =                    _("VGC TM POOL");
 static const u8 sText_TMMoves[] =                   _("RANDOM TM MOVES");
+static const u8 sText_TMCompat[] =                  _("FREE TM/HM USE");
 static const u8 sText_CheapBalls[] =                _("CHEAP SHOP");
 static const u8 sText_RerollCheat[] =               _("REROLL CHEAT");
 static const u8 *const sOptionMenuItemsNamesRandom[MENUITEM_RANDOM_COUNT] =
@@ -628,6 +632,7 @@ static const u8 *const sOptionMenuItemsNamesRandom[MENUITEM_RANDOM_COUNT] =
     [MENUITEM_RANDOM_ITEMS_VGC]                 = sText_ItemsVGC,
     [MENUITEM_RANDOM_TMS_VGC]                   = sText_TMsVGC,
     [MENUITEM_RANDOM_TM_MOVES]                  = sText_TMMoves,
+    [MENUITEM_RANDOM_TM_COMPAT]                 = sText_TMCompat,
     [MENUITEM_RANDOM_CHAOS]                     = sText_Chaos,
     [MENUITEM_RANDOM_NEXT]                      = sText_Next,
 };
@@ -794,6 +799,7 @@ static bool8 CheckConditions(int selection)
             case MENUITEM_RANDOM_TMS_VGC:                   return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON]
                                                                 && sOptions->sel_randomizer[MENUITEM_RANDOM_ITEMS];
             case MENUITEM_RANDOM_TM_MOVES:                  return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON];
+            case MENUITEM_RANDOM_TM_COMPAT:                 return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON];
             case MENUITEM_RANDOM_CHAOS:                     return sOptions->sel_randomizer[MENUITEM_RANDOM_OFF_ON] && (sOptions->sel_randomizer[MENUITEM_RANDOM_WILD_PKMN]
                                                                 || sOptions->sel_randomizer[MENUITEM_RANDOM_STARTER]
                                                                 || sOptions->sel_randomizer[MENUITEM_RANDOM_TRAINER]
@@ -992,6 +998,8 @@ static const u8 sText_Description_Random_TMsVGC_Weighted[]     = _("Better TMs a
 static const u8 sText_Description_Random_TMsVGC_Strict[]       = _("Only top tier TMs are found.");
 static const u8 sText_Description_Random_TMMoves_Off[]         = _("TMs teach their normal moves.");
 static const u8 sText_Description_Random_TMMoves_On[]          = _("TMs teach random moves. No HMs.");
+static const u8 sText_Description_Random_TMCompat_Off[]        = _("TM users follow the usual rules.");
+static const u8 sText_Description_Random_TMCompat_On[]         = _("Any TM or HM on any {PKMN}.");
 
 static const u8 *const sOptionMenuItemDescriptionsRandomizer[MENUITEM_RANDOM_COUNT][2] =
 {
@@ -1018,6 +1026,7 @@ static const u8 *const sOptionMenuItemDescriptionsRandomizer[MENUITEM_RANDOM_COU
     [MENUITEM_RANDOM_ITEMS_VGC]                 = {sText_Description_Random_ItemsVGC_Off,          sText_Description_Random_ItemsVGC_Weighted},
     [MENUITEM_RANDOM_TMS_VGC]                   = {sText_Description_Random_TMsVGC_Off,            sText_Description_Random_TMsVGC_Weighted},
     [MENUITEM_RANDOM_TM_MOVES]                  = {sText_Description_Random_TMMoves_Off,           sText_Description_Random_TMMoves_On},
+    [MENUITEM_RANDOM_TM_COMPAT]                 = {sText_Description_Random_TMCompat_Off,           sText_Description_Random_TMCompat_On},
     [MENUITEM_RANDOM_CHAOS]                     = {sText_Description_Random_ChaosMode_Off,               sText_Description_Random_ChaosMode_On},
     [MENUITEM_RANDOM_NEXT]                      = {sText_Description_Random_Next,                  sText_Empty},
 };
@@ -1211,6 +1220,7 @@ static const u8 *const sOptionMenuItemDescriptionsDisabledRandomizer[MENUITEM_RA
     [MENUITEM_RANDOM_ITEMS_VGC]                 = sText_Description_Disabled_Random_NeedsItems,
     [MENUITEM_RANDOM_TMS_VGC]                   = sText_Description_Disabled_Random_NeedsItems,
     [MENUITEM_RANDOM_TM_MOVES]                  = sText_Empty,
+    [MENUITEM_RANDOM_TM_COMPAT]                 = sText_Empty,
     [MENUITEM_RANDOM_CHAOS]                     = sText_Description_Disabled_Random_Chaos_Mode,
     [MENUITEM_RANDOM_NEXT]                      = sText_Empty,
 };
@@ -1625,6 +1635,7 @@ void CB2_InitTxRandomizerChallengesMenu(void)
         gSaveBlock1Ptr->tx_Random_ItemsVGC                  = TX_RANDOM_ITEMS_VGC;
         gSaveBlock1Ptr->tx_Random_TMsVGC                    = TX_RANDOM_TMS_VGC;
         gSaveBlock1Ptr->tx_Random_TMs                       = TX_RANDOM_TM_MOVES;
+        gSaveBlock1Ptr->tx_Random_TMCompatFree           = TX_RANDOM_TM_COMPAT;
         gSaveBlock1Ptr->tx_Features_CheapBalls              = TX_FEATURES_CHEAP_BALLS;
         gSaveBlock1Ptr->tx_Features_RerollCheat             = TX_FEATURES_REROLL_CHEAT;
         gSaveBlock1Ptr->tx_Random_Evolutions                = TX_RANDOM_EVOLUTION;
@@ -1712,6 +1723,7 @@ void CB2_InitTxRandomizerChallengesMenu(void)
         sOptions->sel_randomizer[MENUITEM_RANDOM_ITEMS_VGC]                  = gSaveBlock1Ptr->tx_Random_ItemsVGC;
         sOptions->sel_randomizer[MENUITEM_RANDOM_TMS_VGC]                    = gSaveBlock1Ptr->tx_Random_TMsVGC;
         sOptions->sel_randomizer[MENUITEM_RANDOM_TM_MOVES]                   = gSaveBlock1Ptr->tx_Random_TMs;
+        sOptions->sel_randomizer[MENUITEM_RANDOM_TM_COMPAT]                  = gSaveBlock1Ptr->tx_Random_TMCompatFree;
         sOptions->sel_challenges[MENUITEM_CHALLENGES_CHEAP_BALLS]            = gSaveBlock1Ptr->tx_Features_CheapBalls;
         sOptions->sel_challenges[MENUITEM_CHALLENGES_REROLL_CHEAT]           = gSaveBlock1Ptr->tx_Features_RerollCheat;
         sOptions->sel_randomizer[MENUITEM_RANDOM_EVOLUTIONS]                 = gSaveBlock1Ptr->tx_Random_Evolutions;
@@ -2080,6 +2092,7 @@ void SaveData_TxRandomizerAndChallenges(void)
         gSaveBlock1Ptr->tx_Random_ItemsVGC           = sOptions->sel_randomizer[MENUITEM_RANDOM_ITEMS_VGC];
         gSaveBlock1Ptr->tx_Random_TMsVGC             = sOptions->sel_randomizer[MENUITEM_RANDOM_TMS_VGC];
         gSaveBlock1Ptr->tx_Random_TMs                = sOptions->sel_randomizer[MENUITEM_RANDOM_TM_MOVES];
+        gSaveBlock1Ptr->tx_Random_TMCompatFree    = sOptions->sel_randomizer[MENUITEM_RANDOM_TM_COMPAT];
         gSaveBlock1Ptr->tx_Random_Evolutions         = sOptions->sel_randomizer[MENUITEM_RANDOM_EVOLUTIONS];
         gSaveBlock1Ptr->tx_Random_EvolutionMethods   = sOptions->sel_randomizer[MENUITEM_RANDOM_EVOLUTIONS_METHODS];
         gSaveBlock1Ptr->tx_Random_TypeEffectiveness  = sOptions->sel_randomizer[MENUITEM_RANDOM_TYPE_EFFEC];
@@ -2107,6 +2120,7 @@ void SaveData_TxRandomizerAndChallenges(void)
         gSaveBlock1Ptr->tx_Random_ItemsVGC           = TX_VGC_OFF;
         gSaveBlock1Ptr->tx_Random_TMsVGC             = TX_VGC_OFF;
         gSaveBlock1Ptr->tx_Random_TMs                = FALSE;
+        gSaveBlock1Ptr->tx_Random_TMCompatFree    = FALSE;
         gSaveBlock1Ptr->tx_Random_Evolutions         = FALSE;
         gSaveBlock1Ptr->tx_Random_EvolutionMethods   = FALSE;
         gSaveBlock1Ptr->tx_Random_TypeEffectiveness  = FALSE;
@@ -2626,6 +2640,13 @@ static void DrawChoices_Random_Learnsets(int selection, int y)
 static void DrawChoices_Random_TMMoves(int selection, int y)
 {
     DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_RANDOM_TM_MOVES));
+}
+
+// Off = the compatibility table decides, as upstream does.
+// On  = every Pokemon can be taught every TM and HM.
+static void DrawChoices_Random_TMCompat(int selection, int y)
+{
+    DrawChoices_Random_OffOn(selection, y, CheckConditions(MENUITEM_RANDOM_TM_COMPAT));
 }
 static const u8 sText_VGC_Weighted[] = _("Weighted");
 static const u8 sText_VGC_Strict[]   = _("Strict");

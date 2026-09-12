@@ -158,6 +158,7 @@ static const u8 sText_Rand_WildLevelScaled[]  = _("LEVEL-SCALED WILDS");
 static const u8 sText_Rand_Legendaries[]      = _("RANDOM LEGENDARIES");
 static const u8 sText_Rand_MovesVGC[]         = _("VGC MOVE POOL");
 static const u8 sText_Rand_GuaranteeStab[]    = _("GUARANTEE STAB");
+static const u8 sText_Rand_TMCompat[]         = _("FREE TM/HM USE");
 static const u8 sText_Rand_Learnsets[]        = _("SMART LEARNSETS");
 static const u8 sText_Rand_AbilitiesVGC[]     = _("VGC ABILITY POOL");
 static const u8 sText_Rand_ItemsVGC[]         = _("VGC ITEM POOL");
@@ -502,6 +503,7 @@ static u8 GetSel_Rand_Legendaries(void)    { return gSaveBlock1Ptr->tx_Random_Le
 static u8 GetSel_Rand_GuaranteeStab(void)  { return gSaveBlock1Ptr->tx_Random_GuaranteeStab      ? 1 : 0; }
 static u8 GetSel_Rand_Learnsets(void)      { return gSaveBlock1Ptr->tx_Random_Learnsets          ? 1 : 0; }
 static u8 GetSel_Rand_TMMoves(void)        { return gSaveBlock1Ptr->tx_Random_TMs                ? 1 : 0; }
+static u8 GetSel_Rand_TMCompat(void)       { return gSaveBlock1Ptr->tx_Random_TMCompatFree    ? 1 : 0; }
 static u8 GetSel_Rand_MovesVGC(void)       { return gSaveBlock1Ptr->tx_Random_MovesVGC; }
 static u8 GetSel_Rand_AbilitiesVGC(void)   { return gSaveBlock1Ptr->tx_Random_AbilitiesVGC; }
 static u8 GetSel_Rand_ItemsVGC(void)       { return gSaveBlock1Ptr->tx_Random_ItemsVGC; }
@@ -636,6 +638,7 @@ static const struct ViewerBoolRow sBoolRows_Page3[] = {
     { sText_Rand_ItemsVGC,       NULL                       }, // 3-state
     { sText_Rand_TMsVGC,         NULL                       }, // 3-state
     { sText_Rand_TMMoves,        GetSel_Rand_TMMoves        },
+    { sText_Rand_TMCompat,       GetSel_Rand_TMCompat       },
     { sText_Rand_Chaos,          GetSel_Rand_Chaos          },
 };
 

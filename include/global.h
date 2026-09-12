@@ -1211,6 +1211,7 @@ struct SaveBlock1
         u8 tx_Random_Learnsets:1;           // learnset dedupe/level-scaling/STAB
         u8 tx_Random_TMsVGC:2;              // 0 off, 1 weighted, 2 strict (which TM drops)
         u8 tx_Random_TMs:1;                 // randomize which move a TM teaches
+        u8 tx_Random_TMCompatFree:1;        // any Pokemon can be taught any TM or HM
         u8 tx_Features_CheapBalls:1;        // cheap Ultra Balls + evolution items
         u8 tx_Features_RerollCheat:1;       // reroll ability/nature in the stat editor
 };

@@ -31,6 +31,7 @@ rows 12-13 are on PR **#13** and are *not on `master` until that is merged*.
 | 10 | Level Cap Candy (party menu) | ✅ | #7 |
 | 11 | Nature / ability reroll cheat | ✅ | #7 |
 | 12 | Per-type STAB tiering + physical/special split | ✅ | #12 |
+| 14 | Free TM/HM use — any TM or HM on any Pokemon (`FREE TM/HM USE`) | ✅ | #16 |
 | 13 | STAB/learnset refinements — level-capped STAB injection, guaranteed uncapped same-type move above Lv30, 40% same-type bias on ordinary slots, own-type pool dealt without replacement | ✅ | #13 |
 
 ### What's left
@@ -168,6 +169,27 @@ own. Either way canon "can Articuno learn Ice Punch" never enters into it.
 same-type damaging TMs it can actually learn, and **39.4%** have none at all. So TMs are a thin safety net
 for a Pokemon with no same-type move — thinner than the stock TM set, where the spread across types is
 deliberate.
+
+**`FREE TM/HM USE` removes the restriction entirely.** Turn it On and any TM or HM can be taught to
+any Pokemon. That is the [Randolocke](https://www.pokecommunity.com/threads/pok%C3%A9mon-randolocke-v1-1.537596/)
+approach, and the equivalent of the Universal Pokemon Randomizer's *Full compatibility* setting.
+
+Why this rather than restoring the vanilla lists: the compatibility table is a poor fit for a randomizer
+either way, and upstream's substitution makes it arbitrary rather than merely restrictive. Measured against
+each Pokemon's real list, the borrowed list wrongly allows about **7** TMs and wrongly denies **7** more,
+and a Magikarp -- which can learn **0** TMs in the base game -- ends up able to learn 30. Handing the
+decision to the player is simpler than arguing about which wrong answer is less wrong.
+
+**HMs are included.** This removes the one genuine soft-lock in a randomized run -- a party where nobody can
+learn Surf -- at the cost of making HM slaves unnecessary. If you would rather keep HM eligibility as a
+constraint, leave this Off.
+
+UPR's own tooltip for the equivalent option warns that it "might make the game too easy", and that is worth
+taking seriously: pair it with a `LEVEL CAP` if you want the difficulty to come from somewhere. Randolocke
+does exactly that, with caps from 14 to 63.
+
+Note this option does **not** require `MOVES` -- it overrides the compatibility check regardless of whether
+anything is randomized.
 
 Levers, if TMs are meant to be your fallback:
 

@@ -39,6 +39,7 @@ options off, the game plays exactly like stock Modern Emerald.
 | **Same-type bias** | Every *other* damaging learnset slot leans toward the Pokémon's own type 40% of the time, tier-weighted — so movesets read as belonging to the species without becoming mono-type. Off-type moves stay common on purpose. Same-type moves are dealt **without replacement**, so a shallow type like Fairy gets each of its moves once and then falls back to the general pool instead of repeating one. |
 | **Random TM moves** | Reassigns what each TM teaches, drawn from the weighted pool, no duplicates. **HMs are never touched** — randomizing Surf or Strength would soft-lock a run. |
 | **Weighted TM drops** | Which TM appears in an item ball is weighted by the tier of the move it teaches. |
+| **Free TM/HM use** | Any TM or HM can be taught to any Pokémon. The compatibility table is a poor fit for a randomizer — and upstream makes it worse by borrowing a *different, seeded species'* list whenever move randomization is on, which wrongly allows about 7 TMs per Pokémon and wrongly denies 7 more. Rather than restore the vanilla lists, this hands the decision to you: put any TM on anything, and decide for yourself whether it's a good idea. Includes HMs, which also removes the one real soft-lock in a randomized run — a party with nobody able to learn Surf. |
 
 ### Smarter abilities and items
 
@@ -89,6 +90,7 @@ beneath it in the menu.
 | `VGC ITEM POOL` | Off / Weighted / Strict | **Items** |
 | `VGC TM POOL` | Off / Weighted / Strict | **Items** |
 | `RANDOM TM MOVES` | Off / On | — |
+| `FREE TM/HM USE` | Off / On | — |
 
 ### Features page
 

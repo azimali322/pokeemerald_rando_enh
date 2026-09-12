@@ -34,6 +34,7 @@
 #define TX_RANDOM_LEARNSETS             FALSE
 #define TX_RANDOM_TMS_VGC               0   // 0 off, 1 weighted, 2 strict
 #define TX_RANDOM_TM_MOVES              FALSE
+#define TX_RANDOM_TM_COMPAT             FALSE   // TRUE = every Pokemon can learn every TM/HM
 #define TX_FEATURES_CHEAP_BALLS         FALSE
 #define TX_FEATURES_REROLL_CHEAT        FALSE
 
