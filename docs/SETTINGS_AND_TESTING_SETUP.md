@@ -36,15 +36,23 @@ Companions: [`RANDOMIZER_ENHANCEMENTS_PLAN.md`](RANDOMIZER_ENHANCEMENTS_PLAN.md)
 
 ### What's left
 
-Both optional — nothing is blocked:
+Nothing is blocked, and every requested feature is built:
 
 | Item | Size | Why it was deferred |
 |---|---|---|
-| **Phase 10 — PC storage use** | M | Box Pokémon are `struct BoxPokemon` with no level or current-HP field; a bad round-trip corrupts them. Worth its own change. **The only requested feature not built.** |
-| **Play-testing** | — | Everything is verified by reproducing the algorithms against the ROM's own data tables. In-game behaviour is confirmed only where it has actually been played. |
+| **Play-testing** | — | Everything is verified by reproducing the algorithms against the ROM's own data tables. In-game behaviour is confirmed only where it has actually been played. **The only work genuinely outstanding.** |
 | ~~Per-type STAB tiering~~ | — | **Done** (#12). Reuses the Phase 5 tiers — no separate ranking was needed, since all 8 types with 10+ STAB moves already spread across 3-4 tiers. Added a physical/special split at the same time. |
 
 ### Ideas considered and not built
+
+- **Cap Level on box Pokemon** — asked for, scoped, and **declined**. The data side is easy: a box
+  Pokemon's level is derived from its EXP, `BoxMonToMon` converts it and writing back is a struct copy.
+  The blocker is the prompts. `pokemon_storage_system.c` contains **no** reference to
+  `MonTryLearningNewMove`, `BeginEvolutionScene` or `DisplayMonNeedsToReplaceMove` — the PC hosts none
+  of that flow, only a yes/no menu. So an in-PC version either silently skips move choices and the
+  evolution scene, stops at the first obstacle (which for anything with an evolution in range is
+  almost immediately), or needs that whole UI rebuilt in the storage system. The party-menu Cap Level
+  covers the need; withdraw the Pokemon first.
 
 - **BST mode for trainers** — Phase 3b applies to wild Pokémon only.
 - **Trainer moveset de-duplication** — 47% of explicit-moveset trainer entries currently share movesets
