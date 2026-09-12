@@ -8,19 +8,27 @@ Tiered for the way you play: a cheat heal item covers healing, EVs are set manua
 are buyable at ₽1. So healing, battle items, vitamins and balls carry almost no value here even though
 a general tier list would rank some of them highly.
 
-Pool: the 188 items in `sRandomValidItems[]`. TMs and key items never reach this path.
+Pool: 122 non-berry items from `sRandomValidItems[]`, plus a TM band. Key items never reach this
+path, and the 43 berries moved to [BERRIES.md](BERRIES.md) for the berry-tree pool.
+
+**TMs can now turn up anywhere.** Before, the pocket check routed a found TM to another TM and
+everything else to a non-TM, so a TM could only appear where one already was in the vanilla game.
+A band between tiers 1 and 2 now yields one; *which* TM is still decided by the TM tiering.
 
 ## Weights
 
 | Tier | Contents | n | Weight | Per-item | × uniform | vs next tier |
 |---|---|---:|---:|---:|---:|---:|
-| 1 | Premier hold items | 4 | 18.59% | 4.6475% | 8.74× | 2× |
-| 2 | Strong hold items | 8 | 18.59% | 2.3237% | 4.37× | 2× |
-| 3 | Other battle hold items | 40 | 46.47% | 1.1618% | 2.18× | 4× |
-| 4 | Evolution, balls, flavour berries, species-locked | 50 | 14.52% | 0.2904% | 0.55× | 10× |
-| 5 | Healing, vitamins, utility, junk | 63 | 1.83% | 0.0290% | 0.05× | — |
+| 1 | Premier hold items | 2 | 8.08% | 4.0400% | 6.95× | 1.6× |
+| — | **TM band** (which TM is left to the TM tiering) | 50 | 13.89% | 0.2778% | 0.48× | — |
+| 2 | Strong hold items | 8 | 20.20% | 2.5250% | 4.34× | 1.6× |
+| 3 | Other battle hold items | 20 | 31.57% | 1.5785% | 2.72× | 2.5× |
+| 4 | Evolution, balls, species-locked | 29 | 18.31% | 0.6314% | 1.09× | 5× |
+| 5 | Healing, vitamins, utility, junk | 63 | 7.95% | 0.1262% | 0.22× | — |
 
-Uniform baseline is 0.5319% per item. Ratios: **2× / 2× / 4× / 10×**. The tier 3→4 gap was softened from 10× so evolution stones stay findable.
+Uniform baseline is 0.5814% per item across 122 items + 50 TMs. Ratios between item tiers:
+**1.6× / 1.6× / 2.5× / 5×**, softened from 2× / 2× / 4× / 10× — tier 1 fell from 9.2× the uniform
+rate to 6.9×. It lost Lum and Sitrus to the berry split, which is what had concentrated it.
 
 ## Never rolled
 

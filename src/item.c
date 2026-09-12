@@ -1296,18 +1296,32 @@ static u16 PickWeightedTM(u16 seed)
 }
 
 //tx_randomizer_and_challenges
-// Weighted item pool. Weights are per-tier totals; divided by tier size they give per-item ratios of
-// 2x / 2x / 4x / 10x going down. The 4x step keeps evolution stones findable -- about 1 roll in 344 --
-// while the 10x step below it pushes healing, vitamins and utility effectively out of the pool.
+// One TM, weighted by the move it teaches when the TM pool is on and flat when it is off.
+static u16 PickRandomTM(u16 seed)
+{
+    if (gSaveBlock1Ptr->tx_Random_TMsVGC != TX_VGC_OFF)
+        return PickWeightedTM(seed);
+
+    return ITEM_TM01 + RandomSeededModulo(seed, NUM_TECHNICAL_MACHINES);
+}
+
+// Weighted item pool. Weights are per-tier totals; divided by tier size they give the per-item
+// ratios below. Scaled by 100 so the thresholds stay integer -- no FPU on this hardware.
 //
-// Scaled by 100 so the thresholds stay integer -- no FPU on this hardware.
-// Rebalanced when the 43 berries left these tables for the berry-tree pool. Tier sizes went
-// from 4/8/40/50/63 to 2/8/20/29/63, so the weights had to move with them to keep the
-// per-item ratios the tiers were built around: T1 = 2x T2 = 4x T3 = 16x T4 = 160x T5.
-#define ITEM_W_T1 1514   // 15.14%
-#define ITEM_W_T2 3029   // 30.29%
-#define ITEM_W_T3 3786   // 37.86%
-#define ITEM_W_T4 1372   // 13.72%
+// Berries left these tables for the berry-tree pool, taking tier 1 down to two entries, so the
+// weights were rebalanced to keep the per-item ratios the tiering was built around. The chain was
+// then softened from 2 / 2 / 4 / 10 to 1.6 / 1.6 / 2.5 / 5, which brings tier 1 from 9.2x the
+// uniform rate down to 6.9x -- still clearly the best band, just less of a cliff.
+//
+// TMs sit in a band of their own between tiers 1 and 2. Before this they could only turn up where
+// a TM already was in the vanilla game, because the pocket check routes TMs to TMs and everything
+// else to non-TMs; nothing in these tables is a TM. Which TM the band yields is left to
+// PickWeightedTM, so the TM tiering keeps deciding that.
+#define ITEM_W_T1  808   // 8.08%
+#define ITEM_W_TM  1389   // 13.89% -- the whole TM band, 50 machines
+#define ITEM_W_T2  2020   // 20.20%
+#define ITEM_W_T3  3157   // 31.57%
+#define ITEM_W_T4  1831   // 18.31%
 // tier 5 takes the remaining 1.83%
 
 static u16 GetWeightedItem(u16 itemId, u8 mapId)
@@ -1318,6 +1332,12 @@ static u16 GetWeightedItem(u16 itemId, u8 mapId)
     // Strict draws from tiers 1 and 2 only.
     if (gSaveBlock1Ptr->tx_Random_ItemsVGC == TX_VGC_STRICT)
     {
+        // Tiers 1 and 2 plus the TM band, keeping the band in the same place it sits below.
+        roll = RandomSeededModulo(itemId + mapId + 0x7A13, ITEM_W_T1 + ITEM_W_TM + ITEM_W_T2);
+
+        if (roll >= ITEM_W_T1 && roll < ITEM_W_T1 + ITEM_W_TM)
+            return PickRandomTM(itemId * 11 + mapId * 17 + 0x4B8D);
+
         roll = RandomSeededModulo(itemId * 7 + mapId * 13 + 0x2F5B,
                                   ARRAY_COUNT(sItemTier1) + ARRAY_COUNT(sItemTier2));
         if (roll < ARRAY_COUNT(sItemTier1))
@@ -1327,11 +1347,17 @@ static u16 GetWeightedItem(u16 itemId, u8 mapId)
 
     roll = RandomSeededModulo(itemId + mapId + 0x7A13, 10000);
 
-    if (roll < ITEM_W_T1)                                              { table = sItemTier1; count = ARRAY_COUNT(sItemTier1); }
-    else if (roll < ITEM_W_T1 + ITEM_W_T2)                             { table = sItemTier2; count = ARRAY_COUNT(sItemTier2); }
-    else if (roll < ITEM_W_T1 + ITEM_W_T2 + ITEM_W_T3)                 { table = sItemTier3; count = ARRAY_COUNT(sItemTier3); }
-    else if (roll < ITEM_W_T1 + ITEM_W_T2 + ITEM_W_T3 + ITEM_W_T4)     { table = sItemTier4; count = ARRAY_COUNT(sItemTier4); }
-    else                                                               { table = sItemTier5; count = ARRAY_COUNT(sItemTier5); }
+    // The TM band hands off rather than indexing a table: PickWeightedTM already ranks the 50
+    // machines by the move each teaches, and duplicating that here would let the two drift. With
+    // the TM pool off it falls back to a flat draw, matching what a found TM does.
+    if (roll >= ITEM_W_T1 && roll < ITEM_W_T1 + ITEM_W_TM)
+        return PickRandomTM(itemId * 11 + mapId * 17 + 0x4B8D);
+
+    if (roll < ITEM_W_T1)                                                            { table = sItemTier1; count = ARRAY_COUNT(sItemTier1); }
+    else if (roll < ITEM_W_T1 + ITEM_W_TM + ITEM_W_T2)                               { table = sItemTier2; count = ARRAY_COUNT(sItemTier2); }
+    else if (roll < ITEM_W_T1 + ITEM_W_TM + ITEM_W_T2 + ITEM_W_T3)                   { table = sItemTier3; count = ARRAY_COUNT(sItemTier3); }
+    else if (roll < ITEM_W_T1 + ITEM_W_TM + ITEM_W_T2 + ITEM_W_T3 + ITEM_W_T4)       { table = sItemTier4; count = ARRAY_COUNT(sItemTier4); }
+    else                                                                             { table = sItemTier5; count = ARRAY_COUNT(sItemTier5); }
 
     // Different linear combination from the tier roll above -- keying both off the same value
     // locks each tier to one index. That cost the move pool 66 of 367 entries before it was caught.
