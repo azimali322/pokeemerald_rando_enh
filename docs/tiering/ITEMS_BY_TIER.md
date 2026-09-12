@@ -1,22 +1,58 @@
 # Randomizable Items — tier assignment
 
+> **Berries are no longer in this pool.** All 43 moved to their own tiers for the berry-tree
+> randomizer — see [BERRIES.md](BERRIES.md). Tier sizes here are 2/8/20/29/63, and the weights were
+> rebalanced to keep the per-item ratios this tiering was built around.
+
 Tiered for the way you play: a cheat heal item covers healing, EVs are set manually, and Ultra Balls
 are buyable at ₽1. So healing, battle items, vitamins and balls carry almost no value here even though
 a general tier list would rank some of them highly.
 
-Pool: the 188 items in `sRandomValidItems[]`. TMs and key items never reach this path.
+Pool: 122 non-berry items from `sRandomValidItems[]`, plus a TM band. Key items never reach this
+path, and the 43 berries moved to [BERRIES.md](BERRIES.md) for the berry-tree pool.
+
+**TMs can now turn up anywhere.** Before, the pocket check routed a found TM to another TM and
+everything else to a non-TM, so a TM could only appear where one already was in the vanilla game.
+A band between tiers 1 and 2 now yields one; *which* TM is still decided by the TM tiering.
 
 ## Weights
 
-| Tier | Contents | n | Weight | Per-item | × uniform | vs next tier |
-|---|---|---:|---:|---:|---:|---:|
-| 1 | Premier hold items | 4 | 18.59% | 4.6475% | 8.74× | 2× |
-| 2 | Strong hold items | 8 | 18.59% | 2.3237% | 4.37× | 2× |
-| 3 | Other battle hold items | 40 | 46.47% | 1.1618% | 2.18× | 4× |
-| 4 | Evolution, balls, flavour berries, species-locked | 50 | 14.52% | 0.2904% | 0.55× | 10× |
-| 5 | Healing, vitamins, utility, junk | 63 | 1.83% | 0.0290% | 0.05× | — |
+**No tier exceeds 3× the uniform rate.** That ceiling is the design rule: it keeps tiers 1 to 3 and
+the TMs close enough together that a good pickup is still a surprise rather than a formality.
 
-Uniform baseline is 0.5319% per item. Ratios: **2× / 2× / 4× / 10×**. The tier 3→4 gap was softened from 10× so evolution stones stay findable.
+| Tier | Contents | n | Weight | Per-item | × uniform |
+|---|---|---:|---:|---:|---:|
+| 1 | Premier hold items | 2 | 3.49% | **1.745%** | 3.00× |
+| 2 | Strong hold items | 8 | 13.05% | **1.631%** | 2.81× |
+| 3 | Other battle hold items | 20 | 28.05% | **1.403%** | 2.41× |
+| — | **TM band** — best TMs / average of 50 | 50 | 25.00% | **1.200%** / 0.500% | 2.06× / 0.86× |
+| 4 | Evolution, balls, species-locked | 29 | 20.34% | **0.701%** | 1.21× |
+| 5 | Healing, vitamins, utility, junk | 63 | 10.07% | **0.160%** | 0.27× |
+
+Uniform baseline is 0.5814% across 122 items + 50 TMs. Tiers 1 to 3 and the TM band now span
+1.200% to 1.745%, a 1.45× spread — they were 2.1× apart before, and 30× apart when the tiering was
+first written.
+
+**The TM band is not spread evenly.** `PickWeightedTM` ranks the 50 machines by the move each
+teaches, so one carrying a tier-2 move takes 4.8% of the band and a tier-5 one takes 0.75%. The two
+figures above are the best TMs and the flat average.
+
+At 25% the band turns roughly **86 of the ~343 world pickups** into TMs, about 1.7 copies of each
+of the 50 before the dedup below trims repeats.
+
+### With REUSABLE TMS on, the band draws without replacement
+
+A reusable TM is never consumed, so a second copy is worth nothing. When that option is on the band
+retries past TMs already in the bag, and once all fifty are held it yields nothing and the pickup
+falls through to the item tiers instead of being wasted.
+
+The band stays 40.50% of pickups the whole way — retrying changes *which* TM you get, not how often
+you get one — until the set is complete, at which point it retires and the item tiers absorb its
+share. Every per-item rate then rises by **1.68×**: tier 1 to 3.361%, tier 2 to 3.176%, tier 5 to
+0.159%.
+
+With finite TMs the draw is left alone. A duplicate there is a second use, so it is a real reward —
+the same reasoning the TM-to-TM path has always used.
 
 ## Never rolled
 
