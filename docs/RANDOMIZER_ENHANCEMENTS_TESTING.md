@@ -854,6 +854,47 @@ and the move actually learned all match.
 
 ---
 
+## Phase 14 — Free TM/HM use
+
+**Status:** ✅ Implemented — **needs in-game verification**
+
+`IsTMHMUseFree()` in `src/pokemon.c`, checked in all four branches of `CanMonLearnTMHM` and
+`CanSpeciesLearnTMHM`. When *Free TM/HM Use* is On both return TRUE for every TM and HM, except for an
+egg, which is still refused. The check sits **ahead of** the upstream species substitution, which costs an
+RNG walk per call and is pointless once the answer is always yes.
+
+Gated only on the randomizer master switch — unlike the other sub-options it does **not** need `MOVES`,
+since it overrides the compatibility check regardless of what else is randomized.
+
+No save growth: `sizeof(struct SaveBlock1)` is **15,788**, unchanged, because the new bit packed into an
+existing byte.
+
+Context for why this was chosen over restoring the vanilla lists: measured against each Pokemon's real
+list, upstream's borrowed list wrongly allows ~**7** TMs and wrongly denies ~**7** per Pokemon, and 39
+species that can learn **0** TMs in the base game inherit usable lists (Magikarp ends up with 30).
+
+- [ ] **T14.1 — Option appears and is gated.** `FREE TM/HM USE` sits under `RANDOM TM MOVES` on the
+      randomizer page and greys out only when `RANDOMIZER` itself is Off. It must stay selectable with
+      `MOVES` Off.
+- [ ] **T14.2 — Off reproduces upstream.** With it Off, behaviour must be identical to before this change.
+      This is the regression to watch, since Off is the default.
+- [ ] **T14.3 — On: any TM on anything.** Teach a TM to a Pokemon that certainly cannot learn it in the
+      base game. **Magikarp** is the sharpest probe — it can learn **0** TMs in vanilla, so every TM
+      should now be accepted.
+- [ ] **T14.4 — On: any HM on anything.** Teach Surf or Fly to something that never could. Confirm the
+      field move then works from the party menu, and that HM-gated progression opens up.
+- [ ] **T14.5 — Eggs still refused.** An egg in the party must not accept a TM. This is the one case the
+      early return preserves, and the easiest to break.
+- [ ] **T14.6 — Dex listing agrees.** `pokedex_plus_hgss.c` uses `CanSpeciesLearnTMHM`; with the option On
+      a species' dex TM list should show **all 50**, matching what the party menu allows.
+- [ ] **T14.7 — Apprentice and daycare.** `apprentice.c` picks moves via `CanSpeciesLearnTMHM`, and
+      `src/daycare.c` pairs `ItemIdToBattleMoveId` with `CanMonLearnTMHM` for inherited moves. Neither
+      should crash or produce an empty move.
+- [ ] **T14.8 — Difficulty sanity.** UPR warns its equivalent setting "might make the game too easy".
+      Play a few gyms and judge whether a `LEVEL CAP` is wanted alongside it.
+
+---
+
 ## Phase 9 — Opponent type display in battle
 
 **Status:** ✅ Implemented — **needs in-game verification**

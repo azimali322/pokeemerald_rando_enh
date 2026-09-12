@@ -10197,11 +10197,34 @@ bool8 TryIncrementMonLevel(struct Pokemon *mon)
     }
 }
 
+// Free TM/HM use: every Pokemon can be taught every TM and HM.
+//
+// The compatibility table is a poor fit for a randomizer. Upstream makes it worse by substituting a
+// seeded *different* species whenever move randomization is on, so 88% of Pokemon read someone
+// else's list -- about 7 TMs wrongly allowed and 7 wrongly denied each, and a Magikarp that can
+// learn 30 TMs. Rather than restore the vanilla lists, this hands the decision to the player: any
+// TM can go on any Pokemon, and it is up to them whether that is a good idea.
+//
+// HMs are included deliberately. It removes the one genuine soft-lock in a randomized run -- a
+// party with nobody able to learn Surf -- at the cost of making HM slaves unnecessary.
+//
+// Eggs are still refused, as in the base game.
+static bool8 IsTMHMUseFree(void)
+{
+    return gSaveBlock1Ptr->tx_Random_TMCompatFree;
+}
+
 u32 CanMonLearnTMHM(struct Pokemon *mon, u8 tm)
 {
     if (gSaveBlock1Ptr->tx_Mode_Modern_Moves == 0)
     {
         u16 species = GetMonData(mon, MON_DATA_SPECIES_OR_EGG, 0);
+
+        // Ahead of the substitution below: it costs an RNG walk per call, and this function is
+        // called once per TM when the party menu or the dex lists them.
+        if (IsTMHMUseFree())
+            return (species == SPECIES_EGG) ? 0 : TRUE;
+
         //tx_randomizer_and_challenges
         if (gSaveBlock1Ptr->tx_Random_Moves)
             species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_MOVES, 0);
@@ -10235,6 +10258,12 @@ u32 CanMonLearnTMHM(struct Pokemon *mon, u8 tm)
     else if (gSaveBlock1Ptr->tx_Mode_Modern_Moves == 1)
     {
         u16 species = GetMonData(mon, MON_DATA_SPECIES_OR_EGG, 0);
+
+        // Ahead of the substitution below: it costs an RNG walk per call, and this function is
+        // called once per TM when the party menu or the dex lists them.
+        if (IsTMHMUseFree())
+            return (species == SPECIES_EGG) ? 0 : TRUE;
+
         //tx_randomizer_and_challenges
         if (gSaveBlock1Ptr->tx_Random_Moves)
             species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_MOVES, 0);
@@ -10271,6 +10300,9 @@ u32 CanSpeciesLearnTMHM(u16 species, u8 tm)
 {
     if (gSaveBlock1Ptr->tx_Mode_Modern_Moves == 0)
     {
+        if (IsTMHMUseFree())
+            return (species == SPECIES_EGG) ? 0 : TRUE;
+
         //tx_randomizer_and_challenges
         if (gSaveBlock1Ptr->tx_Random_Moves)
             species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_MOVES, 0);
@@ -10302,6 +10334,9 @@ u32 CanSpeciesLearnTMHM(u16 species, u8 tm)
     }
     else if (gSaveBlock1Ptr->tx_Mode_Modern_Moves == 1)
     {
+        if (IsTMHMUseFree())
+            return (species == SPECIES_EGG) ? 0 : TRUE;
+
         //tx_randomizer_and_challenges
         if (gSaveBlock1Ptr->tx_Random_Moves)
             species = GetSpeciesRandomSeeded(species, TX_RANDOM_T_MOVES, 0);
