@@ -122,6 +122,7 @@ bool8 IsOneTypeChallengeActive(void);
 bool8 AreAnyChallengesActive(void);
 bool8 AreFeaturesActivated(void);
 bool8 IsNuzlockeActive(void);
+bool8 IsRegiUnlockRelaxed(void);
 bool8 IsNuzlockeNicknamingActive(void);
 bool8 IsPokecenterChallengeActivated(void);
 bool8 IsLevelCapActive(void);

@@ -96,6 +96,19 @@ bool8 IsNuzlockeActive(void)
     return gSaveBlock1Ptr->tx_Challenges_Nuzlocke;
 }
 
+// The Regis are gated on Sweet Scent, on a Magnezone-first/Vibrava-last party, and on a
+// clean lap of Regice's chamber. None of that survives contact with a randomizer -- the
+// species may not be reachable and Sweet Scent may not be learnable -- and a Nuzlocke gives
+// no second chance at a missed encounter. With both settings on, Flash opens the Regi walls
+// and the Sealed Chamber drops its party requirement.
+//
+// This reads the setting rather than IsNuzlockeActive(), which stops returning TRUE once the
+// player is Champion. The Regis are usually caught after that point.
+bool8 IsRegiUnlockRelaxed(void)
+{
+    return (gSaveBlock1Ptr->tx_Challenges_Nuzlocke && IsRandomizerActivated());
+}
+
 bool8 IsNuzlockeNicknamingActive(void)
 {
     if (!gSaveBlock1Ptr->tx_Challenges_Nuzlocke)

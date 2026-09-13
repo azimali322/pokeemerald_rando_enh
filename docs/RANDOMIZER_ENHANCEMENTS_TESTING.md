@@ -1137,6 +1137,77 @@ edge case, so the feature was dropped instead of kept as a button that usually b
 
 ---
 
+## Phase 12 — Relaxed Regi unlock (randomizer + Nuzlocke)
+
+**Status:** ✅ Implemented — **needs in-game verification**
+
+### What the chain normally is
+
+Modern Emerald changed two steps of the vanilla Emerald Regi chain:
+
+| step | where | vanilla Emerald | Modern Emerald |
+|---|---|---|---|
+| 1 | Route 134 → Underwater Sealed Chamber | Dive | unchanged |
+| 2 | Sealed Chamber Outer Room | **Dig** at the braille wall | **Sweet Scent** (`SWEET SCENT HERE`) |
+| 3 | Sealed Chamber Inner Room | **Relicanth first, Wailord last** | **Magnezone first, Vibrava last** |
+| 4 | Desert Ruins | left, left, down, down → Rock Smash | unchanged |
+| 5 | Ancient Tomb | Flash in the middle | unchanged |
+| 6 | Island Cave | one lap of the perimeter | unchanged |
+
+Step 3 sets `FLAG_REGI_DOORS_OPENED`, which is what un-seals the three chamber entrances on
+Routes 105 / 111 / 120 — so steps 2 and 3 gate *everything*, and both depend on things a
+randomizer can take away: Sweet Scent may not be learnable and Magnezone/Vibrava may not be
+reachable. Under Nuzlocke a missed encounter is gone for good.
+
+### What this changes
+
+`IsRegiUnlockRelaxed()` (`src/tx_randomizer_and_challenges.c`) is true when the **Nuzlocke
+setting is on** *and* `IsRandomizerActivated()` — i.e. any randomizer option. It reads the
+setting directly rather than `IsNuzlockeActive()`, which returns FALSE once the player is
+Champion; the Regis are usually caught after that point.
+
+When it is true:
+
+- **Flash opens any Regi wall**, from anywhere in the room — Desert Ruins, Ancient Tomb,
+  Island Cave, and the Sealed Chamber Outer Room. `ShouldDoBrailleFlashUnlock()` in
+  `src/braille_puzzles.c`, hooked into `SetUpFieldMove_Flash`.
+- **The Sealed Chamber Inner Room drops its party requirement** — `CheckRelicanthWailord()`
+  returns TRUE, so reading the back-wall braille opens the doors with any party.
+
+Every vanilla method still works; this only adds a route that is always available, since HMs
+are never randomized. The braille hints are unchanged and still describe the vanilla methods.
+
+`sIsRegisteelPuzzle` (bool8) became `sBraillePuzzleId` (u8) — same one byte of EWRAM, which
+matters at 99.68% used. The three chambers share a map layout, so their three identical
+wall-opening functions were folded into `OpenRegiChamberWall(flag)`.
+
+- [ ] **T12.1 — Off by default.** With Nuzlocke off, or with every randomizer option off,
+      Flash in Desert Ruins / Island Cave / the Sealed Chamber says it can't be used there.
+      Only Ancient Tomb's middle tile accepts it, as in vanilla.
+- [ ] **T12.2 — Outer room.** Randomizer + Nuzlocke on: Flash anywhere in the Sealed Chamber
+      Outer Room opens the passage and sets `FLAG_SYS_BRAILLE_DIG`. The warp at (10, 2) works.
+- [ ] **T12.3 — Sweet Scent still works.** The vanilla route is unaffected.
+- [ ] **T12.4 — Inner room.** Reading the back-wall braille with an arbitrary party triggers
+      the earthquake and `FLAG_REGI_DOORS_OPENED`.
+- [ ] **T12.5 — Entrances open.** Routes 105, 111 and 120 now let you into the three chambers.
+- [ ] **T12.6 — Each chamber.** Flash opens the wall in Desert Ruins, Ancient Tomb and Island
+      Cave; the warp at (8, 20) leads to the Regi.
+- [ ] **T12.7 — Vanilla methods still work.** Rock Smash at (5-7, 23) in Desert Ruins, Flash at
+      (8, 25) in Ancient Tomb, and Regice's lap all still open their walls.
+- [ ] **T12.8 — Idempotent.** After a wall is open, Flash there reverts to normal behaviour
+      (lights a dark cave, or refuses) — the flag check must stop it re-firing.
+- [ ] **T12.9 — Right wall, right flag.** Opening one chamber must not open the others. This is
+      the main risk of the shared `OpenRegiChamberWall`: `sBraillePuzzleId` is what picks the
+      flag, and it is set at *option-select* time, so check all three in one session.
+- [ ] **T12.10 — Post-Champion.** Become Champion, then try the chain. `IsNuzlockeActive()`
+      returns FALSE there but the relaxation must still apply.
+- [ ] **T12.11 — No soft-lock.** Player controls and object events are released after each Flash
+      unlock — walk away, open the menu, save.
+- [ ] **T12.12 — Regice puzzle intact.** The lap tracker (`FLAG_TEMP_REGICE_PUZZLE_STARTED` /
+      `_FAILED`) still behaves if you start a lap and then use Flash instead.
+
+---
+
 ## Cross-phase integration
 
 Run once everything is in, on one save with **all** options enabled.

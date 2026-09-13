@@ -80,6 +80,15 @@ bool8 SetUpFieldMove_Flash(void)
         gPostMenuFieldCallback = SetUpPuzzleEffectRegisteel;
         return TRUE;
     }
+    // tx_randomizer_and_challenges: under randomizer + Nuzlocke, Flash also opens the other
+    // Regi walls and the Sealed Chamber. See ShouldDoBrailleFlashUnlock.
+    else if (ShouldDoBrailleFlashUnlock())
+    {
+        gSpecialVar_Result = GetCursorSelectionMonId();
+        gFieldCallback2 = FieldCallback_PrepareFadeInFromMenu;
+        gPostMenuFieldCallback = SetUpPuzzleEffectFlashUnlock;
+        return TRUE;
+    }
     else if (gMapHeader.cave == TRUE && !FlagGet(FLAG_SYS_USE_FLASH))
     {
         gFieldCallback2 = FieldCallback_PrepareFadeInFromMenu;
