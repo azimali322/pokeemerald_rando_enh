@@ -107,8 +107,8 @@ void DoBrailleDigEffect(void)
 bool8 CheckRelicanthWailord(void)
 {
     // tx_randomizer_and_challenges: a Magnezone/Vibrava party is not a reasonable ask once
-    // species are randomized and a Nuzlocke gives no second chances. See IsRegiUnlockRelaxed.
-    if (IsRegiUnlockRelaxed())
+    // species are randomized and a Nuzlocke gives no second chances. See IsLegendaryUnlockRelaxed.
+    if (IsLegendaryUnlockRelaxed())
         return TRUE;
 
     // First comes Magnezone
@@ -304,7 +304,7 @@ static bool8 IsPlayerOnMap(u8 mapGroup, u8 mapNum)
 // HMs are never randomized.
 bool8 ShouldDoBrailleFlashUnlock(void)
 {
-    if (!IsRegiUnlockRelaxed())
+    if (!IsLegendaryUnlockRelaxed())
         return FALSE;
 
     if (IsPlayerOnMap(MAP_GROUP(DESERT_RUINS), MAP_NUM(DESERT_RUINS))

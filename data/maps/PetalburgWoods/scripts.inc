@@ -51,6 +51,11 @@ PetalburgWoods_CelebiEvent::
 	end
 
 PetalburgWoods_CelebiEventGo::
+	@ tx_randomizer_and_challenges: the shrine asks to be shown Raikou, Entei and Suicune,
+	@ but with Random Static on those encounters are other species entirely, so the offering
+	@ can never be completed. Skip straight to Celebi. See IsLegendaryUnlockRelaxed.
+	specialvar VAR_RESULT, IsLegendaryUnlockRelaxed
+	goto_if_eq VAR_RESULT, TRUE, PetalburgWoods_CelebiBattle
 	applymovement OBJ_EVENT_ID_PLAYER, Movement_PetalburgWoods_Celebi1
 	waitmovement 0
 	msgbox Text_PetalburgWoods_Celebi1, MSGBOX_SIGN

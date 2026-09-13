@@ -1137,7 +1137,7 @@ edge case, so the feature was dropped instead of kept as a button that usually b
 
 ---
 
-## Phase 12 — Relaxed Regi unlock (randomizer + Nuzlocke)
+## Phase 12 — Relaxed legendary unlocks (randomizer + Nuzlocke)
 
 **Status:** ✅ Implemented — **needs in-game verification**
 
@@ -1161,7 +1161,7 @@ reachable. Under Nuzlocke a missed encounter is gone for good.
 
 ### What this changes
 
-`IsRegiUnlockRelaxed()` (`src/tx_randomizer_and_challenges.c`) is true when the **Nuzlocke
+`IsLegendaryUnlockRelaxed()` (`src/tx_randomizer_and_challenges.c`) is true when the **Nuzlocke
 setting is on** *and* `IsRandomizerActivated()` — i.e. any randomizer option. It reads the
 setting directly rather than `IsNuzlockeActive()`, which returns FALSE once the player is
 Champion; the Regis are usually caught after that point.
@@ -1173,6 +1173,10 @@ When it is true:
   `src/braille_puzzles.c`, hooked into `SetUpFieldMove_Flash`.
 - **The Sealed Chamber Inner Room drops its party requirement** — `CheckRelicanthWailord()`
   returns TRUE, so reading the back-wall braille opens the doors with any party.
+- **Celebi's shrine drops its offering entirely** — Petalburg Woods normally asks to be shown
+  Raikou, then Entei, then Suicune, checked by species ID. With *Random Static* on those three
+  encounters are other species, so the offering can never be completed and Celebi is
+  permanently unreachable. `PetalburgWoods_CelebiEventGo` now jumps straight to the battle.
 
 Every vanilla method still works; this only adds a route that is always available, since HMs
 are never randomized. The braille hints are unchanged and still describe the vanilla methods.
@@ -1205,6 +1209,17 @@ wall-opening functions were folded into `OpenRegiChamberWall(flag)`.
       unlock — walk away, open the menu, save.
 - [ ] **T12.12 — Regice puzzle intact.** The lap tracker (`FLAG_TEMP_REGICE_PUZZLE_STARTED` /
       `_FAILED`) still behaves if you start a lap and then use Flash instead.
+- [ ] **T12.13 — Celebi skips the offering.** Randomizer + Nuzlocke, Champion, *extra
+      legendaries* on: touch the Petalburg Woods shrine after the sign enables the event and
+      Celebi appears without being shown anything. No `ChoosePartyMon` prompt.
+- [ ] **T12.14 — Celebi offering intact otherwise.** With the relaxation off, the shrine still
+      asks for Raikou → Entei → Suicune in order and rejects the wrong species.
+- [ ] **T12.15 — Celebi is still a real encounter.** It can be caught or KO'd, sets
+      `FLAG_DEFEATEDCELEBI`, and the shrine reports the event finished afterwards.
+- [ ] **T12.16 — Extra legendaries.** Celebi only exists with `FLAG_EXTRA_LEGENDARIES`, which
+      the **Modern** gamemode preset sets (`TX_MODE_GAMEMODE 1`, the shipped default). On
+      *Classic*, or on *Custom* with the option left off, the woods use the old layout and
+      there is no shrine — that is correct, not a regression.
 
 ---
 

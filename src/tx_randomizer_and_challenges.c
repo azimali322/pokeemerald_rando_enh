@@ -96,15 +96,16 @@ bool8 IsNuzlockeActive(void)
     return gSaveBlock1Ptr->tx_Challenges_Nuzlocke;
 }
 
-// The Regis are gated on Sweet Scent, on a Magnezone-first/Vibrava-last party, and on a
-// clean lap of Regice's chamber. None of that survives contact with a randomizer -- the
-// species may not be reachable and Sweet Scent may not be learnable -- and a Nuzlocke gives
-// no second chance at a missed encounter. With both settings on, Flash opens the Regi walls
-// and the Sealed Chamber drops its party requirement.
+// Several legendary gates ask for a specific species or a specific move, and none of that
+// survives contact with a randomizer: the species may not be reachable and the move may not
+// be learnable. A Nuzlocke gives no second chance at a missed encounter either. With both
+// settings on:
+//   - Flash opens any Regi wall, and the Sealed Chamber drops its Magnezone/Vibrava party
+//   - Celebi's shrine stops asking to be shown Raikou, Entei and Suicune
 //
 // This reads the setting rather than IsNuzlockeActive(), which stops returning TRUE once the
-// player is Champion. The Regis are usually caught after that point.
-bool8 IsRegiUnlockRelaxed(void)
+// player is Champion. These are all post-Champion encounters.
+bool8 IsLegendaryUnlockRelaxed(void)
 {
     return (gSaveBlock1Ptr->tx_Challenges_Nuzlocke && IsRandomizerActivated());
 }
