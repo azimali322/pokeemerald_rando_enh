@@ -1173,6 +1173,10 @@ When it is true:
   `src/braille_puzzles.c`, hooked into `SetUpFieldMove_Flash`.
 - **The Sealed Chamber Inner Room drops its party requirement** — `CheckRelicanthWailord()`
   returns TRUE, so reading the back-wall braille opens the doors with any party.
+- **The Cave of Shock wall opens to Flash too** — normally it wants the **Sapphire**, which comes
+  from one hidden Kecleon on Route 119. That is a single missable encounter with no second try in
+  a Nuzlocke. The Draco Chamber is deliberately *not* relaxed: its gate is a button and a Lv65
+  Dusknoir battle, and a randomizer cannot take a battle away.
 - **Celebi's shrine drops its offering entirely** — Petalburg Woods normally asks to be shown
   Raikou, then Entei, then Suicune, checked by species ID. With *Random Static* on those three
   encounters are other species, so the offering can never be completed and Celebi is
@@ -1209,6 +1213,17 @@ wall-opening functions were folded into `OpenRegiChamberWall(flag)`.
       unlock — walk away, open the menu, save.
 - [ ] **T12.12 — Regice puzzle intact.** The lap tracker (`FLAG_TEMP_REGICE_PUZZLE_STARTED` /
       `_FAILED`) still behaves if you start a lap and then use Flash instead.
+- [ ] **T12.17 — Cave of Shock opens to Flash.** Randomizer + Nuzlocke: use Flash anywhere in the
+      Cave of Shock (east off Route 110, or south off Mauville / Route 118) and the wall opens.
+      The warp at (8, 20) leads up to Regieleki at (8, 3), exactly as Desert Ruins does.
+- [ ] **T12.18 — Sapphire route still works.** With the relaxation off, using the Sapphire in the
+      middle of the room still opens it and still consumes the item.
+- [ ] **T12.19 — No double-open.** Open it with Flash, then use the Sapphire on the already-open
+      room — nothing should break, and the Sapphire should not be consumed for nothing.
+- [ ] **T12.20 — Draco Chamber unchanged.** Flash does *nothing* there; down 3, right 5, the
+      button and the Dusknoir are still the only way in.
+- [ ] **T12.21 — Persists.** `FLAG_SYS_BRAILLE_REGIELEKI_COMPLETED` keeps the wall open across a
+      save and reload (the map's `OnLoad` re-hides the entrance only while that flag is clear).
 - [ ] **T12.13 — Celebi skips the offering.** Randomizer + Nuzlocke, Champion, *extra
       legendaries* on: touch the Petalburg Woods shrine after the sign enables the event and
       Celebi appears without being shown anything. No `ChoosePartyMon` prompt.
