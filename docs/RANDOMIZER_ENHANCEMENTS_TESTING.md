@@ -1233,9 +1233,18 @@ and BGM, with a case for each of the five titans and **no `default`**. It calls
 called, `Task_BattleStart` never ran, and the locked controls were never released — a hard lock
 with no way out but a reset.
 
-*Random Static* puts an arbitrary species in the chamber, so this fired on every Regi encounter
-with that option on. It is a pre-existing bug, not a regression from Phase 12 — but Phase 12 is
-what made the chambers reachable under a randomizer, which is why it surfaced now.
+*Random Static* puts a different species in the chamber, so the switch usually finds no match.
+It is a pre-existing bug, not a regression from Phase 12 — but Phase 12 is what made the
+chambers reachable under a randomizer, which is why it surfaced now.
+
+**It does not fire every time, which makes it look inconsistent.** Legendaries are remapped by
+`GetRandomLegendary()`, a Fisher-Yates permutation of the 25-entry `sRandomSpeciesEvoLegendary`
+pool seeded by the trainer ID — so a Regi chamber lands on another *legendary*, and five of those
+25 (the five titans) are handled by the switch. Reproducing the permutation offline over all
+65536 secret IDs for one reported public ID gives **80.0%** of chambers locking and 20% happening
+to land on a handled Regi and working normally. A chamber that works is the lucky case, not
+evidence the bug is absent. (If *Include Legendaries* routes through `GetRandomSpecies` instead,
+the pool is far larger and the lock rate is higher still.)
 
 `BattleSetup_StartLegendaryBattle()` was never affected: its `default:` falls into the Groudon
 case, so it always creates a task. That is why Celebi, Jirachi, Mew and the rest were fine while
@@ -1250,7 +1259,9 @@ a swapped species.
 - [ ] **T13.1 — Registeel chamber.** Randomizer + *Random Static* on: the Ancient Tomb encounter
       starts a battle instead of freezing. This is the exact case that was reported.
 - [ ] **T13.2 — All five chambers.** Same for Desert Ruins, Island Cave, the Cave of Shock
-      (Regieleki) and the Draco Chamber (Regidrago).
+      (Regieleki) and the Draco Chamber (Regidrago). Note that before the fix roughly one
+      chamber in five worked by chance, so "this one was fine" is not a valid pre-check —
+      test every chamber.
 - [ ] **T13.3 — Real Regis still themed.** With *Random Static* **off**, each titan still gets
       its own transition and the correct BGM — Regieleki and Regidrago on `MUS_PL_VS_REGI`, the
       other three on `MUS_VS_REGI`.
