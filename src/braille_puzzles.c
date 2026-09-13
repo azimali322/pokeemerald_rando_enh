@@ -20,6 +20,7 @@ enum {
     BRAILLE_PUZZLE_REGISTEEL,
     BRAILLE_PUZZLE_REGICE,
     BRAILLE_PUZZLE_SEALED_CHAMBER,
+    BRAILLE_PUZZLE_REGIELEKI,
 };
 
 EWRAM_DATA static u8 sBraillePuzzleId = 0;
@@ -68,8 +69,10 @@ static void Task_SealedChamberShakingEffect(u8);
 static void DoBrailleRegirockEffect(void);
 static void DoBrailleRegisteelEffect(void);
 static void DoBrailleRegiceEffect(void);
+static void DoBrailleRegielekiEffect(void);
 static void OpenRegiChamberWall(u16 flagToSet);
 static void UseRegiceHm_Callback(void);
+static void UseRegielekiHm_Callback(void);
 static void UseSealedChamberHm_Callback(void);
 static bool8 IsPlayerOnMap(u8 mapGroup, u8 mapNum);
 
@@ -221,8 +224,9 @@ void UseRegirockHm_Callback(void)
     DoBrailleRegirockEffect();
 }
 
-// All three Regi chambers share a layout, so opening any of their walls is the same work
-// apart from which flag records it.
+// The Regi chambers all share a layout -- the three vanilla ones plus the Cave of Shock and
+// the Draco Chamber, whose map scripts set the same six metatiles at (7-9, 19-20). So opening
+// any of their walls is the same work apart from which flag records it.
 static void OpenRegiChamberWall(u16 flagToSet)
 {
     MapGridSetMetatileIdAt(7 + MAP_OFFSET, 19 + MAP_OFFSET, METATILE_Cave_SealedChamberEntrance_TopLeft);
@@ -284,6 +288,17 @@ static void UseRegiceHm_Callback(void)
     DoBrailleRegiceEffect();
 }
 
+static void DoBrailleRegielekiEffect(void)
+{
+    OpenRegiChamberWall(FLAG_SYS_BRAILLE_REGIELEKI_COMPLETED);
+}
+
+static void UseRegielekiHm_Callback(void)
+{
+    FieldEffectActiveListRemove(FLDEFF_USE_TOMB_PUZZLE_EFFECT);
+    DoBrailleRegielekiEffect();
+}
+
 static void UseSealedChamberHm_Callback(void)
 {
     FieldEffectActiveListRemove(FLDEFF_USE_TOMB_PUZZLE_EFFECT);
@@ -331,6 +346,16 @@ bool8 ShouldDoBrailleFlashUnlock(void)
         sBraillePuzzleId = BRAILLE_PUZZLE_SEALED_CHAMBER;
         return TRUE;
     }
+    // The Cave of Shock wants the Sapphire, which comes from one hidden Kecleon on Route 119 --
+    // a single missable encounter, and a Nuzlocke gives no second try at it. The Draco Chamber
+    // is deliberately left alone: its gate is a button and a battle, which a randomizer cannot
+    // take away.
+    if (IsPlayerOnMap(MAP_GROUP(AQUA_HIDEOUT_UNUSED_RUBY_MAP2), MAP_NUM(AQUA_HIDEOUT_UNUSED_RUBY_MAP2))
+        && !FlagGet(FLAG_SYS_BRAILLE_REGIELEKI_COMPLETED))
+    {
+        sBraillePuzzleId = BRAILLE_PUZZLE_REGIELEKI;
+        return TRUE;
+    }
 
     return FALSE;
 }
@@ -362,6 +387,9 @@ bool8 FldEff_UsePuzzleEffect(void)
         break;
     case BRAILLE_PUZZLE_SEALED_CHAMBER:
         callback = UseSealedChamberHm_Callback;
+        break;
+    case BRAILLE_PUZZLE_REGIELEKI:
+        callback = UseRegielekiHm_Callback;
         break;
     case BRAILLE_PUZZLE_REGIROCK:
     default:
