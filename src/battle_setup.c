@@ -692,6 +692,14 @@ void StartRegiBattle(void)
     case SPECIES_REGIDRAGO:
         CreateBattleStartTask(B_TRANSITION_REGIDRAGO, MUS_PL_VS_REGI);
         break;
+    // tx_randomizer_and_challenges: Random Static can put any species in a Regi chamber.
+    // Without this the switch falls through, no battle task is ever created, and the field
+    // controls locked above are never released -- a hard lock with no way out but a reset.
+    // BattleSetup_StartLegendaryBattle has always been safe here because its default falls
+    // into the Groudon case; this one had no default at all.
+    default:
+        CreateBattleStartTask(B_TRANSITION_BLUR, MUS_VS_REGI);
+        break;
     }
 
     IncrementGameStat(GAME_STAT_TOTAL_BATTLES);

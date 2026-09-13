@@ -1223,6 +1223,57 @@ wall-opening functions were folded into `OpenRegiChamberWall(flag)`.
 
 ---
 
+## Phase 13 — Regi battle soft-lock fix
+
+**Status:** ✅ Fixed — **needs in-game verification**
+
+`StartRegiBattle()` (`src/battle_setup.c`) switched on the enemy species to pick a transition
+and BGM, with a case for each of the five titans and **no `default`**. It calls
+`LockPlayerFieldControls()` first, so when no case matched, `CreateBattleStartTask()` was never
+called, `Task_BattleStart` never ran, and the locked controls were never released — a hard lock
+with no way out but a reset.
+
+*Random Static* puts a different species in the chamber, so the switch usually finds no match.
+It is a pre-existing bug, not a regression from Phase 12 — but Phase 12 is what made the
+chambers reachable under a randomizer, which is why it surfaced now.
+
+**It does not fire every time, which makes it look inconsistent.** Legendaries are remapped by
+`GetRandomLegendary()`, a Fisher-Yates permutation of the 25-entry `sRandomSpeciesEvoLegendary`
+pool seeded by the trainer ID — so a Regi chamber lands on another *legendary*, and five of those
+25 (the five titans) are handled by the switch. Reproducing the permutation offline over all
+65536 secret IDs for one reported public ID gives **80.0%** of chambers locking and 20% happening
+to land on a handled Regi and working normally. A chamber that works is the lucky case, not
+evidence the bug is absent. (If *Include Legendaries* routes through `GetRandomSpecies` instead,
+the pool is far larger and the lock rate is higher still.)
+
+`BattleSetup_StartLegendaryBattle()` was never affected: its `default:` falls into the Groudon
+case, so it always creates a task. That is why Celebi, Jirachi, Mew and the rest were fine while
+only the Regis locked.
+
+Fixed by adding `default: CreateBattleStartTask(B_TRANSITION_BLUR, MUS_VS_REGI)`. The neutral
+blur transition suits an unknown species; the Regi BGM keeps the chamber's identity, and
+`BATTLE_TYPE_REGI` (set unconditionally above) already forces `MUS_VS_REGI` via `GetBattleBGM()`
+anyway. That flag only drives BGM and the Nuzlocke legendary exemption, so it stays correct for
+a swapped species.
+
+- [ ] **T13.1 — Registeel chamber.** Randomizer + *Random Static* on: the Ancient Tomb encounter
+      starts a battle instead of freezing. This is the exact case that was reported.
+- [ ] **T13.2 — All five chambers.** Same for Desert Ruins, Island Cave, the Cave of Shock
+      (Regieleki) and the Draco Chamber (Regidrago). Note that before the fix roughly one
+      chamber in five worked by chance, so "this one was fine" is not a valid pre-check —
+      test every chamber.
+- [ ] **T13.3 — Real Regis still themed.** With *Random Static* **off**, each titan still gets
+      its own transition and the correct BGM — Regieleki and Regidrago on `MUS_PL_VS_REGI`, the
+      other three on `MUS_VS_REGI`.
+- [ ] **T13.4 — Swapped species plays the Regi theme.** With a species swap in place, the battle
+      music is still the Regi theme.
+- [ ] **T13.5 — Nuzlocke exemption intact.** The encounter counts as a legendary, not as the
+      route's one catch — `BATTLE_TYPE_REGI` is in the exemption mask in `battle_main.c`.
+- [ ] **T13.6 — Outcome handling.** Catching, KO'ing and fleeing all behave, and
+      `FLAG_DEFEATED_REGI*` is set so Regigigas's five-titan count still advances.
+
+---
+
 ## Cross-phase integration
 
 Run once everything is in, on one save with **all** options enabled.
