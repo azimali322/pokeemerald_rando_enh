@@ -866,8 +866,17 @@ and the description box below it is no longer cleared.
 
 The panel is an opaque white rectangle with rounded corners (`TMHM_BOX_BG_COLOR` = 15, white in the
 menu-info palette at slot 12), so `COLORID_TMHM_INFO` now uses that as its text background rather than
-transparent. The type row is the 32px type icon alone, centred — there is no room for the 42px "TYPE"
-label *and* the icon at 64px wide, and the icon already names its own type.
+transparent. The type row carries no "TYPE" label — there is no room for the 42px label at 64px wide, and
+the icon already names its own type. Instead the row is a two-column grid matching the rows below it: the
+32px type icon centred over the label column, and the move's **damage category** centred over the value
+column. Status moves show no category icon; the column simply stays empty (144 physical / 86 special /
+139 status across the 369 moves, so roughly 38% of TMs show nothing there).
+
+The category icons were recoloured from `graphics/interface/split_icons.png` into blank tiles `0x08`/`0x0A`
+of `graphics/interface/menu_info.png` and added to `sMenuInfoIcons` as `MENU_INFO_ICON_PHYSICAL` /
+`MENU_INFO_ICON_SPECIAL`, so they share the panel's palette and cost no extra ROM — that sheet already
+carried 52 empty tiles. The remap is orange-on-red for physical and pink-on-purple for special; the source
+icons' exact colours are not in the menu-info palette, so these are the nearest equivalents.
 
 Geometry was checked against the rendered `graphics/bag/menu.bin` background: the panel clears the
 sort hint (ends x 39), the item icon box (ends x 35), the pocket dots (end y 31), the description box
@@ -893,6 +902,15 @@ y 36-95 — fully inside the panel.
 - [ ] **T8d.9 — Three-digit values fit.** Find a 100+ power TM (e.g. a randomized Blizzard/Fire Blast) and
       confirm the value is not clipped at the right edge — the column is 18px wide starting at x 44.
 - [ ] **T8d.10 — HMs too.** HM rows show their original move's stats.
+- [ ] **T8d.14 — Category icon correct.** A physical TM shows the red/orange icon, a special TM the
+      purple/pink one. Cross-check against the same move's icon in the battle move-select screen.
+- [ ] **T8d.15 — Status shows nothing.** A status TM (e.g. a randomized Will-O-Wisp or Tickle) shows the
+      type icon with an empty category column — no leftover icon from the previously hovered TM.
+- [ ] **T8d.16 — Randomized category.** With *Random TM Moves* on, the icon follows the **randomized**
+      move, not the TM's vanilla move.
+- [ ] **T8d.17 — Shared sheet intact.** `menu_info.png` is also read by the union room (type icons) and
+      Secret Base decorations (ball icons). Confirm those still draw correctly — the new art went into
+      previously blank tiles, but a bad offset would corrupt a neighbour.
 - [ ] **T8d.11 — Selling.** Enter the bag from a mart's sell flow, go to TMs & HMs; the panel coexists with
       the money window (rows 1-2) and the quantity window without overlap.
 - [ ] **T8d.12 — Messages on top.** Toss/sell message boxes (rows 15-18) draw normally; returning to the
