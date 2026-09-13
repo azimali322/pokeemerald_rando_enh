@@ -433,7 +433,11 @@ static const u8 sRegisteredSelectLong_Gfx[] = INCBIN_U8("graphics/bag/select_but
 #define TMHM_ROW_PP        44
 #define TMHM_LABEL_X        1
 #define TMHM_VALUE_X       44
-#define TMHM_TYPE_ICON_X   16  // 32px type icon, centred in the box
+// Type icon (32px) centred over the label column, damage category (14px) centred over
+// the value column, so the type row reads as the same two columns as the rows below it.
+#define TMHM_TYPE_ICON_X    6
+#define TMHM_CATEGORY_X    46
+#define TMHM_CATEGORY_Y     9
 
 enum {
     COLORID_NORMAL,
@@ -2767,6 +2771,11 @@ static void PrintTMHMMoveData(u16 itemId)
     {
         moveId = ItemIdToBattleMoveId(itemId);
         BlitMenuInfoIcon(WIN_TMHM_INFO, gBattleMoves[moveId].type + 1, TMHM_TYPE_ICON_X, TMHM_ROW_TYPE);
+        // Status moves get no category icon - the column simply stays empty
+        if (gBattleMoves[moveId].category == MOVE_CATEGORY_PHYSICAL)
+            BlitMenuInfoIcon(WIN_TMHM_INFO, MENU_INFO_ICON_PHYSICAL, TMHM_CATEGORY_X, TMHM_CATEGORY_Y);
+        else if (gBattleMoves[moveId].category == MOVE_CATEGORY_SPECIAL)
+            BlitMenuInfoIcon(WIN_TMHM_INFO, MENU_INFO_ICON_SPECIAL, TMHM_CATEGORY_X, TMHM_CATEGORY_Y);
         PrintTMHMMoveValue(gBattleMoves[moveId].power, gBattleMoves[moveId].power > 1, TMHM_ROW_POWER);
         PrintTMHMMoveValue(gBattleMoves[moveId].accuracy, gBattleMoves[moveId].accuracy != 0, TMHM_ROW_ACCURACY);
         PrintTMHMMoveValue(gBattleMoves[moveId].pp, TRUE, TMHM_ROW_PP);
