@@ -21,6 +21,7 @@ enum {
     BRAILLE_PUZZLE_REGICE,
     BRAILLE_PUZZLE_SEALED_CHAMBER,
     BRAILLE_PUZZLE_REGIELEKI,
+    BRAILLE_PUZZLE_REGIDRAGO,
 };
 
 EWRAM_DATA static u8 sBraillePuzzleId = 0;
@@ -70,9 +71,11 @@ static void DoBrailleRegirockEffect(void);
 static void DoBrailleRegisteelEffect(void);
 static void DoBrailleRegiceEffect(void);
 static void DoBrailleRegielekiEffect(void);
+static void DoBrailleRegidragoEffect(void);
 static void OpenRegiChamberWall(u16 flagToSet);
 static void UseRegiceHm_Callback(void);
 static void UseRegielekiHm_Callback(void);
+static void UseRegidragoHm_Callback(void);
 static void UseSealedChamberHm_Callback(void);
 static bool8 IsPlayerOnMap(u8 mapGroup, u8 mapNum);
 
@@ -299,6 +302,17 @@ static void UseRegielekiHm_Callback(void)
     DoBrailleRegielekiEffect();
 }
 
+static void DoBrailleRegidragoEffect(void)
+{
+    OpenRegiChamberWall(FLAG_SYS_BRAILLE_REGIDRAGO_COMPLETED);
+}
+
+static void UseRegidragoHm_Callback(void)
+{
+    FieldEffectActiveListRemove(FLDEFF_USE_TOMB_PUZZLE_EFFECT);
+    DoBrailleRegidragoEffect();
+}
+
 static void UseSealedChamberHm_Callback(void)
 {
     FieldEffectActiveListRemove(FLDEFF_USE_TOMB_PUZZLE_EFFECT);
@@ -347,13 +361,20 @@ bool8 ShouldDoBrailleFlashUnlock(void)
         return TRUE;
     }
     // The Cave of Shock wants the Sapphire, which comes from one hidden Kecleon on Route 119 --
-    // a single missable encounter, and a Nuzlocke gives no second try at it. The Draco Chamber
-    // is deliberately left alone: its gate is a button and a battle, which a randomizer cannot
-    // take away.
+    // a single missable encounter, and a Nuzlocke gives no second try at it.
     if (IsPlayerOnMap(MAP_GROUP(AQUA_HIDEOUT_UNUSED_RUBY_MAP2), MAP_NUM(AQUA_HIDEOUT_UNUSED_RUBY_MAP2))
         && !FlagGet(FLAG_SYS_BRAILLE_REGIELEKI_COMPLETED))
     {
         sBraillePuzzleId = BRAILLE_PUZZLE_REGIELEKI;
+        return TRUE;
+    }
+    // The Draco Chamber's own route -- the step count, the button and the Dusknoir -- is not
+    // luck-dependent, so this is for consistency rather than to unblock anything. The Dusknoir
+    // stays available either way: its button reads FLAG_DEFEATED_DUSKNOIR, not the wall flag.
+    if (IsPlayerOnMap(MAP_GROUP(AQUA_HIDEOUT_UNUSED_RUBY_MAP1), MAP_NUM(AQUA_HIDEOUT_UNUSED_RUBY_MAP1))
+        && !FlagGet(FLAG_SYS_BRAILLE_REGIDRAGO_COMPLETED))
+    {
+        sBraillePuzzleId = BRAILLE_PUZZLE_REGIDRAGO;
         return TRUE;
     }
 
@@ -390,6 +411,9 @@ bool8 FldEff_UsePuzzleEffect(void)
         break;
     case BRAILLE_PUZZLE_REGIELEKI:
         callback = UseRegielekiHm_Callback;
+        break;
+    case BRAILLE_PUZZLE_REGIDRAGO:
+        callback = UseRegidragoHm_Callback;
         break;
     case BRAILLE_PUZZLE_REGIROCK:
     default:

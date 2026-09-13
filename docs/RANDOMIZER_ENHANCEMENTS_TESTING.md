@@ -1173,10 +1173,17 @@ When it is true:
   `src/braille_puzzles.c`, hooked into `SetUpFieldMove_Flash`.
 - **The Sealed Chamber Inner Room drops its party requirement** — `CheckRelicanthWailord()`
   returns TRUE, so reading the back-wall braille opens the doors with any party.
-- **The Cave of Shock wall opens to Flash too** — normally it wants the **Sapphire**, which comes
-  from one hidden Kecleon on Route 119. That is a single missable encounter with no second try in
-  a Nuzlocke. The Draco Chamber is deliberately *not* relaxed: its gate is a button and a Lv65
-  Dusknoir battle, and a randomizer cannot take a battle away.
+- **The Cave of Shock and Draco Chamber walls open to Flash too.** The Cave of Shock normally
+  wants the **Sapphire** — one hidden Kecleon on Route 119, a single missable encounter with no
+  second try in a Nuzlocke. The Draco Chamber's own route (step count, button, Lv65 Dusknoir) is
+  not luck-dependent, so it is included for consistency rather than to unblock anything; the
+  Dusknoir stays available either way, since its button reads `FLAG_DEFEATED_DUSKNOIR` rather
+  than the wall flag.
+
+All five chambers share one layout, so `OpenRegiChamberWall()` serves all five and differs only
+in which flag it records. Each map check sets its own `sBraillePuzzleId`, and each id dispatches
+to its own flag — that 1:1 mapping is the thing most worth testing, since a crossed wire would
+silently open the wrong chamber.
 - **Celebi's shrine drops its offering entirely** — Petalburg Woods normally asks to be shown
   Raikou, then Entei, then Suicune, checked by species ID. With *Random Static* on those three
   encounters are other species, so the offering can never be completed and Celebi is
@@ -1220,8 +1227,16 @@ wall-opening functions were folded into `OpenRegiChamberWall(flag)`.
       middle of the room still opens it and still consumes the item.
 - [ ] **T12.19 — No double-open.** Open it with Flash, then use the Sapphire on the already-open
       room — nothing should break, and the Sapphire should not be consumed for nothing.
-- [ ] **T12.20 — Draco Chamber unchanged.** Flash does *nothing* there; down 3, right 5, the
-      button and the Dusknoir are still the only way in.
+- [ ] **T12.20 — Draco Chamber opens to Flash.** North off Route 132. Flash from anywhere in the
+      room opens the wall.
+- [ ] **T12.22 — Draco Chamber's own route still works.** With the relaxation off: down 3,
+      right 5, the button, then the Lv65 Dusknoir still opens it.
+- [ ] **T12.23 — Dusknoir still available after Flash.** Open the wall with Flash, then press the
+      button anyway — the Dusknoir should still be there to fight or catch, and beating it should
+      not break anything (it re-runs the same open script harmlessly).
+- [ ] **T12.24 — One chamber, one flag (the important one).** Five chambers now share
+      `OpenRegiChamberWall()`. Open each with Flash in a single session and confirm each opens
+      only its own wall: Desert Ruins, Ancient Tomb, Island Cave, Cave of Shock, Draco Chamber.
 - [ ] **T12.21 — Persists.** `FLAG_SYS_BRAILLE_REGIELEKI_COMPLETED` keeps the wall open across a
       save and reload (the map's `OnLoad` re-hides the entrance only while that flag is clear).
 - [ ] **T12.13 — Celebi skips the offering.** Randomizer + Nuzlocke, Champion, *extra
